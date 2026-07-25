@@ -3,7 +3,7 @@ import { X, LogIn, UserPlus, ShieldCheck, Mail, Lock, User } from 'lucide-react'
 import { useAuth } from '../context/AuthContext';
 
 export default function AuthModal({ isOpen, onClose }) {
-  const { login, register } = useAuth();
+  const { login, register, loginDemo } = useAuth();
   const [isSignUp, setIsSignUp] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -37,14 +37,10 @@ export default function AuthModal({ isOpen, onClose }) {
     setError('');
     setSubmitting(true);
     try {
-      try {
-        await register('Demo User', 'demo@dayscore.app', 'demo12345');
-      } catch (e) {
-        await login('demo@dayscore.app', 'demo12345');
-      }
+      await loginDemo();
       onClose();
     } catch (err) {
-      setError('Demo login failed. Please try again.');
+      setError(err.message || 'Demo login failed. Please try again.');
     } finally {
       setSubmitting(false);
     }

@@ -134,6 +134,36 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
+// Demo Account Auto-Provision & Login Endpoint
+app.post('/api/auth/demo', async (req, res) => {
+  try {
+    const demoEmail = 'demo@dayscore.app';
+    let user = await get('SELECT * FROM users WHERE email = ?', [demoEmail]);
+
+    if (!user) {
+      const hashedPassword = await bcrypt.hash('demo12345', 10);
+      const userId = createId();
+      const now = new Date().toISOString();
+
+      await run(
+        'INSERT INTO users (id, email, password_hash, name, created_at) VALUES (?, ?, ?, ?, ?)',
+        [userId, demoEmail, hashedPassword, 'Demo User', now]
+      );
+
+      await seedDefaultsForUser(userId);
+      user = { id: userId, name: 'Demo User', email: demoEmail };
+    }
+
+    const userObj = { id: user.id, name: user.name, email: user.email };
+    const token = generateToken(userObj);
+
+    return res.json({ token, user: userObj });
+  } catch (err) {
+    console.error('Demo login error:', err);
+    return res.status(500).json({ error: 'Server error during demo login.' });
+  }
+});
+
 // Get current user profile
 app.get('/api/auth/me', verifyTokenMiddleware, async (req, res) => {
   try {
