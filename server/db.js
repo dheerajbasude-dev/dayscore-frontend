@@ -141,4 +141,17 @@ export const initDb = async () => {
   console.log('Database tables initialized successfully.');
 };
 
+let dbInitPromise = null;
+
+export const ensureDbInitialized = () => {
+  if (!dbInitPromise) {
+    dbInitPromise = initDb().catch(err => {
+      console.error('Database initialization error:', err);
+      dbInitPromise = null;
+      throw err;
+    });
+  }
+  return dbInitPromise;
+};
+
 export default db;

@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import bcrypt from 'bcryptjs';
-import { initDb, run, get, all } from './db.js';
+import { initDb, ensureDbInitialized, run, get, all } from './db.js';
 import { generateToken, verifyTokenMiddleware } from './auth.js';
 
 const app = express();
@@ -15,9 +15,15 @@ app.use(cors({
 app.options('*', cors());
 app.use(express.json());
 
-// Initialize database schema
-initDb().catch(err => {
-  console.error('Database initialization failed:', err);
+// Middleware ensuring DB schema is ready before handling any request
+app.use(async (req, res, next) => {
+  try {
+    await ensureDbInitialized();
+    next();
+  } catch (err) {
+    console.error('Database initialization middleware error:', err);
+    res.status(500).json({ error: 'Database initialization failed.' });
+  }
 });
 
 // Helper for generating IDs if uuid package is not used
@@ -132,7 +138,7 @@ app.post('/api/auth/login', async (req, res) => {
 app.get('/api/auth/me', verifyTokenMiddleware, async (req, res) => {
   try {
     const user = await get('SELECT id, name, email, created_at FROM users WHERE id = ?', [req.user.id]);
-    if (!user) return res.status(444).json({ error: 'User not found.' });
+    if (!user) return res.status(401).json({ error: 'User not found.' });
     return res.json({ user });
   } catch (err) {
     return res.status(500).json({ error: 'Server error.' });
