@@ -20,7 +20,7 @@ export const getUserId = () => {
   }
 };
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+const API_BASE_URL = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
 
 const authFetch = async (url, options = {}) => {
   const token = getToken();
@@ -31,7 +31,8 @@ const authFetch = async (url, options = {}) => {
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
-  const fullUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url}`;
+  const cleanPath = url.startsWith('/') ? url : `/${url}`;
+  const fullUrl = url.startsWith('http') ? url : `${API_BASE_URL}${cleanPath}`;
   return fetch(fullUrl, { ...options, headers });
 };
 
