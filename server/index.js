@@ -518,6 +518,12 @@ app.put('/api/settings', verifyTokenMiddleware, async (req, res) => {
   }
 });
 
+// Global error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Unhandled server error:', err);
+  res.status(500).json({ error: err.message || 'Internal Server Error' });
+});
+
 if (!process.env.VERCEL) {
   app.listen(PORT, () => {
     console.log(`DayScore Backend API running on http://localhost:${PORT}`);

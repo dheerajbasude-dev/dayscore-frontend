@@ -37,11 +37,10 @@ export default function AuthModal({ isOpen, onClose }) {
     setError('');
     setSubmitting(true);
     try {
-      // Create or login demo user
       try {
-        await login('demo@dayscore.app', 'demo12345');
-      } catch (e) {
         await register('Demo User', 'demo@dayscore.app', 'demo12345');
+      } catch (e) {
+        await login('demo@dayscore.app', 'demo12345');
       }
       onClose();
     } catch (err) {
