@@ -66,6 +66,13 @@ export default function TodayView() {
       const userSettings = await store.fetchSettingsApi()
       if (!isMounted) return;
       setSettings(userSettings)
+
+      await Promise.all([
+        store.fetchPunishmentsApi(),
+        store.fetchRewardsApi()
+      ])
+      if (!isMounted) return;
+      setActivePunishment(store.getActivePunishment())
     }
 
     loadUserData()

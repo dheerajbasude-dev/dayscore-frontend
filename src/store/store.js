@@ -358,10 +358,24 @@ export async function deleteRewardApi(text) {
   return rewards;
 }
 
+const DEFAULT_PUNISHMENTS = [
+  "20 Push-ups or Air Squats",
+  "No Social Media for 2 Hours",
+  "15 Mins Fasting / Water Only",
+  "Read 10 Pages of a Book",
+  "Clean & Tidy Workstation Immediately"
+];
+
 export function getPunishments() {
   const uid = getUserId();
   const data = localStorage.getItem(`dayscore_${uid}_punishments`);
-  return data ? JSON.parse(data) : [];
+  if (!data) return DEFAULT_PUNISHMENTS;
+  try {
+    const parsed = JSON.parse(data);
+    return (Array.isArray(parsed) && parsed.length > 0) ? parsed : DEFAULT_PUNISHMENTS;
+  } catch (e) {
+    return DEFAULT_PUNISHMENTS;
+  }
 }
 
 export async function fetchPunishmentsApi() {
@@ -372,7 +386,9 @@ export async function fetchPunishmentsApi() {
     const res = await authFetch('/api/punishments');
     if (res.ok) {
       const data = await res.json();
-      const list = Array.isArray(data.punishments) ? data.punishments : [];
+      const list = (Array.isArray(data.punishments) && data.punishments.length > 0) 
+        ? data.punishments 
+        : DEFAULT_PUNISHMENTS;
       savePunishments(list);
       return list;
     }
