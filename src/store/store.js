@@ -267,8 +267,10 @@ export async function fetchRewardsApi() {
     const res = await authFetch('/api/rewards');
     if (res.ok) {
       const data = await res.json();
-      saveRewards(data.rewards);
-      return data.rewards;
+      if (Array.isArray(data.rewards) && data.rewards.length > 0) {
+        saveRewards(data.rewards);
+        return data.rewards;
+      }
     }
   } catch (e) {
     console.warn('Fetch rewards API error:', e);
@@ -350,8 +352,10 @@ export async function fetchPunishmentsApi() {
     const res = await authFetch('/api/punishments');
     if (res.ok) {
       const data = await res.json();
-      savePunishments(data.punishments);
-      return data.punishments;
+      if (Array.isArray(data.punishments) && data.punishments.length > 0) {
+        savePunishments(data.punishments);
+        return data.punishments;
+      }
     }
   } catch (e) {
     console.warn('Fetch punishments API error:', e);
