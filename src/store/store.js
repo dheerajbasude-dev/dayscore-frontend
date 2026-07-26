@@ -132,6 +132,8 @@ export function updateTask(dateStr, taskId, updates) {
       authFetch(`/api/tasks/${taskId}`, {
         method: 'PUT',
         body: JSON.stringify(updates)
+      }).then(res => {
+        if (!res.ok) console.warn('Update task server response status:', res.status);
       }).catch(err => console.error('Update task API error:', err));
     }
   }
@@ -146,6 +148,8 @@ export function deleteTask(dateStr, taskId) {
   if (token) {
     authFetch(`/api/tasks/${taskId}?date=${dateStr}`, {
       method: 'DELETE'
+    }).then(res => {
+      if (!res.ok) console.warn('Delete task server response status:', res.status);
     }).catch(err => console.error('Delete task API error:', err));
   }
 }

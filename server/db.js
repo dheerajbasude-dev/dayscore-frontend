@@ -99,24 +99,30 @@ export const run = async (sql, params = []) => {
 
   if (trimmed.startsWith('UPDATE tasks SET')) {
     const [title, category, priority, status, due_date_time, rating, max_rating, reward, penalty, reward_claimed, penalty_accepted, completed_at, id, user_id] = params;
-    const task = storeData.tasks.find(t => t.id === id && t.user_id === user_id);
-    if (task) {
-      task.title = title;
-      task.category = category;
-      task.priority = priority;
-      task.status = status;
-      task.due_date_time = due_date_time;
-      task.rating = rating;
-      task.max_rating = max_rating;
-      task.reward = reward;
-      task.penalty = penalty;
-      task.reward_claimed = reward_claimed;
-      task.penalty_accepted = penalty_accepted;
-      task.completed_at = completed_at;
-      saveJsonData();
-      return { changes: 1 };
+    let task = storeData.tasks.find(t => t.id === id && t.user_id === user_id);
+    if (!task) {
+      task = {
+        id, user_id, date: new Date().toISOString().substring(0, 10), title: title || 'Task', category: category || 'Work',
+        priority: priority || 'Med', status: status || 'pending', due_date_time: due_date_time || null,
+        rating: null, max_rating: null, reward: null, penalty: null, reward_claimed: 0, penalty_accepted: 0,
+        carried_over: 0, completed_at: null, created_at: new Date().toISOString()
+      };
+      storeData.tasks.unshift(task);
     }
-    return { changes: 0 };
+    task.title = title;
+    task.category = category;
+    task.priority = priority;
+    task.status = status;
+    task.due_date_time = due_date_time;
+    task.rating = rating;
+    task.max_rating = max_rating;
+    task.reward = reward;
+    task.penalty = penalty;
+    task.reward_claimed = reward_claimed;
+    task.penalty_accepted = penalty_accepted;
+    task.completed_at = completed_at;
+    saveJsonData();
+    return { changes: 1 };
   }
 
   if (trimmed.startsWith('DELETE FROM tasks')) {

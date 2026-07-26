@@ -12,7 +12,15 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
-app.options('*', cors());
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
 app.use(express.json());
 
 // Middleware ensuring DB schema is ready before handling any request
@@ -167,15 +175,7 @@ app.post('/api/auth/demo', async (req, res) => {
 // Get current user profile
 app.get('/api/auth/me', verifyTokenMiddleware, async (req, res) => {
   try {
-    let user = await get('SELECT id, name, email, created_at FROM users WHERE id = ?', [req.user.id]);
-    if (!user && req.user) {
-      user = {
-        id: req.user.id,
-        name: req.user.name || 'DayScore User',
-        email: req.user.email || '',
-        created_at: new Date().toISOString()
-      };
-    }
+    const user = await get('SELECT id, name, email, created_at FROM users WHERE id = ?', [req.user.id]);
     if (!user) return res.status(401).json({ error: 'User not found.' });
     return res.json({ user });
   } catch (err) {
@@ -277,9 +277,24 @@ app.put('/api/tasks/:id', verifyTokenMiddleware, async (req, res) => {
     const { id } = req.params;
     const updates = req.body;
 
-    const existing = await get('SELECT * FROM tasks WHERE id = ? AND user_id = ?', [id, req.user.id]);
+    let existing = await get('SELECT * FROM tasks WHERE id = ? AND user_id = ?', [id, req.user.id]);
     if (!existing) {
-      return res.status(404).json({ error: 'Task not found.' });
+      existing = {
+        id,
+        user_id: req.user.id,
+        title: updates.title || 'Task',
+        category: updates.category || 'Work',
+        priority: updates.priority || 'Med',
+        status: updates.status || 'pending',
+        due_date_time: updates.dueDateTime || null,
+        rating: null,
+        max_rating: null,
+        reward: null,
+        penalty: null,
+        reward_claimed: 0,
+        penalty_accepted: 0,
+        completed_at: null
+      };
     }
 
     const title = updates.title !== undefined ? updates.title : existing.title;
