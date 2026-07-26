@@ -101,7 +101,10 @@ export function addTask(dateStr, task) {
         status: newTask.status,
         carriedOver: newTask.carriedOver
       })
-    }).then(res => res.json()).then(data => {
+    }).then(res => {
+      if (!res.ok) return null;
+      return res.json();
+    }).then(data => {
       if (data && data.task && data.task.id) {
         // Update local task with server assigned ID if changed
         const currentTasks = getTasks(dateStr);

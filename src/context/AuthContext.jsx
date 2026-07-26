@@ -3,28 +3,57 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 const API_BASE_URL = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
 const AuthContext = createContext(null);
 
+const getUserFromToken = (tokenStr) => {
+  if (!tokenStr) return null;
+  try {
+    const base64Url = tokenStr.split('.')[1];
+    if (!base64Url) return null;
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => {
+      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+    const parsed = JSON.parse(jsonPayload);
+    if (parsed.exp && parsed.exp * 1000 < Date.now()) {
+      return null;
+    }
+    return { id: parsed.id, name: parsed.name || 'User', email: parsed.email || '' };
+  } catch (e) {
+    return null;
+  }
+};
+
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
   const [token, setToken] = useState(() => localStorage.getItem('dayscore_token') || null);
+  const [user, setUser] = useState(() => getUserFromToken(localStorage.getItem('dayscore_token')));
   const [loading, setLoading] = useState(true);
 
   // Validate token on mount
   useEffect(() => {
     const checkAuth = async () => {
       if (!token) {
+        setUser(null);
         setLoading(false);
         return;
       }
+      
+      const tokenUser = getUserFromToken(token);
+      if (!tokenUser) {
+        logout();
+        setLoading(false);
+        return;
+      }
+
+      setUser(tokenUser);
+
       try {
         const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.ok) {
           const data = await res.json();
-          setUser(data.user);
-        } else {
-          // Invalid or expired token
-          logout();
+          if (data.user) {
+            setUser(data.user);
+          }
         }
       } catch (e) {
         console.warn('Auth check warning:', e);

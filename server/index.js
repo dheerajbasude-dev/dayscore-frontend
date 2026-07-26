@@ -167,7 +167,15 @@ app.post('/api/auth/demo', async (req, res) => {
 // Get current user profile
 app.get('/api/auth/me', verifyTokenMiddleware, async (req, res) => {
   try {
-    const user = await get('SELECT id, name, email, created_at FROM users WHERE id = ?', [req.user.id]);
+    let user = await get('SELECT id, name, email, created_at FROM users WHERE id = ?', [req.user.id]);
+    if (!user && req.user) {
+      user = {
+        id: req.user.id,
+        name: req.user.name || 'DayScore User',
+        email: req.user.email || '',
+        created_at: new Date().toISOString()
+      };
+    }
     if (!user) return res.status(401).json({ error: 'User not found.' });
     return res.json({ user });
   } catch (err) {
