@@ -1,4 +1,5 @@
 import { format } from 'date-fns';
+import { calculateDailyScore } from './scoring';
 
 export const getDateKey = (date) => format(date || new Date(), 'yyyy-MM-dd');
 
@@ -46,6 +47,11 @@ export function getTasks(dateStr) {
   return data ? JSON.parse(data) : [];
 }
 
+export function isTasksCached(dateStr) {
+  const uid = getUserId();
+  return localStorage.getItem(`dayscore_${uid}_tasks_${dateStr}`) !== null;
+}
+
 export async function fetchTasksApi(dateStr) {
   const token = getToken();
   if (!token) return getTasks(dateStr);
@@ -54,38 +60,41 @@ export async function fetchTasksApi(dateStr) {
     const res = await authFetch(`/api/tasks?date=${dateStr}`);
     if (res.ok) {
       const data = await res.json();
-      const localTasks = getTasks(dateStr);
-      const serverTasks = data.tasks || [];
+      const serverTasks = (data.tasks || []).map(t => {
+        const isClaimed = t.reward_claimed === 1 || t.reward_claimed === '1' || t.reward_claimed === true || t.rewardClaimed === true || t.rewardClaimed === 1;
+        const isAcknowledged = t.reward_acknowledged === 1 || t.reward_acknowledged === '1' || t.reward_acknowledged === true || t.rewardAcknowledged === true || t.rewardAcknowledged === 1;
+        const isAccepted = t.penalty_accepted === 1 || t.penalty_accepted === '1' || t.penalty_accepted === true || t.penaltyAccepted === true || t.penaltyAccepted === 1;
+        const isPenaltyAck = t.penalty_acknowledged === 1 || t.penalty_acknowledged === '1' || t.penalty_acknowledged === true || t.penaltyAcknowledged === true || t.penaltyAcknowledged === 1;
+        const isCarried = t.carried_over === 1 || t.carried_over === '1' || t.carried_over === true || t.carriedOver === true || t.carriedOver === 1;
 
-      // Merge server tasks with local tasks so client state is never lost on refresh
-      const mergedTasks = serverTasks.map(serverTask => {
-        const local = localTasks.find(l => l.id === serverTask.id);
-        if (local && local.status === 'done' && serverTask.status !== 'done') {
-          // Re-sync completed status to server
-          authFetch(`/api/tasks/${local.id}`, {
-            method: 'PUT',
-            body: JSON.stringify({
-              status: local.status,
-              rating: local.rating,
-              maxRating: local.maxRating,
-              reward: local.reward,
-              penalty: local.penalty,
-              completedAt: local.completedAt
-            })
-          }).catch(e => console.error('Re-sync error:', e));
-          return local;
-        }
-        return serverTask;
+        const createdDate = t.createdAt || t.created_at || new Date().toISOString();
+        const completedDate = t.completedAt || t.completed_at || null;
+
+        return {
+          ...t,
+          id: t.id || t._id,
+          _id: t._id || t.id,
+          dueDateTime: t.dueDateTime || t.due_date_time,
+          due_date_time: t.due_date_time || t.dueDateTime,
+          rewardClaimed: isClaimed,
+          reward_claimed: isClaimed ? 1 : 0,
+          rewardAcknowledged: isAcknowledged,
+          reward_acknowledged: isAcknowledged ? 1 : 0,
+          penaltyAccepted: isAccepted,
+          penalty_accepted: isAccepted ? 1 : 0,
+          penaltyAcknowledged: isPenaltyAck,
+          penalty_acknowledged: isPenaltyAck ? 1 : 0,
+          completedAt: completedDate,
+          completed_at: completedDate,
+          createdAt: createdDate,
+          created_at: createdDate,
+          carriedOver: isCarried
+        };
       });
 
-      localTasks.forEach(local => {
-        if (!mergedTasks.some(m => m.id === local.id)) {
-          mergedTasks.push(local);
-        }
-      });
-
-      saveTasks(dateStr, mergedTasks);
-      return mergedTasks;
+      // Directly update local cache with what exists in MongoDB Atlas
+      saveTasks(dateStr, serverTasks);
+      return serverTasks;
     }
   } catch (e) {
     console.warn('Failed to fetch tasks from server:', e);
@@ -98,18 +107,54 @@ export function saveTasks(dateStr, tasks) {
   localStorage.setItem(`dayscore_${uid}_tasks_${dateStr}`, JSON.stringify(tasks));
 }
 
-export function addTask(dateStr, task) {
+export async function addTask(dateStr, task) {
   const token = getToken();
-  const taskId = task.id || ((typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : (Date.now().toString(36) + Math.random().toString(36).substring(2, 7)));
+  const tempId = task.id || ((typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : (Date.now().toString(36) + Math.random().toString(36).substring(2, 7)));
+
+  if (token) {
+    try {
+      const res = await authFetch('/api/tasks', {
+        method: 'POST',
+        body: JSON.stringify({
+          date: dateStr,
+          title: task.title || 'Untitled Task',
+          category: task.category || 'Work',
+          priority: task.priority || 'Med',
+          dueDateTime: task.dueDateTime || new Date().toISOString(),
+          due_date_time: task.dueDateTime || new Date().toISOString(),
+          status: task.status || 'pending',
+          carriedOver: !!task.carriedOver,
+          reward: task.reward || null,
+          penalty: task.penalty || null,
+          rating: task.rating ?? null,
+          maxRating: task.maxRating ?? null
+        })
+      });
+      if (res.ok) {
+        return await fetchTasksApi(dateStr);
+      }
+    } catch (err) {
+      console.error('Add task API error:', err);
+    }
+  }
+
   const newTask = {
-    id: taskId,
+    id: tempId,
+    _id: tempId,
     title: task.title || 'Untitled Task',
     category: task.category || 'Work',
     priority: task.priority || 'Med',
     dueDateTime: task.dueDateTime || new Date().toISOString(),
+    due_date_time: task.dueDateTime || new Date().toISOString(),
     status: task.status || 'pending',
     rating: task.rating ?? null,
     maxRating: task.maxRating ?? null,
+    reward: task.reward || null,
+    penalty: task.penalty || null,
+    rewardClaimed: false,
+    reward_claimed: 0,
+    penaltyAccepted: false,
+    penalty_accepted: 0,
     createdAt: new Date().toISOString(),
     carriedOver: !!task.carriedOver,
     ...task
@@ -118,145 +163,127 @@ export function addTask(dateStr, task) {
   const tasks = getTasks(dateStr);
   tasks.unshift(newTask);
   saveTasks(dateStr, tasks);
-
-  if (token) {
-    authFetch('/api/tasks', {
-      method: 'POST',
-      body: JSON.stringify({
-        id: taskId,
-        date: dateStr,
-        title: newTask.title,
-        category: newTask.category,
-        priority: newTask.priority,
-        dueDateTime: newTask.dueDateTime,
-        status: newTask.status,
-        carriedOver: newTask.carriedOver
-      })
-    }).then(res => {
-      if (!res.ok) return null;
-      return res.json();
-    }).catch(err => console.error('Add task API error:', err));
-  }
-
   return newTask;
 }
 
-export function updateTask(dateStr, taskId, updates) {
+export async function updateTask(dateStr, taskId, updates) {
+  const token = getToken();
   const tasks = getTasks(dateStr);
-  const index = tasks.findIndex(t => t.id === taskId);
-  if (index !== -1) {
-    tasks[index] = { ...tasks[index], ...updates };
-    saveTasks(dateStr, tasks);
+  const existing = tasks.find(t => t.id === taskId || t._id === taskId) || {};
+  const targetId = existing.id || existing._id || taskId;
 
-    const token = getToken();
-    if (token) {
-      authFetch(`/api/tasks/${taskId}`, {
+  const cleanUpdates = { ...updates };
+
+  // Enforce mutual exclusion between reward and penalty only when new reward/penalty text is explicitly provided
+  if (cleanUpdates.reward) {
+    cleanUpdates.penaltyAccepted = false;
+    cleanUpdates.penalty_accepted = 0;
+    cleanUpdates.penalty = null;
+  } else if (cleanUpdates.penalty) {
+    cleanUpdates.rewardClaimed = false;
+    cleanUpdates.reward_claimed = 0;
+    cleanUpdates.reward = null;
+  }
+
+  if (token) {
+    try {
+      const res = await authFetch(`/api/tasks/${targetId}`, {
         method: 'PUT',
-        body: JSON.stringify(updates)
-      }).then(res => {
-        if (!res.ok) console.warn('Update task server response status:', res.status);
-      }).catch(err => console.error('Update task API error:', err));
+        body: JSON.stringify(cleanUpdates)
+      });
+      if (res.ok) {
+        return await fetchTasksApi(dateStr);
+      }
+    } catch (err) {
+      console.error('Update task API error:', err);
     }
   }
+
+  const index = tasks.findIndex(t => t.id === taskId || t._id === taskId);
+  if (index !== -1) {
+    tasks[index] = { ...tasks[index], ...cleanUpdates, id: targetId, _id: targetId };
+    saveTasks(dateStr, tasks);
+  }
+  return tasks;
 }
 
-export function deleteTask(dateStr, taskId) {
+export async function deleteTask(dateStr, taskId) {
+  const token = getToken();
+  if (token) {
+    try {
+      const res = await authFetch(`/api/tasks/${taskId}?date=${dateStr}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        return await fetchTasksApi(dateStr);
+      }
+    } catch (err) {
+      console.error('Delete task server error:', err);
+    }
+  }
+
   const tasks = getTasks(dateStr);
-  const newTasks = tasks.filter(t => t.id !== taskId);
+  const newTasks = tasks.filter(t => t.id !== taskId && t._id !== taskId);
   saveTasks(dateStr, newTasks);
-
-  const token = getToken();
-  if (token) {
-    authFetch(`/api/tasks/${taskId}?date=${dateStr}`, {
-      method: 'DELETE'
-    }).then(res => {
-      if (!res.ok) console.warn('Delete task server response status:', res.status);
-    }).catch(err => console.error('Delete task API error:', err));
-  }
+  return newTasks;
 }
 
 // ==========================================
-// Day Archives Storage & API
+// Dynamic Archives (Calculated On-The-Fly from Tasks)
 // ==========================================
 
-export function getDayArchive(dateStr) {
+export function getArchivesFromTasks() {
   const uid = getUserId();
-  const data = localStorage.getItem(`dayscore_${uid}_archive_${dateStr}`);
-  return data ? JSON.parse(data) : null;
-}
-
-export function saveDayArchive(dateStr, data) {
-  const uid = getUserId();
-  localStorage.setItem(`dayscore_${uid}_archive_${dateStr}`, JSON.stringify(data));
-
-  const token = getToken();
-  if (token) {
-    authFetch('/api/archives', {
-      method: 'POST',
-      body: JSON.stringify({ date: dateStr, ...data })
-    }).catch(err => console.error('Save archive API error:', err));
-  }
-}
-
-export function getAllArchives() {
-  const uid = getUserId();
-  const prefix = `dayscore_${uid}_archive_`;
-  const archives = [];
+  const prefix = `dayscore_${uid}_tasks_`;
+  const archiveMap = new Map();
 
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
     if (key && key.startsWith(prefix)) {
       try {
-        const item = JSON.parse(localStorage.getItem(key));
-        if (item && typeof item === 'object') {
-          const dateFromKey = key.replace(prefix, '');
-          if (!item.date || typeof item.date !== 'string') {
-            item.date = dateFromKey;
-          }
-          archives.push(item);
+        const tasks = JSON.parse(localStorage.getItem(key));
+        if (Array.isArray(tasks) && tasks.length > 0) {
+          const dateStr = key.replace(prefix, '');
+          const scoreResult = calculateDailyScore(tasks);
+          archiveMap.set(dateStr, {
+            date: dateStr,
+            score: scoreResult.score,
+            tasks
+          });
         }
-      } catch (e) {
-        console.error('Failed to parse archive key:', key, e);
-      }
+      } catch (e) {}
     }
   }
-  return archives.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+
+  return Array.from(archiveMap.values()).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
 }
 
-export async function fetchArchivesApi() {
-  const token = getToken();
-  if (!token) return getAllArchives();
+export function getAllArchives() {
+  return getArchivesFromTasks();
+}
 
-  try {
-    const res = await authFetch('/api/archives');
-    if (res.ok) {
-      const data = await res.json();
-      const uid = getUserId();
-      data.archives.forEach(arc => {
-        localStorage.setItem(`dayscore_${uid}_archive_${arc.date}`, JSON.stringify(arc));
-      });
-      return data.archives;
-    }
-  } catch (e) {
-    console.warn('Failed to fetch archives from API:', e);
-  }
-  return getAllArchives();
+export function getDayArchive(dateStr) {
+  const archives = getArchivesFromTasks();
+  return archives.find(a => a.date === dateStr) || null;
+}
+
+export function saveDayArchive() {
+  // No-op: Archives are calculated dynamically on-the-fly from tasks
 }
 
 // ==========================================
 // Rewards & Punishments Storage & API
 // ==========================================
 
+export function isRewardsCached() {
+  const uid = getUserId();
+  return localStorage.getItem(`dayscore_${uid}_rewards`) !== null;
+}
+
 export function getRewards() {
   const uid = getUserId();
   const data = localStorage.getItem(`dayscore_${uid}_rewards`);
-  return data ? JSON.parse(data) : [
-    '30 mins video gaming 🎮',
-    'Favorite dessert 🍕',
-    'Watch a movie / show 🎬',
-    'Guilt-free relaxation ☕',
-    'Sleep in tomorrow 😴'
-  ];
+  return data ? JSON.parse(data) : [];
 }
 
 export async function fetchRewardsApi() {
@@ -267,10 +294,9 @@ export async function fetchRewardsApi() {
     const res = await authFetch('/api/rewards');
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data.rewards) && data.rewards.length > 0) {
-        saveRewards(data.rewards);
-        return data.rewards;
-      }
+      const list = Array.isArray(data.rewards) ? data.rewards : [];
+      saveRewards(list);
+      return list;
     }
   } catch (e) {
     console.warn('Fetch rewards API error:', e);
@@ -284,12 +310,6 @@ export function saveRewards(rewards) {
 }
 
 export async function addRewardApi(text) {
-  const rewards = getRewards();
-  if (!rewards.includes(text)) {
-    rewards.push(text);
-    saveRewards(rewards);
-  }
-
   const token = getToken();
   if (token) {
     try {
@@ -299,20 +319,23 @@ export async function addRewardApi(text) {
       });
       if (res.ok) {
         const data = await res.json();
-        saveRewards(data.rewards);
-        return data.rewards;
+        const list = Array.isArray(data.rewards) ? data.rewards : [];
+        saveRewards(list);
+        return list;
       }
     } catch (e) {
       console.error('Add reward API error:', e);
     }
   }
+  const rewards = getRewards();
+  if (!rewards.includes(text)) {
+    rewards.push(text);
+    saveRewards(rewards);
+  }
   return rewards;
 }
 
 export async function deleteRewardApi(text) {
-  const rewards = getRewards().filter(r => r !== text);
-  saveRewards(rewards);
-
   const token = getToken();
   if (token) {
     try {
@@ -322,26 +345,23 @@ export async function deleteRewardApi(text) {
       });
       if (res.ok) {
         const data = await res.json();
-        saveRewards(data.rewards);
-        return data.rewards;
+        const list = Array.isArray(data.rewards) ? data.rewards : [];
+        saveRewards(list);
+        return list;
       }
     } catch (e) {
       console.error('Delete reward API error:', e);
     }
   }
+  const rewards = getRewards().filter(r => r !== text);
+  saveRewards(rewards);
   return rewards;
 }
 
 export function getPunishments() {
   const uid = getUserId();
   const data = localStorage.getItem(`dayscore_${uid}_punishments`);
-  return data ? JSON.parse(data) : [
-    'No social media for 24h 📵',
-    'Cold shower tomorrow 🚿',
-    '20 extra pushups 💪',
-    'No YouTube for a day 📺',
-    'Donate $5 to charity 💸'
-  ];
+  return data ? JSON.parse(data) : [];
 }
 
 export async function fetchPunishmentsApi() {
@@ -352,10 +372,9 @@ export async function fetchPunishmentsApi() {
     const res = await authFetch('/api/punishments');
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data.punishments) && data.punishments.length > 0) {
-        savePunishments(data.punishments);
-        return data.punishments;
-      }
+      const list = Array.isArray(data.punishments) ? data.punishments : [];
+      savePunishments(list);
+      return list;
     }
   } catch (e) {
     console.warn('Fetch punishments API error:', e);
@@ -369,12 +388,6 @@ export function savePunishments(punishments) {
 }
 
 export async function addPunishmentApi(text) {
-  const punishments = getPunishments();
-  if (!punishments.includes(text)) {
-    punishments.push(text);
-    savePunishments(punishments);
-  }
-
   const token = getToken();
   if (token) {
     try {
@@ -384,20 +397,23 @@ export async function addPunishmentApi(text) {
       });
       if (res.ok) {
         const data = await res.json();
-        savePunishments(data.punishments);
-        return data.punishments;
+        const list = Array.isArray(data.punishments) ? data.punishments : [];
+        savePunishments(list);
+        return list;
       }
     } catch (e) {
       console.error('Add punishment API error:', e);
     }
   }
+  const punishments = getPunishments();
+  if (!punishments.includes(text)) {
+    punishments.push(text);
+    savePunishments(punishments);
+  }
   return punishments;
 }
 
 export async function deletePunishmentApi(text) {
-  const punishments = getPunishments().filter(p => p !== text);
-  savePunishments(punishments);
-
   const token = getToken();
   if (token) {
     try {
@@ -407,13 +423,16 @@ export async function deletePunishmentApi(text) {
       });
       if (res.ok) {
         const data = await res.json();
-        savePunishments(data.punishments);
-        return data.punishments;
+        const list = Array.isArray(data.punishments) ? data.punishments : [];
+        savePunishments(list);
+        return list;
       }
     } catch (e) {
       console.error('Delete punishment API error:', e);
     }
   }
+  const punishments = getPunishments().filter(p => p !== text);
+  savePunishments(punishments);
   return punishments;
 }
 
@@ -460,6 +479,11 @@ export function saveTemplates(templates) {
   localStorage.setItem(`dayscore_${uid}_templates`, JSON.stringify(templates));
 }
 
+export function isSettingsCached() {
+  const uid = getUserId();
+  return localStorage.getItem(`dayscore_${uid}_settings`) !== null;
+}
+
 export function getSettings() {
   const uid = getUserId();
   const data = localStorage.getItem(`dayscore_${uid}_settings`);
@@ -483,7 +507,9 @@ export async function fetchSettingsApi() {
   } catch (e) {
     console.warn('Fetch settings API error:', e);
   }
-  return getSettings();
+  const fallback = getSettings();
+  saveSettings(fallback);
+  return fallback;
 }
 
 export function saveSettings(settings) {
@@ -541,38 +567,4 @@ export function resetAllData() {
   keysToRemove.forEach(key => localStorage.removeItem(key));
 }
 
-export function getClaimsHistory() {
-  const uid = getUserId();
-  const data = localStorage.getItem(`dayscore_${uid}_claims_history`);
-  return data ? JSON.parse(data) : [];
-}
 
-export function logClaim({ type, text, date }) {
-  const history = getClaimsHistory();
-  const newEntry = {
-    id: Date.now().toString(),
-    type,
-    text,
-    date: date || new Date().toISOString().split('T')[0],
-    claimedAt: new Date().toISOString()
-  };
-  history.unshift(newEntry);
-  const uid = getUserId();
-  localStorage.setItem(`dayscore_${uid}_claims_history`, JSON.stringify(history));
-
-  const token = getToken();
-  if (token) {
-    authFetch('/api/claims', {
-      method: 'POST',
-      body: JSON.stringify(newEntry)
-    }).catch(err => console.error('Log claim API error:', err));
-  }
-  return newEntry;
-}
-
-export function deleteClaim(id) {
-  const history = getClaimsHistory();
-  const updated = history.filter(item => item.id !== id);
-  const uid = getUserId();
-  localStorage.setItem(`dayscore_${uid}_claims_history`, JSON.stringify(updated));
-}

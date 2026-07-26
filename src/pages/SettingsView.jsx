@@ -8,8 +8,9 @@ import { useAuth } from '../context/AuthContext'
 export default function SettingsView() {
   const { user } = useAuth()
   const { theme, toggleTheme } = useTheme()
-  const [settings, setSettings] = useState({ notifications: false })
-  const [templates, setTemplates] = useState([])
+  const [settings, setSettings] = useState(() => store.getSettings())
+  const [templates, setTemplates] = useState(() => store.getTemplates())
+  const [loading, setLoading] = useState(() => !store.isSettingsCached())
   const [showAddTemplate, setShowAddTemplate] = useState(false)
   const fileInputRef = useRef(null)
 
@@ -21,10 +22,22 @@ export default function SettingsView() {
   useEffect(() => {
     let isMounted = true;
     const loadSettingsData = async () => {
+      // Instant cache load so switching tabs has ZERO delay and no re-triggering of loading spinners!
+      const cached = store.getSettings()
+      if (cached) setSettings(cached)
+      setTemplates(store.getTemplates())
+
+      if (store.isSettingsCached()) {
+        setLoading(false)
+      } else {
+        setLoading(true)
+      }
+
       const userSettings = await store.fetchSettingsApi()
       if (!isMounted) return;
       setSettings(userSettings)
       setTemplates(store.getTemplates())
+      setLoading(false)
     }
 
     loadSettingsData()
@@ -114,9 +127,17 @@ export default function SettingsView() {
 
       <h1 className="settings-title">⚙️ Settings</h1>
 
-      {/* Appearance */}
-      <div className="card-glass settings-card">
-        <h2 className="settings-section-title">Appearance</h2>
+      {loading ? (
+        <div className="settings-loading-skeleton" style={{ padding: '8px 0' }}>
+          <div className="skeleton-box" style={{ width: '100%', height: '140px', borderRadius: 'var(--radius-lg)', marginBottom: '24px' }} />
+          <div className="skeleton-box" style={{ width: '100%', height: '180px', borderRadius: 'var(--radius-lg)', marginBottom: '24px' }} />
+          <div className="skeleton-box" style={{ width: '100%', height: '120px', borderRadius: 'var(--radius-lg)' }} />
+        </div>
+      ) : (
+        <>
+          {/* Appearance */}
+          <div className="card-glass settings-card">
+            <h2 className="settings-section-title">Appearance</h2>
         
         <div className="settings-row settings-row--bordered">
           <div className="settings-row-left">
@@ -226,6 +247,8 @@ export default function SettingsView() {
           <p className="settings-reset-note">This cannot be undone.</p>
         </div>
       </div>
+        </>
+      )}
 
       {/* Template Modal */}
       {showAddTemplate && (

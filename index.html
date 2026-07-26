@@ -1,11 +1,41 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="dark" style="background-color: #0a0a14; color-scheme: dark;">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="DayScore — Personal daily productivity & learning tracker. Score your day out of 10, track streaks, earn rewards." />
     <title>DayScore — Daily Productivity Tracker</title>
+    <style>
+      html, body {
+        background-color: #0a0a14 !important;
+        color: #f0f0f5;
+        margin: 0;
+        padding: 0;
+      }
+      html[data-theme="light"], html[data-theme="light"] body {
+        background-color: #f8fafc !important;
+        color: #0f172a;
+      }
+    </style>
+    <script>
+      (function() {
+        try {
+          for (var i = 0; i < localStorage.length; i++) {
+            var k = localStorage.key(i);
+            if (k && k.includes('_settings')) {
+              var s = JSON.parse(localStorage.getItem(k));
+              if (s && s.theme === 'light') {
+                document.documentElement.setAttribute('data-theme', 'light');
+                document.documentElement.style.backgroundColor = '#f8fafc';
+                document.documentElement.style.colorScheme = 'light';
+                break;
+              }
+            }
+          }
+        } catch(e) {}
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">

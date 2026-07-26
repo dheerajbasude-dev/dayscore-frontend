@@ -45,12 +45,13 @@ export default function TodayView() {
   
   const [todaysReward, setTodaysReward] = useState(null)
   const [settings, setSettings] = useState({ notifications: false })
+  const [loading, setLoading] = useState(true)
 
   // Initialize data per user & date
   useEffect(() => {
     let isMounted = true;
     const loadUserData = async () => {
-      const allArchives = await store.fetchArchivesApi()
+      const allArchives = store.getArchivesFromTasks()
       if (!isMounted) return;
       setArchives(allArchives)
       
@@ -71,28 +72,41 @@ export default function TodayView() {
     return () => { isMounted = false; }
   }, [currentDateStr, user])
 
-  // Load daily tasks & reflection per user & date
+  // Load daily tasks per user & date
   useEffect(() => {
     let isMounted = true;
     const loadTasks = async () => {
+      // Instant cache load so switching tabs has ZERO delay and no re-triggering of loading spinners!
+      const isCached = store.isTasksCached(currentDateStr);
+      const cached = store.getTasks(currentDateStr);
+      
+      if (isCached) {
+        setTasks(cached);
+        setLoading(false);
+      } else {
+        setLoading(true);
+      }
+
       const todayTasks = await store.fetchTasksApi(currentDateStr)
       if (!isMounted) return;
       setTasks(todayTasks)
-      
-      const dayArchive = store.getDayArchive(currentDateStr)
-      setReflection(dayArchive ? dayArchive.reflection || '' : '')
+      setLoading(false)
 
-      const taskWithReward = todayTasks.find(t => t.reward)
-      const existingReward = dayArchive?.reward || taskWithReward?.reward || null
-      const isAcknowledged = dayArchive?.rewardAcknowledged || false
-
-      setTodaysReward(existingReward && !isAcknowledged ? existingReward : null)
+      const isTaskRewardUnacknowledged = (t) => {
+        if (!t.reward) return false;
+        const isClaimed = t.rewardClaimed === true || t.rewardClaimed === 1 || t.reward_claimed === 1 || t.reward_claimed === '1';
+        const isAck = t.rewardAcknowledged === true || t.rewardAcknowledged === 1 || t.reward_acknowledged === 1 || t.reward_acknowledged === '1';
+        return !isClaimed && !isAck;
+      };
+      const unacknowledgedTask = todayTasks.find(isTaskRewardUnacknowledged);
+      setTodaysReward(unacknowledgedTask ? unacknowledgedTask.reward : null);
       
       const yesterdayStr = format(subDays(parseISO(currentDateStr), 1), 'yyyy-MM-dd')
       const yesterdayTasks = await store.fetchTasksApi(yesterdayStr)
       if (!isMounted) return;
       const missed = yesterdayTasks.filter(t => t.status !== 'done' && t.status !== 'missed')
       setCarryOverTasks(missed)
+      setLoading(false)
     }
 
     loadTasks()
@@ -105,13 +119,7 @@ export default function TodayView() {
     setScoreResult(result)
 
     if (tasks.length > 0 && tasks.some(t => t.status === 'done')) {
-      const existing = store.getDayArchive(currentDateStr) || {}
-      store.saveDayArchive(currentDateStr, {
-        ...existing,
-        date: currentDateStr,
-        score: result.score,
-        tasks
-      })
+      // Archives calculated dynamically on the fly
     }
 
     const updatedArchives = store.getAllArchives()
@@ -155,13 +163,6 @@ export default function TodayView() {
     const currentTasks = store.getTasks(currentDateStr)
     if (currentTasks.length > 0) {
       const result = scoring.calculateDailyScore(currentTasks)
-      const existing = store.getDayArchive(currentDateStr) || {}
-      store.saveDayArchive(currentDateStr, {
-        ...existing,
-        date: currentDateStr,
-        score: result.score,
-        tasks: currentTasks
-      })
 
       // Apply punishment if score < 5
       if (result.score < 5) {
@@ -179,26 +180,34 @@ export default function TodayView() {
   useDayRollover(currentDateStr, tasks, handleRollover)
   useNotifications(tasks, settings.notifications, settings.reminderLeadTime ?? 30)
 
-  const handleAddTask = (newTask) => {
-    store.addTask(currentDateStr, newTask)
-    setTasks(store.getTasks(currentDateStr))
+  const handleAddTask = async (newTask) => {
+    const updatedTasks = await store.addTask(currentDateStr, newTask)
+    setTasks(Array.isArray(updatedTasks) ? updatedTasks : store.getTasks(currentDateStr))
     setShowAddModal(false)
   }
 
-  const handleStatusChange = (taskId, newStatus) => {
+  const handleStatusChange = async (taskId, newStatus) => {
     const updates = { status: newStatus }
     if (newStatus === 'done') {
       updates.completedAt = new Date().toISOString()
-    } else if (newStatus === 'pending') {
+      updates.completed_at = new Date().toISOString()
+    } else if (newStatus === 'pending' || newStatus === 'inprogress') {
       updates.completedAt = null
+      updates.completed_at = null
       updates.rating = null
       updates.reward = null
       updates.penalty = null
       updates.rewardClaimed = false
+      updates.reward_claimed = 0
       updates.penaltyAccepted = false
+      updates.penalty_accepted = 0
     }
-    store.updateTask(currentDateStr, taskId, updates)
-    setTasks(store.getTasks(currentDateStr))
+    const updatedTasks = await store.updateTask(currentDateStr, taskId, updates)
+    const freshTasks = Array.isArray(updatedTasks) ? updatedTasks : store.getTasks(currentDateStr)
+    setTasks(freshTasks)
+
+    // Recalculate score
+    const result = scoring.calculateDailyScore(freshTasks)
   }
 
   // Rating flow: open slider modal instead of directly completing
@@ -206,10 +215,17 @@ export default function TodayView() {
     setRatingTask(task)
   }
 
-  const handleRatingConfirm = (taskId, rating, maxRating) => {
-    const targetTask = tasks.find(t => t.id === taskId)
+  const handleRatingConfirm = async (taskId, rating, maxRating) => {
+    const targetTask = tasks.find(t => t.id === taskId || t._id === taskId)
     const now = new Date()
-    const isOverdue = targetTask?.dueDateTime && parseISO(targetTask.dueDateTime) < now
+
+    let dueDateObj = null
+    if (targetTask?.dueDateTime) {
+      dueDateObj = new Date(targetTask.dueDateTime)
+    } else if (targetTask?.due_date_time) {
+      dueDateObj = new Date(targetTask.due_date_time)
+    }
+    const isOverdue = dueDateObj && !isNaN(dueDateObj.getTime()) && dueDateObj < now
 
     const numRating = Number(rating)
     const isLowRating = numRating <= 4
@@ -251,28 +267,24 @@ export default function TodayView() {
     const updates = {
       status: 'done',
       completedAt: now.toISOString(),
+      completed_at: now.toISOString(),
       rating,
       maxRating,
+      max_rating: maxRating,
       reward: taskReward,
-      penalty: taskPenalty
+      penalty: taskPenalty,
+      rewardClaimed: false,
+      reward_claimed: 0,
+      rewardAcknowledged: false,
+      reward_acknowledged: 0,
+      penaltyAccepted: false,
+      penalty_accepted: 0
     }
-    store.updateTask(currentDateStr, taskId, updates)
-    const updatedTasks = store.getTasks(currentDateStr)
-    setTasks(updatedTasks)
+    const updatedTasks = await store.updateTask(currentDateStr, taskId, updates)
+    const freshTasks = Array.isArray(updatedTasks) ? updatedTasks : store.getTasks(currentDateStr)
+    setTasks(freshTasks)
 
-    const result = scoring.calculateDailyScore(updatedTasks)
-    const existing = store.getDayArchive(currentDateStr) || {}
-    const finalDayReward = taskReward || existing.reward || null
-    const rewardAcknowledgedStatus = taskReward ? false : (existing.rewardAcknowledged || false)
-
-    store.saveDayArchive(currentDateStr, {
-      ...existing,
-      date: currentDateStr,
-      score: result.score,
-      tasks: updatedTasks,
-      reward: finalDayReward,
-      rewardAcknowledged: rewardAcknowledgedStatus
-    })
+    const result = scoring.calculateDailyScore(freshTasks)
 
     setRatingTask(null)
   }
@@ -281,9 +293,13 @@ export default function TodayView() {
     setRatingTask(null)
   }
 
-  const handleDeleteTask = (taskId) => {
-    store.deleteTask(currentDateStr, taskId)
-    setTasks(store.getTasks(currentDateStr))
+  const handleDeleteTask = async (taskId) => {
+    const updatedTasks = await store.deleteTask(currentDateStr, taskId)
+    const freshTasks = Array.isArray(updatedTasks) ? updatedTasks : store.getTasks(currentDateStr)
+    setTasks(freshTasks)
+
+    // Recalculate score
+    const result = scoring.calculateDailyScore(freshTasks)
   }
 
   const handleCarryOver = (task) => {
@@ -305,84 +321,90 @@ export default function TodayView() {
     setCarryOverTasks(prev => prev.filter(t => t.id !== taskId))
   }
 
-  const handleAcknowledgePunishment = () => {
-    if (punishmentText) {
-      store.logClaim({
-        type: 'penalty',
-        text: punishmentText,
-        date: currentDateStr
-      })
-    }
+  const handleAcknowledgePunishment = async () => {
+    // Case 2: Update penalty_acknowledged: 1 when clicking on "I Acknowledge" top banner button; DO NOT store in claimlogs.
     store.acknowledgePunishment()
     setActivePunishment(null)
-  }
 
-  const handleAcknowledgeReward = () => {
-    if (todaysReward) {
-      store.logClaim({
-        type: 'reward',
-        text: todaysReward,
-        date: currentDateStr
-      })
+    const unackTasks = tasks.filter(t => {
+      const isAck = t.penaltyAcknowledged === true || t.penaltyAcknowledged === 1 || t.penalty_acknowledged === 1 || t.penalty_acknowledged === '1';
+      return !isAck;
+    });
+
+    for (const t of unackTasks) {
+      const targetId = t.id || t._id;
+      await store.updateTask(currentDateStr, targetId, {
+        penaltyAcknowledged: true,
+        penalty_acknowledged: 1
+      });
     }
-    setTodaysReward(null)
-    const existing = store.getDayArchive(currentDateStr) || {}
-    store.saveDayArchive(currentDateStr, {
-      ...existing,
-      rewardAcknowledged: true,
-      reward: null
-    })
+
+    const freshTasks = await store.fetchTasksApi(currentDateStr);
+    setTasks(freshTasks);
   }
 
-  const handleClaimTaskReward = (taskId) => {
-    const target = tasks.find(t => t.id === taskId)
-    store.updateTask(currentDateStr, taskId, {
+  const handleAcknowledgeReward = async () => {
+    setTodaysReward(null)
+
+    // Mark unacknowledged task rewards for today as acknowledged in MongoDB Atlas
+    const unackTasks = tasks.filter(t => {
+      if (!t.reward) return false;
+      const isAck = t.rewardAcknowledged === true || t.rewardAcknowledged === 1 || t.reward_acknowledged === 1 || t.reward_acknowledged === '1';
+      return !isAck;
+    });
+
+    for (const t of unackTasks) {
+      const targetId = t.id || t._id;
+      await store.updateTask(currentDateStr, targetId, {
+        rewardAcknowledged: true,
+        reward_acknowledged: 1
+      });
+    }
+
+    const freshTasks = await store.fetchTasksApi(currentDateStr);
+    setTasks(freshTasks);
+  }
+
+  const handleClaimTaskReward = async (taskId) => {
+    const target = tasks.find(t => t.id === taskId || t._id === taskId)
+    const targetId = target?.id || target?._id || taskId;
+
+    const updatedTasks = await store.updateTask(currentDateStr, targetId, {
       rewardClaimed: true,
+      reward_claimed: 1,
+      rewardAcknowledged: true,
+      reward_acknowledged: 1,
+      penaltyAccepted: false,
+      penalty_accepted: 0,
       rewardClaimedAt: new Date().toISOString()
     })
-    const updated = store.getTasks(currentDateStr)
-    setTasks(updated)
+    const freshTasks = Array.isArray(updatedTasks) ? updatedTasks : store.getTasks(currentDateStr)
+    setTasks(freshTasks)
 
-    if (target && target.reward) {
-      store.logClaim({
-        type: 'reward',
-        text: target.reward,
-        date: currentDateStr
-      })
-    }
     setTodaysReward(null)
-    const existing = store.getDayArchive(currentDateStr) || {}
-    store.saveDayArchive(currentDateStr, {
-      ...existing,
-      rewardAcknowledged: true,
-      reward: null,
-      tasks: updated
-    })
   }
 
-  const handleAcceptTaskPenalty = (taskId) => {
-    const target = tasks.find(t => t.id === taskId)
-    store.updateTask(currentDateStr, taskId, {
+  const handleAcceptTaskPenalty = async (taskId) => {
+    const target = tasks.find(t => t.id === taskId || t._id === taskId)
+    if (!target) return;
+
+    const isAlreadyAccepted = target.penaltyAccepted === true || target.penaltyAccepted === 1 || target.penalty_accepted === 1 || target.penalty_accepted === '1';
+    if (isAlreadyAccepted) return;
+
+    const targetId = target.id || target._id;
+
+    const updatedTasks = await store.updateTask(currentDateStr, targetId, {
       penaltyAccepted: true,
+      penalty_accepted: 1,
+      rewardClaimed: false,
+      reward_claimed: 0,
       penaltyAcceptedAt: new Date().toISOString()
     })
-    const updated = store.getTasks(currentDateStr)
-    setTasks(updated)
+    const freshTasks = Array.isArray(updatedTasks) ? updatedTasks : store.getTasks(currentDateStr)
+    setTasks(freshTasks)
 
-    if (target && target.penalty) {
-      store.logClaim({
-        type: 'penalty',
-        text: target.penalty,
-        date: currentDateStr
-      })
-    }
     store.acknowledgePunishment()
     setActivePunishment(null)
-    const existing = store.getDayArchive(currentDateStr) || {}
-    store.saveDayArchive(currentDateStr, {
-      ...existing,
-      tasks: updated
-    })
   }
 
   const sortTasksByUrgency = (a, b) => {
@@ -443,77 +465,119 @@ export default function TodayView() {
       <ConfettiCelebration trigger={showConfetti} />
       <PenaltyCelebration trigger={showPenaltyFlash} />
 
-      <ScoreRing 
-        score={scoreResult.score} 
-        streak={streak} 
-        averages={averages} 
-        details={scoreResult} 
-      />
-
-
-
-      {punishmentText ? (
-        <div className="penalty-banner">
-          <div className="penalty-banner-content">
-            <AlertTriangle size={24} style={{ flexShrink: 0 }} />
-            <div>
-              <strong className="penalty-banner-title">Penalty Active!</strong>
-              <span className="penalty-banner-text">Your Penalty: <strong>{punishmentText}</strong></span>
-            </div>
-          </div>
-          <button className="btn btn-danger btn-sm" onClick={handleAcknowledgePunishment}>
-            I Acknowledge
-          </button>
-        </div>
-      ) : (
-        todaysReward && (
-          <div className="reward-banner">
-            <div className="reward-banner-content">
-              <Gift size={24} style={{ flexShrink: 0 }} />
-              <div>
-                <strong className="reward-banner-title">Great job today!</strong>
-                <span className="reward-banner-text">Your Reward: <strong>{todaysReward}</strong></span>
+      {loading ? (
+        <div className="today-loading-container">
+          <div className="score-display-card-loading">
+            <div className="ring-score-loader">
+              <svg width="140" height="140" viewBox="0 0 160 160">
+                <defs>
+                  <linearGradient id="loader-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="var(--accent-primary)" />
+                    <stop offset="100%" stopColor="var(--accent-warning)" />
+                  </linearGradient>
+                </defs>
+                <circle className="bg-circle" cx="80" cy="80" r="70" fill="none" />
+                <circle className="glow-circle" cx="80" cy="80" r="70" fill="none" />
+              </svg>
+              <div className="ring-loader-center">
+                <div className="ring-loader-spinner" />
+                <div className="skeleton-box" style={{ width: '42px', height: '14px', borderRadius: '4px' }} />
               </div>
             </div>
-            <button className="btn btn-success btn-sm" onClick={handleAcknowledgeReward}>
-              I Accept
-            </button>
+            <div className="skeleton-box" style={{ width: '120px', height: '12px', borderRadius: '4px', marginBottom: '8px' }} />
+            <div className="skeleton-box" style={{ width: '90px', height: '24px', borderRadius: '12px' }} />
           </div>
-        )
-      )}
 
-      <div className="reflection-section-top" style={{ marginBottom: '24px' }}>
-        <ReflectionBox value={reflection} onChange={setReflection} />
-      </div>
+          <div className="skeleton-box" style={{ width: '100%', height: '64px', borderRadius: 'var(--radius-lg)', margin: '20px 0' }} />
 
-      <div className="tasks-section">
-        {sortedTasks.length === 0 ? (
-          <div className="card-glass empty-state">
-            <div className="empty-icon">📝</div>
-            <p className="empty-text">No tasks added for today yet!</p>
-            <button 
-              className="btn btn-primary"
-              onClick={handleOpenAddModal}
-            >
-              <Plus size={18} /> Add Your First Task
-            </button>
-          </div>
-        ) : (
-          <div className="task-group-list">
-            {sortedTasks.map(task => (
-              <TaskCard 
-                key={task.id} 
-                task={task} 
-                onStatusChange={handleStatusChange} 
-                onDelete={handleDeleteTask}
-                onRequestComplete={handleRequestComplete}
-                onClaimReward={handleClaimTaskReward}
-                onAcceptPenalty={handleAcceptTaskPenalty}
-              />
+          <div className="task-list-loading">
+            {[1, 2, 3].map(n => (
+              <div key={n} className="task-card-skeleton">
+                <div className="task-skeleton-left">
+                  <div className="skeleton-box task-skeleton-circle" />
+                  <div className="task-skeleton-lines">
+                    <div className="skeleton-box task-skeleton-line-long" />
+                    <div className="skeleton-box task-skeleton-line-short" />
+                  </div>
+                </div>
+                <div className="skeleton-box task-skeleton-right" />
+              </div>
             ))}
           </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        <>
+          <ScoreRing 
+            score={scoreResult.score} 
+            streak={streak} 
+            averages={averages} 
+            details={scoreResult} 
+          />
+
+          {punishmentText ? (
+            <div className="penalty-banner">
+              <div className="penalty-banner-content">
+                <AlertTriangle size={24} style={{ flexShrink: 0 }} />
+                <div>
+                  <strong className="penalty-banner-title">Penalty Active!</strong>
+                  <span className="penalty-banner-text">Your Penalty: <strong>{punishmentText}</strong></span>
+                </div>
+              </div>
+              <button className="btn btn-danger btn-sm" onClick={handleAcknowledgePunishment}>
+                I Acknowledge
+              </button>
+            </div>
+          ) : (
+            todaysReward && (
+              <div className="reward-banner">
+                <div className="reward-banner-content">
+                  <Gift size={24} style={{ flexShrink: 0 }} />
+                  <div>
+                    <strong className="reward-banner-title">Great job today!</strong>
+                    <span className="reward-banner-text">Your Reward: <strong>{todaysReward}</strong></span>
+                  </div>
+                </div>
+                <button className="btn btn-success btn-sm" onClick={handleAcknowledgeReward}>
+                  I Accept
+                </button>
+              </div>
+            )
+          )}
+
+          <div className="reflection-section-top" style={{ marginBottom: '24px' }}>
+            <ReflectionBox value={reflection} onChange={setReflection} />
+          </div>
+
+          <div className="tasks-section">
+            {sortedTasks.length === 0 ? (
+              <div className="card-glass empty-state">
+                <div className="empty-icon">📝</div>
+                <p className="empty-text">No tasks added for today yet!</p>
+                <button 
+                  className="btn btn-primary"
+                  onClick={handleOpenAddModal}
+                >
+                  <Plus size={18} /> Add Your First Task
+                </button>
+              </div>
+            ) : (
+              <div className="task-group-list">
+                {sortedTasks.map(task => (
+                  <TaskCard 
+                    key={task.id} 
+                    task={task} 
+                    onStatusChange={handleStatusChange} 
+                    onDelete={handleDeleteTask}
+                    onRequestComplete={handleRequestComplete}
+                    onClaimReward={handleClaimTaskReward}
+                    onAcceptPenalty={handleAcceptTaskPenalty}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      )}
 
       <button 
         className="fab"

@@ -44,9 +44,10 @@ export default function TaskCard({ task, onStatusChange, onDelete, onRequestComp
     return 'rating-badge-high';
   };
 
-  const ratingDisplay = task.status === 'done' && task.rating != null && task.maxRating != null;
-  const createdFormatted = formatDateSafe(task.createdAt);
-  const completedFormatted = formatDateSafe(task.completedAt);
+  const maxR = task.maxRating || task.max_rating || 10;
+  const ratingDisplay = task.status === 'done' && task.rating != null;
+  const createdFormatted = formatDateSafe(task.createdAt || task.created_at);
+  const completedFormatted = formatDateSafe(task.completedAt || task.completed_at);
 
   return (
     <div className={`task-card ${task.status} animate-slide-up`}>
@@ -79,7 +80,7 @@ export default function TaskCard({ task, onStatusChange, onDelete, onRequestComp
           {task.carriedOver && <span className="carried-badge">↻ Carried Over</span>}
           {ratingDisplay && (
             <span className={`rating-badge ${getRatingBadgeClass()}`}>
-              ★ {task.rating}/{task.maxRating}
+              ★ {task.rating}/{maxR}
             </span>
           )}
           {createdFormatted && (
@@ -96,40 +97,48 @@ export default function TaskCard({ task, onStatusChange, onDelete, onRequestComp
 
         {task.status === 'done' && (task.reward || task.penalty) && (
           <div className="task-reward-row">
-            {task.reward && (
-              <div className={`reward-badge-task ${task.rewardClaimed ? 'badge-status-claimed' : ''}`}>
-                <span className="reward-badge-text">🎁 Reward: {task.reward}</span>
-                {task.rewardClaimed ? (
-                  <span className="claimed-tag">✓ Claimed</span>
-                ) : (
-                  onClaimReward && (
-                    <button 
-                      className="badge-action-btn badge-action-success"
-                      onClick={(e) => { e.stopPropagation(); onClaimReward(task.id); }}
-                    >
-                      Claim
-                    </button>
-                  )
-                )}
-              </div>
-            )}
-            {task.penalty && (
-              <div className={`penalty-badge-task ${task.penaltyAccepted ? 'badge-status-claimed' : ''}`}>
-                <span className="penalty-badge-text">⚠️ Penalty: {task.penalty}</span>
-                {task.penaltyAccepted ? (
-                  <span className="accepted-tag">✓ Acknowledged</span>
-                ) : (
-                  onAcceptPenalty && (
-                    <button 
-                      className="badge-action-btn badge-action-danger"
-                      onClick={(e) => { e.stopPropagation(); onAcceptPenalty(task.id); }}
-                    >
-                      Acknowledge
-                    </button>
-                  )
-                )}
-              </div>
-            )}
+            {task.reward && (() => {
+              const isClaimed = task.rewardClaimed === true || task.rewardClaimed === 1 || task.rewardClaimed === '1' ||
+                                task.reward_claimed === true || task.reward_claimed === 1 || task.reward_claimed === '1';
+              return (
+                <div className={`reward-badge-task ${isClaimed ? 'badge-status-claimed' : ''}`}>
+                  <span className="reward-badge-text">🎁 Reward: {task.reward}</span>
+                  {isClaimed ? (
+                    <span className="claimed-tag">✓ Claimed</span>
+                  ) : (
+                    onClaimReward && (
+                      <button 
+                        className="badge-action-btn badge-action-success"
+                        onClick={(e) => { e.stopPropagation(); onClaimReward(task.id || task._id); }}
+                      >
+                        Claim
+                      </button>
+                    )
+                  )}
+                </div>
+              );
+            })()}
+            {task.penalty && (() => {
+              const isAccepted = task.penaltyAccepted === true || task.penaltyAccepted === 1 || task.penaltyAccepted === '1' ||
+                                 task.penalty_accepted === true || task.penalty_accepted === 1 || task.penalty_accepted === '1';
+              return (
+                <div className={`penalty-badge-task ${isAccepted ? 'badge-status-claimed' : ''}`}>
+                  <span className="penalty-badge-text">⚠️ Penalty: {task.penalty}</span>
+                  {isAccepted ? (
+                    <span className="accepted-tag">✓ Acknowledged</span>
+                  ) : (
+                    onAcceptPenalty && (
+                      <button 
+                        className="badge-action-btn badge-action-danger"
+                        onClick={(e) => { e.stopPropagation(); onAcceptPenalty(task.id || task._id); }}
+                      >
+                        Acknowledge
+                      </button>
+                    )
+                  )}
+                </div>
+              );
+            })()}
           </div>
         )}
       </div>

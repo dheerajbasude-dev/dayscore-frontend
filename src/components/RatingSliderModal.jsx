@@ -1,20 +1,23 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { X, Clock, AlertTriangle, Star } from 'lucide-react';
+import { X, Clock, AlertTriangle, Star, Loader2 } from 'lucide-react';
 import { parseISO, isAfter } from 'date-fns';
 
 export default function RatingSliderModal({ task, onConfirm, onCancel }) {
   if (!task) return null;
 
+  const [submitting, setSubmitting] = useState(false);
+
   const isOverdue = useMemo(() => {
-    if (!task.dueDateTime) return false;
+    if (!task.dueDateTime && !task.due_date_time) return false;
+    const dateVal = task.dueDateTime || task.due_date_time;
     try {
-      const due = parseISO(task.dueDateTime);
+      const due = parseISO(dateVal);
       if (isNaN(due.getTime())) return false;
       return isAfter(new Date(), due);
     } catch {
-      return new Date() > new Date(task.dueDateTime);
+      return new Date() > new Date(dateVal);
     }
-  }, [task.dueDateTime]);
+  }, [task.dueDateTime, task.due_date_time]);
 
   const maxRating = isOverdue ? 3 : 10;
   const [rating, setRating] = useState(Math.ceil(maxRating / 2));
@@ -22,7 +25,20 @@ export default function RatingSliderModal({ task, onConfirm, onCancel }) {
   // Reset rating default when task or maxRating changes
   useEffect(() => {
     setRating(Math.ceil(maxRating / 2));
-  }, [maxRating, task.id]);
+    setSubmitting(false);
+  }, [maxRating, task.id, task._id]);
+
+  const handleConfirm = async () => {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      const targetId = task.id || task._id;
+      await onConfirm(targetId, rating, maxRating);
+    } catch (e) {
+      console.error('Confirm rating error:', e);
+      setSubmitting(false);
+    }
+  };
 
   const getSliderColor = () => {
     if (isOverdue) {
@@ -141,15 +157,24 @@ export default function RatingSliderModal({ task, onConfirm, onCancel }) {
         </div>
 
         <div className="modal-footer">
-          <button type="button" className="btn btn-secondary" onClick={onCancel}>
+          <button type="button" className="btn btn-secondary" onClick={onCancel} disabled={submitting}>
             Cancel
           </button>
           <button
             type="button"
-            className="btn btn-primary"
-            onClick={() => onConfirm(task.id, rating, maxRating)}
+            className={`btn btn-primary ${submitting ? 'btn-loading' : ''}`}
+            onClick={handleConfirm}
+            disabled={submitting}
+            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
           >
-            Complete Task
+            {submitting ? (
+              <>
+                <Loader2 size={18} className="btn-spinner" />
+                <span>Saving Effort...</span>
+              </>
+            ) : (
+              <span>Complete Task</span>
+            )}
           </button>
         </div>
       </div>

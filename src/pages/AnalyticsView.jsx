@@ -27,13 +27,19 @@ export default function AnalyticsView() {
     let isMounted = true;
     const loadAnalyticsData = async () => {
       const todayStr = format(new Date(), 'yyyy-MM-dd')
-      const loadedArchives = await store.fetchArchivesApi()
-      if (!isMounted) return;
-      setArchives(loadedArchives)
+
+      const computedArchives = store.getArchivesFromTasks()
+      setArchives(computedArchives)
+
+      const cachedTasks = store.getTasks(todayStr)
+      if (cachedTasks && cachedTasks.length > 0) {
+        setTodayTasks(cachedTasks)
+      }
 
       const loadedTasks = await store.fetchTasksApi(todayStr)
       if (!isMounted) return;
       setTodayTasks(loadedTasks)
+      setArchives(store.getArchivesFromTasks())
     }
 
     loadAnalyticsData()
