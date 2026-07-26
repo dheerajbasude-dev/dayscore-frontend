@@ -219,19 +219,7 @@ export const get = async (sql, params = []) => {
   // USERS
   if (trimmed.includes('FROM users WHERE email = ?')) {
     const email = params[0];
-    let user = storeData.users.find(u => u.email === email);
-    if (!user && email === 'demo@dayscore.app') {
-      user = {
-        id: 'demo',
-        email: 'demo@dayscore.app',
-        name: 'Demo User',
-        password_hash: '',
-        created_at: new Date().toISOString()
-      };
-      storeData.users.push(user);
-      saveJsonData();
-    }
-    return user || null;
+    return storeData.users.find(u => u.email === email) || null;
   }
 
   if (trimmed.includes('FROM users WHERE id = ?')) {
@@ -240,8 +228,8 @@ export const get = async (sql, params = []) => {
     if (!user && id) {
       user = {
         id,
-        email: id === 'demo' ? 'demo@dayscore.app' : `${id}@user.dayscore`,
-        name: id === 'demo' ? 'Demo User' : 'DayScore User',
+        email: `${id}@user.dayscore`,
+        name: 'DayScore User',
         created_at: new Date().toISOString()
       };
       storeData.users.push(user);

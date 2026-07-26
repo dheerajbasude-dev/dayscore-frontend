@@ -54,9 +54,38 @@ export async function fetchTasksApi(dateStr) {
     const res = await authFetch(`/api/tasks?date=${dateStr}`);
     if (res.ok) {
       const data = await res.json();
-      const uid = getUserId();
-      localStorage.setItem(`dayscore_${uid}_tasks_${dateStr}`, JSON.stringify(data.tasks));
-      return data.tasks;
+      const localTasks = getTasks(dateStr);
+      const serverTasks = data.tasks || [];
+
+      // Merge server tasks with local tasks so client state is never lost on refresh
+      const mergedTasks = serverTasks.map(serverTask => {
+        const local = localTasks.find(l => l.id === serverTask.id);
+        if (local && local.status === 'done' && serverTask.status !== 'done') {
+          // Re-sync completed status to server
+          authFetch(`/api/tasks/${local.id}`, {
+            method: 'PUT',
+            body: JSON.stringify({
+              status: local.status,
+              rating: local.rating,
+              maxRating: local.maxRating,
+              reward: local.reward,
+              penalty: local.penalty,
+              completedAt: local.completedAt
+            })
+          }).catch(e => console.error('Re-sync error:', e));
+          return local;
+        }
+        return serverTask;
+      });
+
+      localTasks.forEach(local => {
+        if (!mergedTasks.some(m => m.id === local.id)) {
+          mergedTasks.push(local);
+        }
+      });
+
+      saveTasks(dateStr, mergedTasks);
+      return mergedTasks;
     }
   } catch (e) {
     console.warn('Failed to fetch tasks from server:', e);
@@ -71,8 +100,9 @@ export function saveTasks(dateStr, tasks) {
 
 export function addTask(dateStr, task) {
   const token = getToken();
+  const taskId = task.id || ((typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : (Date.now().toString(36) + Math.random().toString(36).substring(2, 7)));
   const newTask = {
-    id: task.id || ((typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : (Date.now().toString(36) + Math.random().toString(36).substring(2, 7))),
+    id: taskId,
     title: task.title || 'Untitled Task',
     category: task.category || 'Work',
     priority: task.priority || 'Med',
@@ -93,6 +123,7 @@ export function addTask(dateStr, task) {
     authFetch('/api/tasks', {
       method: 'POST',
       body: JSON.stringify({
+        id: taskId,
         date: dateStr,
         title: newTask.title,
         category: newTask.category,
@@ -104,16 +135,6 @@ export function addTask(dateStr, task) {
     }).then(res => {
       if (!res.ok) return null;
       return res.json();
-    }).then(data => {
-      if (data && data.task && data.task.id) {
-        // Update local task with server assigned ID if changed
-        const currentTasks = getTasks(dateStr);
-        const idx = currentTasks.findIndex(t => t.id === newTask.id);
-        if (idx !== -1) {
-          currentTasks[idx].id = data.task.id;
-          saveTasks(dateStr, currentTasks);
-        }
-      }
     }).catch(err => console.error('Add task API error:', err));
   }
 

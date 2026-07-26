@@ -101,23 +101,6 @@ export const AuthProvider = ({ children }) => {
     return data.user;
   };
 
-  const loginDemo = async () => {
-    const res = await fetch(`${API_BASE_URL}/api/auth/demo`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    });
-
-    const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.error || 'Demo login failed');
-    }
-
-    localStorage.setItem('dayscore_token', data.token);
-    setToken(data.token);
-    setUser(data.user);
-    return data.user;
-  };
-
   const logout = () => {
     localStorage.removeItem('dayscore_token');
     setToken(null);
@@ -125,7 +108,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, loginDemo, logout }}>
+    <AuthContext.Provider value={{ user, token, loading, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -142,36 +142,6 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-// Demo Account Auto-Provision & Login Endpoint
-app.post('/api/auth/demo', async (req, res) => {
-  try {
-    const demoEmail = 'demo@dayscore.app';
-    let user = await get('SELECT * FROM users WHERE email = ?', [demoEmail]);
-
-    if (!user) {
-      const hashedPassword = await bcrypt.hash('demo12345', 10);
-      const userId = createId();
-      const now = new Date().toISOString();
-
-      await run(
-        'INSERT INTO users (id, email, password_hash, name, created_at) VALUES (?, ?, ?, ?, ?)',
-        [userId, demoEmail, hashedPassword, 'Demo User', now]
-      );
-
-      await seedDefaultsForUser(userId);
-      user = { id: userId, name: 'Demo User', email: demoEmail };
-    }
-
-    const userObj = { id: user.id, name: user.name, email: user.email };
-    const token = generateToken(userObj);
-
-    return res.json({ token, user: userObj });
-  } catch (err) {
-    console.error('Demo login error:', err);
-    return res.status(500).json({ error: 'Server error during demo login.' });
-  }
-});
-
 // Get current user profile
 app.get('/api/auth/me', verifyTokenMiddleware, async (req, res) => {
   try {
@@ -227,12 +197,12 @@ app.get('/api/tasks', verifyTokenMiddleware, async (req, res) => {
 
 app.post('/api/tasks', verifyTokenMiddleware, async (req, res) => {
   try {
-    const { date, title, category, priority, dueDateTime, status, carriedOver } = req.body;
+    const { id, date, title, category, priority, dueDateTime, status, carriedOver } = req.body;
     if (!date || !title) {
       return res.status(400).json({ error: 'Date and title are required.' });
     }
 
-    const taskId = createId();
+    const taskId = id || createId();
     const now = new Date().toISOString();
 
     await run(
@@ -301,14 +271,14 @@ app.put('/api/tasks/:id', verifyTokenMiddleware, async (req, res) => {
     const category = updates.category !== undefined ? updates.category : existing.category;
     const priority = updates.priority !== undefined ? updates.priority : existing.priority;
     const status = updates.status !== undefined ? updates.status : existing.status;
-    const dueDateTime = updates.dueDateTime !== undefined ? updates.dueDateTime : existing.due_date_time;
+    const dueDateTime = updates.dueDateTime !== undefined ? updates.dueDateTime : (updates.due_date_time !== undefined ? updates.due_date_time : existing.due_date_time);
     const rating = updates.rating !== undefined ? updates.rating : existing.rating;
-    const maxRating = updates.maxRating !== undefined ? updates.maxRating : existing.max_rating;
+    const maxRating = updates.maxRating !== undefined ? updates.maxRating : (updates.max_rating !== undefined ? updates.max_rating : existing.max_rating);
     const reward = updates.reward !== undefined ? updates.reward : existing.reward;
     const penalty = updates.penalty !== undefined ? updates.penalty : existing.penalty;
-    const rewardClaimed = updates.rewardClaimed !== undefined ? (updates.rewardClaimed ? 1 : 0) : existing.reward_claimed;
-    const penaltyAccepted = updates.penaltyAccepted !== undefined ? (updates.penaltyAccepted ? 1 : 0) : existing.penalty_accepted;
-    const completedAt = updates.completedAt !== undefined ? updates.completedAt : existing.completed_at;
+    const rewardClaimed = updates.rewardClaimed !== undefined ? (updates.rewardClaimed ? 1 : 0) : (updates.reward_claimed !== undefined ? (updates.reward_claimed ? 1 : 0) : existing.reward_claimed);
+    const penaltyAccepted = updates.penaltyAccepted !== undefined ? (updates.penaltyAccepted ? 1 : 0) : (updates.penalty_accepted !== undefined ? (updates.penalty_accepted ? 1 : 0) : existing.penalty_accepted);
+    const completedAt = updates.completedAt !== undefined ? updates.completedAt : (updates.completed_at !== undefined ? updates.completed_at : existing.completed_at);
 
     await run(
       `UPDATE tasks SET

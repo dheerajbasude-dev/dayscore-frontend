@@ -3,7 +3,7 @@ import { X, LogIn, UserPlus, ShieldCheck, Mail, Lock, User } from 'lucide-react'
 import { useAuth } from '../context/AuthContext';
 
 export default function AuthModal({ isOpen, onClose }) {
-  const { login, register, loginDemo } = useAuth();
+  const { login, register } = useAuth();
   const [isSignUp, setIsSignUp] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -28,19 +28,6 @@ export default function AuthModal({ isOpen, onClose }) {
       onClose();
     } catch (err) {
       setError(err.message || 'Authentication failed');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleDemoLogin = async () => {
-    setError('');
-    setSubmitting(true);
-    try {
-      await loginDemo();
-      onClose();
-    } catch (err) {
-      setError(err.message || 'Demo login failed. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -130,16 +117,9 @@ export default function AuthModal({ isOpen, onClose }) {
 
           <div className="modal-footer auth-footer">
             <button 
-              type="button" 
-              className="btn btn-secondary btn-demo"
-              onClick={handleDemoLogin}
-              disabled={submitting}
-            >
-              🚀 Demo Account
-            </button>
-            <button 
               type="submit" 
               className="btn btn-primary"
+              style={{ width: '100%' }}
               disabled={submitting}
             >
               {submitting ? 'Please wait...' : isSignUp ? 'Create Account' : 'Sign In'}
