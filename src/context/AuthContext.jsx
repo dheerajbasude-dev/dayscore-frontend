@@ -52,7 +52,11 @@ export const AuthProvider = ({ children }) => {
         if (res.ok) {
           const data = await res.json();
           if (data.user) {
-            setUser(data.user);
+            setUser(prev => ({
+              ...data.user,
+              name: data.user.name && data.user.name !== 'DayScore User' ? data.user.name : (tokenUser?.name || prev?.name || 'User'),
+              email: data.user.email && !data.user.email.endsWith('@user.dayscore') ? data.user.email : (tokenUser?.email || prev?.email || '')
+            }));
           }
         }
       } catch (e) {
