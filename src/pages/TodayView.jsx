@@ -19,7 +19,7 @@ export default function TodayView() {
   const { user } = useAuth()
   const todayStr = useMemo(() => format(new Date(), 'yyyy-MM-dd'), [])
   const [currentDateStr, setCurrentDateStr] = useState(todayStr)
-  
+
   const [viewMode, setViewMode] = useState(() => {
     try {
       const uid = store.getUserId()
@@ -35,7 +35,7 @@ export default function TodayView() {
     try {
       const uid = store.getUserId()
       localStorage.setItem(`dayscore_${uid}_view_mode`, mode)
-    } catch (e) {}
+    } catch (e) { }
   }
 
   const [tasks, setTasks] = useState([])
@@ -44,7 +44,7 @@ export default function TodayView() {
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [showReflectionModal, setShowReflectionModal] = useState(false)
   const [showConfetti, setShowConfetti] = useState(false)
-  
+
   const isToday = currentDateStr === todayStr
 
   const handleOpenAddModal = () => {
@@ -59,15 +59,15 @@ export default function TodayView() {
   }
   const [showPenaltyFlash, setShowPenaltyFlash] = useState(false)
   const [ratingTask, setRatingTask] = useState(null)
-  
+
   const [archives, setArchives] = useState([])
   const [scoreResult, setScoreResult] = useState({ score: 0, baseScore: 0, bonus1: 0, bonus2: 0, penalty: 0 })
   const [streak, setStreak] = useState({ current: 0, isActive: false })
   const [averages, setAverages] = useState({ week: 0, month: 0, allTime: 0 })
-  
+
   const [activePunishment, setActivePunishment] = useState(null)
   const [carryOverTasks, setCarryOverTasks] = useState([])
-  
+
   const [todaysReward, setTodaysReward] = useState(null)
   const [settings, setSettings] = useState({ notifications: false })
   const [loading, setLoading] = useState(true)
@@ -118,6 +118,8 @@ export default function TodayView() {
     return list
   }, [archives])
 
+  const userId = user?.id || user?._id || user?.email || 'guest';
+
   // Initialize data per user & date
   useEffect(() => {
     let isMounted = true;
@@ -125,7 +127,7 @@ export default function TodayView() {
       const allArchives = store.getArchivesFromTasks()
       if (!isMounted) return;
       setArchives(allArchives)
-      
+
       const active = store.getActivePunishment()
       if (active && active.text && active.text.includes('(0/10)')) {
         store.acknowledgePunishment()
@@ -148,19 +150,17 @@ export default function TodayView() {
 
     loadUserData()
     return () => { isMounted = false; }
-  }, [currentDateStr, user])
+  }, [currentDateStr, userId])
 
-  // Load daily tasks per user & date
+  // Load daily tasks per user & date (smooth background sync without flashing loader)
   useEffect(() => {
     let isMounted = true;
     const loadTasks = async () => {
       // Instant cache load
       const cached = store.getTasks(currentDateStr);
-      if (cached && cached.length > 0) {
+      if (cached && Array.isArray(cached) && cached.length > 0) {
         setTasks(cached);
         setLoading(false);
-      } else {
-        setLoading(true);
       }
 
       // Fetch ALL user tasks directly from MongoDB Atlas
@@ -180,7 +180,7 @@ export default function TodayView() {
       };
       const unacknowledgedTask = freshToday.find(isTaskRewardUnacknowledged);
       setTodaysReward(unacknowledgedTask ? unacknowledgedTask.reward : null);
-      
+
       // Check ALL past dates for uncompleted tasks
       const allArcs = store.getAllArchives();
       const pastMissed = [];
@@ -199,12 +199,11 @@ export default function TodayView() {
         }
       });
       setCarryOverTasks(pastMissed);
-      setLoading(false);
     }
 
     loadTasks();
     return () => { isMounted = false; }
-  }, [currentDateStr, user])
+  }, [currentDateStr, userId])
 
   // Score, Streak & Averages Calculation effect
   useEffect(() => {
@@ -265,7 +264,7 @@ export default function TodayView() {
     // Refresh date string which triggers re-renders and re-fetches
     setCurrentDateStr(format(new Date(), 'yyyy-MM-dd'))
   }, [currentDateStr])
-  
+
   useDayRollover(currentDateStr, tasks, handleRollover)
   useNotifications(tasks, settings.notifications, settings.reminderLeadTime ?? 30)
 
@@ -406,7 +405,7 @@ export default function TodayView() {
       taskReward = (rewards && rewards.length > 0)
         ? rewards[Math.floor(Math.random() * rewards.length)]
         : "Treat yourself!"
-      
+
       setTodaysReward(taskReward)
       setShowConfetti(true)
       setTimeout(() => setShowConfetti(false), 3000)
@@ -694,9 +693,9 @@ export default function TodayView() {
           <div className="card-glass date-nav-card" style={{ padding: '12px 18px', marginBottom: '20px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
             {viewMode === 'date' ? (
               <div className="date-nav-left" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                <button 
-                  className="btn btn-secondary btn-sm date-nav-btn" 
-                  onClick={handlePrevDay} 
+                <button
+                  className="btn btn-secondary btn-sm date-nav-btn"
+                  onClick={handlePrevDay}
                   title="Previous Day"
                   style={{ padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                 >
@@ -705,8 +704,8 @@ export default function TodayView() {
 
                 <div className="date-picker-wrapper" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'var(--bg-glass-light)', padding: '4px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-glass)' }}>
                   <Calendar size={15} style={{ color: 'var(--accent-primary)', flexShrink: 0 }} />
-                  <input 
-                    type="date" 
+                  <input
+                    type="date"
                     value={currentDateStr}
                     max={todayStr}
                     onChange={(e) => {
@@ -719,15 +718,15 @@ export default function TodayView() {
                   />
                 </div>
 
-                <button 
-                  className="btn btn-secondary btn-sm date-nav-btn" 
-                  onClick={handleNextDay} 
+                <button
+                  className="btn btn-secondary btn-sm date-nav-btn"
+                  onClick={handleNextDay}
                   disabled={currentDateStr >= todayStr}
                   title="Next Day"
-                  style={{ 
-                    padding: '6px 12px', 
-                    display: 'inline-flex', 
-                    alignItems: 'center', 
+                  style={{
+                    padding: '6px 12px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
                     gap: '4px',
                     opacity: currentDateStr >= todayStr ? 0.4 : 1,
                     cursor: currentDateStr >= todayStr ? 'not-allowed' : 'pointer'
@@ -737,8 +736,8 @@ export default function TodayView() {
                 </button>
 
                 {currentDateStr !== todayStr && (
-                  <button 
-                    className="btn btn-primary btn-sm date-nav-btn" 
+                  <button
+                    className="btn btn-primary btn-sm date-nav-btn"
                     onClick={handleToday}
                     style={{ padding: '6px 12px' }}
                   >
@@ -772,12 +771,12 @@ export default function TodayView() {
             </div>
           </div>
 
-          <ScoreRing 
-            score={displayScore} 
+          <ScoreRing
+            score={displayScore}
             label={displayLabel}
-            streak={streak} 
-            averages={averages} 
-            details={scoreResult} 
+            streak={streak}
+            averages={averages}
+            details={scoreResult}
           />
 
           {punishmentText ? (
@@ -834,7 +833,7 @@ export default function TodayView() {
                   {viewMode === 'all' ? 'No tasks found in MongoDB Atlas!' : `No tasks added for ${currentDateStr} yet!`}
                 </p>
                 {isToday && (
-                  <button 
+                  <button
                     className="btn btn-primary"
                     onClick={handleOpenAddModal}
                   >
@@ -845,10 +844,10 @@ export default function TodayView() {
             ) : (
               <div className="task-group-list">
                 {displayTasksList.map(task => (
-                  <TaskCard 
-                    key={task.id || task._id} 
-                    task={task} 
-                    onStatusChange={(taskId, newStatus) => handleStatusChange(taskId, newStatus)} 
+                  <TaskCard
+                    key={task.id || task._id}
+                    task={task}
+                    onStatusChange={(taskId, newStatus) => handleStatusChange(taskId, newStatus)}
                     onDelete={(taskId) => handleDeleteTask(taskId)}
                     onRequestComplete={handleRequestComplete}
                     onClaimReward={handleClaimTaskReward}
@@ -862,7 +861,7 @@ export default function TodayView() {
       )}
 
       {isToday && (
-        <button 
+        <button
           className="fab"
           onClick={handleOpenAddModal}
           aria-label="Add Task"
@@ -872,17 +871,17 @@ export default function TodayView() {
       )}
 
       {showAddModal && (
-        <AddTaskModal 
+        <AddTaskModal
           isOpen={showAddModal}
-          onClose={() => setShowAddModal(false)} 
-          onAdd={handleAddTask} 
+          onClose={() => setShowAddModal(false)}
+          onAdd={handleAddTask}
           templates={store.getTemplates()}
         />
       )}
 
-      <AuthModal 
-        isOpen={showAuthModal} 
-        onClose={() => setShowAuthModal(false)} 
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
       />
 
       {ratingTask && (
@@ -896,11 +895,11 @@ export default function TodayView() {
       {showReflectionModal && (
         <div className="modal-overlay" onClick={() => setShowReflectionModal(false)}>
           <div className="modal-content card-glass animate-scale-up" onClick={e => e.stopPropagation()} style={{ maxWidth: '540px', width: '92%' }}>
-            <ReflectionBox 
-              value={reflection} 
-              onChange={setReflection} 
-              isModal={true} 
-              onClose={() => setShowReflectionModal(false)} 
+            <ReflectionBox
+              value={reflection}
+              onChange={setReflection}
+              isModal={true}
+              onClose={() => setShowReflectionModal(false)}
             />
           </div>
         </div>
