@@ -450,40 +450,7 @@ export default function TodayView() {
     setArchives(store.getAllArchives())
   }
 
-  const handleCarryOver = async (task) => {
-    const sourceDate = task.sourceDate || task.date || format(subDays(parseISO(currentDateStr), 1), 'yyyy-MM-dd');
-    const taskId = task.id || task._id;
 
-    // Mark as missed in past date
-    await store.updateTask(sourceDate, taskId, { status: 'missed' });
-
-    // Add new task to Today's date (todayStr)
-    const newTask = {
-      title: task.title,
-      category: task.category || 'Work',
-      priority: task.priority || 'Med',
-      dueDateTime: task.dueDateTime || task.due_date_time,
-      carriedOver: true,
-      status: 'pending'
-    };
-    await store.addTask(todayStr, newTask);
-    await store.fetchAllTasksApi();
-    setTasks(store.getTasks(currentDateStr));
-    setArchives(store.getAllArchives());
-    setCarryOverTasks(prev => prev.filter(t => (t.id || t._id) !== taskId));
-  }
-
-  const handleDismissCarryOver = async (taskOrId) => {
-    const isObject = typeof taskOrId === 'object' && taskOrId !== null;
-    const taskId = isObject ? (taskOrId.id || taskOrId._id) : taskOrId;
-    const sourceDate = isObject ? (taskOrId.sourceDate || taskOrId.date || currentDateStr) : format(subDays(parseISO(currentDateStr), 1), 'yyyy-MM-dd');
-
-    await store.updateTask(sourceDate, taskId, { status: 'missed' });
-    await store.fetchAllTasksApi();
-    setTasks(store.getTasks(currentDateStr));
-    setArchives(store.getAllArchives());
-    setCarryOverTasks(prev => prev.filter(t => (t.id || t._id) !== taskId));
-  }
 
   const handleAcknowledgePunishment = async () => {
     // Case 2: Update penalty_acknowledged: 1 when clicking on "I Acknowledge" top banner button; DO NOT store in claimlogs.
