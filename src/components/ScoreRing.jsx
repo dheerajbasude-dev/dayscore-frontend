@@ -13,14 +13,17 @@ export default function ScoreRing({
   const safeScore = Math.max(0, Math.min(10, score));
   const offset = circumference - (safeScore / 10) * circumference;
 
-  let strokeColor = 'var(--accent-success)';
-  let glowColor = 'rgba(52, 211, 153, 0.35)';
-  if (safeScore < 4) {
-    strokeColor = 'var(--accent-danger)';
-    glowColor = 'rgba(248, 113, 113, 0.35)';
-  } else if (safeScore < 7) {
-    strokeColor = 'var(--accent-warning)';
-    glowColor = 'rgba(251, 191, 36, 0.35)';
+  let strokeColor = '#22c55e'; // Green (> 8.5)
+  let glowColor = 'rgba(34, 197, 94, 0.35)';
+
+  if (safeScore <= 4) {
+    // Red (<= 4)
+    strokeColor = '#ef4444';
+    glowColor = 'rgba(239, 68, 68, 0.35)';
+  } else if (safeScore <= 8.5) {
+    // Blue (> 4 && <= 8.5)
+    strokeColor = '#3b82f6';
+    glowColor = 'rgba(59, 130, 246, 0.35)';
   }
 
   const size = (radius + strokeWidth) * 2;
