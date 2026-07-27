@@ -1270,14 +1270,14 @@ export default function TodayView() {
         </div>
       )}
 
-      {/* Advanced Filter & Sort Modal */}
+      {/* Advanced Filter Modal */}
       {showFilterModal && (
         <div className="modal-overlay" onClick={() => setShowFilterModal(false)}>
           <div className="modal-content card-glass animate-scale-up" onClick={e => e.stopPropagation()} style={{ maxWidth: '560px', width: '92%' }}>
             <div className="modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <SlidersHorizontal size={20} color="var(--accent-primary)" />
-                <h2 className="modal-title">Filter & Sort Tasks</h2>
+                <Filter size={20} color="var(--accent-primary)" />
+                <h2 className="modal-title">Filter Tasks</h2>
               </div>
               <button className="btn-icon" onClick={() => setShowFilterModal(false)}>
                 <X size={20} />
@@ -1285,24 +1285,6 @@ export default function TodayView() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '12px' }}>
-              {/* Sort Selection */}
-              <div className="form-group">
-                <label className="form-label" style={{ fontWeight: '700' }}>Sort By (Near Ending Task Privileged)</label>
-                <select
-                  className="select"
-                  value={sortOption}
-                  onChange={e => setSortOption(e.target.value)}
-                >
-                  <option value="default">⏰ Default (Near Ending Task Privilege + Sequence)</option>
-                  <option value="urgency">⏰ Due Time / Urgency (Near Ending First)</option>
-                  <option value="rating_desc">★ Highest Rating First (★ 10 → ★ 0)</option>
-                  <option value="rating_asc">★ Lowest Rating First (★ 0 → ★ 10)</option>
-                  <option value="title_asc">🔤 Title (A to Z)</option>
-                  <option value="category">📁 Category (Work / Learning / Health / Personal)</option>
-                  <option value="created_desc">🆕 Newly Created First</option>
-                </select>
-              </div>
-
               <div className="filter-modal-grid">
                 {/* Category Filter */}
                 <div className="form-group">

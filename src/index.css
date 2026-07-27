@@ -4052,17 +4052,73 @@ body {
 }
 
 .task-sort-inline-select {
-  padding: 8px 12px;
+  padding: 10px 38px 10px 14px;
   border-radius: var(--radius-md);
-  background: var(--bg-tertiary);
+  background-color: var(--bg-tertiary);
   border: 1px solid var(--border-glass);
   color: var(--text-primary);
-  font-size: 0.82rem;
+  font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
   outline: none;
-  transition: all 0.2s ease;
-  min-width: 140px;
+  transition: all 0.25s ease;
+  min-width: 160px;
+}
+
+/* ==========================================================================
+   Ultra-Premium Custom Select & Form Input Design System
+   ========================================================================== */
+
+.select,
+.task-sort-inline-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23818cf8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px 16px;
+  padding: 10px 38px 10px 14px;
+  border-radius: var(--radius-md);
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-glass);
+  color: var(--text-primary);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.select:hover,
+.task-sort-inline-select:hover {
+  border-color: rgba(129, 140, 248, 0.5);
+  background-color: rgba(30, 41, 59, 0.9);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+}
+
+.select:focus,
+.task-sort-inline-select:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25), 0 4px 16px rgba(99, 102, 241, 0.2);
+}
+
+.select option,
+.task-sort-inline-select option {
+  background-color: #0f172a;
+  color: #f8fafc;
+  padding: 10px 14px;
+  font-size: 0.88rem;
+  font-weight: 500;
+}
+
+.select option:disabled,
+.task-sort-inline-select option:disabled {
+  color: #64748b;
+  background-color: #020617;
+  font-weight: 700;
+  font-style: italic;
 }
 
 .task-sort-inline-select:focus,
