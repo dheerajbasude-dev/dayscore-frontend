@@ -7,10 +7,15 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
   const [category, setCategory] = useState('Work');
   const [priority, setPriority] = useState('Med');
   const [dueDateTime, setDueDateTime] = useState('');
+  const [minDateTime, setMinDateTime] = useState('');
 
   useEffect(() => {
     if (isOpen) {
-      const defaultDue = addHours(new Date(), 2);
+      const now = new Date();
+      const minStr = format(now, "yyyy-MM-dd'T'HH:mm");
+      setMinDateTime(minStr);
+
+      const defaultDue = addHours(now, 2);
       setDueDateTime(format(defaultDue, "yyyy-MM-dd'T'HH:mm"));
       setTitle('');
       setCategory('Work');
@@ -24,19 +29,29 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
     e.preventDefault();
     if (!title.trim()) return;
 
-    let dueIso = new Date().toISOString();
+    const now = new Date();
+    let dueObj = new Date();
+    
     if (dueDateTime) {
       const d = new Date(dueDateTime);
       if (!isNaN(d.getTime())) {
-        dueIso = d.toISOString();
+        dueObj = d;
       }
+    }
+
+    if (dueObj < now) {
+      alert("⚠️ Due date & time cannot be in the past! Please select a valid current or future date and time.");
+      const updatedMin = format(new Date(), "yyyy-MM-dd'T'HH:mm");
+      setDueDateTime(updatedMin);
+      setMinDateTime(updatedMin);
+      return;
     }
 
     onAdd({
       title: title.trim(),
       category,
       priority,
-      dueDateTime: dueIso,
+      dueDateTime: dueObj.toISOString(),
       status: 'pending'
     });
     onClose();
@@ -48,6 +63,16 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
       setTitle(tpl.title);
       setCategory(tpl.category);
       setPriority(tpl.priority);
+    }
+  };
+
+  const handleDateChange = (e) => {
+    const val = e.target.value;
+    const currentMin = format(new Date(), "yyyy-MM-dd'T'HH:mm");
+    if (val && val < currentMin) {
+      setDueDateTime(currentMin);
+    } else {
+      setDueDateTime(val);
     }
   };
 
@@ -122,8 +147,9 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
             <input 
               type="datetime-local" 
               className="input"
-              value={dueDateTime} 
-              onChange={e => setDueDateTime(e.target.value)} 
+              value={dueDateTime}
+              min={minDateTime}
+              onChange={handleDateChange} 
               required 
             />
           </div>
