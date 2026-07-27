@@ -52,8 +52,8 @@ export default function RatingSliderModal({ task, onConfirm, onCancel }) {
       return '#60a5fa';
     }
     if (currentVal <= 4) return '#f87171'; // Red (up to 4 stars)
-    if (currentVal <= 8) return '#60a5fa'; // Blue (>4 and <=8 stars)
-    return '#34d399'; // Green (remaining: >8 stars)
+    if (currentVal <= 8.5) return '#60a5fa'; // Blue (>4 and <=8.5 stars)
+    return '#34d399'; // Green (remaining: >8.5 stars)
   };
 
   const getEmoji = (val) => {
