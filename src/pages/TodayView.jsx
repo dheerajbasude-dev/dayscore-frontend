@@ -19,7 +19,24 @@ export default function TodayView() {
   const { user } = useAuth()
   const todayStr = useMemo(() => format(new Date(), 'yyyy-MM-dd'), [])
   const [currentDateStr, setCurrentDateStr] = useState(todayStr)
-  const [viewMode, setViewMode] = useState('date') // 'date' | 'all'
+  
+  const [viewMode, setViewMode] = useState(() => {
+    try {
+      const uid = store.getUserId()
+      const saved = localStorage.getItem(`dayscore_${uid}_view_mode`)
+      return (saved === 'all' || saved === 'date') ? saved : 'date'
+    } catch {
+      return 'date'
+    }
+  })
+
+  const handleSetViewMode = (mode) => {
+    setViewMode(mode)
+    try {
+      const uid = store.getUserId()
+      localStorage.setItem(`dayscore_${uid}_view_mode`, mode)
+    } catch (e) {}
+  }
 
   const [tasks, setTasks] = useState([])
   const [reflection, setReflection] = useState('')
@@ -687,14 +704,14 @@ export default function TodayView() {
             <div className="view-mode-toggle" style={{ display: 'flex', gap: '4px', background: 'var(--bg-glass-light)', padding: '3px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-glass)' }}>
               <button
                 className={`btn btn-sm ${viewMode === 'date' ? 'btn-primary' : 'btn-ghost'}`}
-                onClick={() => setViewMode('date')}
+                onClick={() => handleSetViewMode('date')}
                 style={{ padding: '6px 12px', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
                 <Calendar size={14} /> Date View ({tasks.length})
               </button>
               <button
                 className={`btn btn-sm ${viewMode === 'all' ? 'btn-primary' : 'btn-ghost'}`}
-                onClick={() => setViewMode('all')}
+                onClick={() => handleSetViewMode('all')}
                 style={{ padding: '6px 12px', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
                 <Layers size={14} /> All Tasks ({allTasksAcrossDates.length})
