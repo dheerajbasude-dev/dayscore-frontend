@@ -8,7 +8,7 @@ import CalendarHeatmap from '../components/CalendarHeatmap'
 import StatsCards from '../components/StatsCards'
 import * as store from '../store/store'
 import * as scoring from '../store/scoring'
-import { format, subDays } from 'date-fns'
+import { format, subDays, parseISO } from 'date-fns'
 import { useAuth } from '../context/AuthContext'
 
 ChartJS.register(
@@ -146,11 +146,20 @@ export default function AnalyticsView() {
       // Show only dates with recorded activity (plus today)
       const activeEntries = mergedArchives.filter(a => a && (a.hasTasks || a.score > 0));
       if (activeEntries.length > 0) {
-        dateList = activeEntries.map(a => ({
-          label: format(parseISO(a.date), 'MMM dd'),
-          score: a.score,
-          dateStr: a.date
-        }));
+        dateList = activeEntries.map(a => {
+          let dateObj = new Date();
+          try {
+            const cleanStr = a.date.includes('T') ? a.date.split('T')[0] : a.date;
+            dateObj = parseISO(cleanStr);
+            if (isNaN(dateObj.getTime())) dateObj = new Date(a.date);
+          } catch (e) {}
+
+          return {
+            label: format(dateObj, 'MMM dd'),
+            score: a.score,
+            dateStr: a.date
+          };
+        });
 
         // Ensure today is included if not present
         const todayStr = format(today, 'yyyy-MM-dd');
