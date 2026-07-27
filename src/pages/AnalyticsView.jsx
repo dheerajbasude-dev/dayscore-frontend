@@ -135,69 +135,30 @@ export default function AnalyticsView() {
   const bestCategory = useMemo(() => scoring.getMostProductiveCategory(mergedArchives, todayTasks), [mergedArchives, todayTasks]);
   const missedTime = useMemo(() => scoring.getMostMissedTimeOfDay(mergedArchives), [mergedArchives]);
 
-  const [trendRange, setTrendRange] = useState('active'); // 'active', '7', '14', '30'
-
   const lineChartData = useMemo(() => {
+    const last30 = [];
     const today = new Date();
-    const rangeDays = trendRange === '7' ? 7 : trendRange === '14' ? 14 : 30;
+    for (let i = 29; i >= 0; i--) {
+      const dDate = subDays(today, i);
+      const dStr = format(dDate, 'yyyy-MM-dd');
+      const label = format(dDate, 'MMM dd');
+      const arc = mergedArchives.find(a => a.date === dStr);
 
-    let dateList = [];
-    if (trendRange === 'active') {
-      // Show only dates with recorded activity (plus today)
-      const activeEntries = mergedArchives.filter(a => a && (a.hasTasks || a.score > 0));
-      if (activeEntries.length > 0) {
-        dateList = activeEntries.map(a => {
-          let dateObj = new Date();
-          try {
-            const cleanStr = a.date.includes('T') ? a.date.split('T')[0] : a.date;
-            dateObj = parseISO(cleanStr);
-            if (isNaN(dateObj.getTime())) dateObj = new Date(a.date);
-          } catch (e) {}
-
-          return {
-            label: format(dateObj, 'MMM dd'),
-            score: a.score,
-            dateStr: a.date
-          };
-        });
-
-        // Ensure today is included if not present
-        const todayStr = format(today, 'yyyy-MM-dd');
-        if (!dateList.some(d => d.dateStr === todayStr)) {
-          const todayArc = mergedArchives.find(a => a.date === todayStr);
-          dateList.push({
-            label: format(today, 'MMM dd'),
-            score: todayArc ? (todayArc.score || null) : null,
-            dateStr: todayStr
-          });
-        }
-      }
-    }
-
-    // Fallback if active list has fewer than 2 days or user selected fixed range
-    if (dateList.length < 2 || trendRange !== 'active') {
-      dateList = [];
-      for (let i = rangeDays - 1; i >= 0; i--) {
-        const dDate = subDays(today, i);
-        const dStr = format(dDate, 'yyyy-MM-dd');
-        const label = format(dDate, 'MMM dd');
-        const arc = mergedArchives.find(a => a.date === dStr);
-        const score = (arc && arc.hasTasks && arc.score > 0) ? arc.score : (arc && arc.score > 0 ? arc.score : null);
-        dateList.push({ label, score, dateStr: dStr });
-      }
+      const score = (arc && arc.hasTasks && arc.score > 0) ? arc.score : (arc && arc.score > 0 ? arc.score : null);
+      last30.push({ label, score, dateStr: dStr });
     }
 
     return {
-      labels: dateList.map(d => d.label),
+      labels: last30.map(d => d.label),
       datasets: [{
         label: 'Daily Score',
-        data: dateList.map(d => d.score),
+        data: last30.map(d => d.score),
         borderColor: '#818cf8',
         backgroundColor: 'rgba(129, 140, 248, 0.15)',
         fill: true,
-        tension: 0.3,
+        tension: 0.35,
         spanGaps: true,
-        pointRadius: dateList.map(d => d.score !== null ? 6 : 0),
+        pointRadius: last30.map(d => d.score !== null ? 6 : 0),
         pointHoverRadius: 8,
         pointBackgroundColor: '#818cf8',
         pointBorderColor: '#ffffff',
@@ -205,7 +166,7 @@ export default function AnalyticsView() {
         borderWidth: 3,
       }]
     };
-  }, [mergedArchives, trendRange]);
+  }, [mergedArchives]);
 
   const lineOptions = {
     responsive: true,
@@ -214,7 +175,7 @@ export default function AnalyticsView() {
       padding: {
         left: 10,
         right: 25,
-        top: 20,
+        top: 25,
         bottom: 10
       }
     },
@@ -222,14 +183,19 @@ export default function AnalyticsView() {
     scales: {
       y: {
         min: 0,
-        max: 10,
-        ticks: { color: themeTextColor, stepSize: 2, font: { size: 11, weight: '600' } },
+        max: 11,
+        ticks: {
+          color: themeTextColor,
+          stepSize: 2,
+          font: { size: 11, weight: '600' },
+          callback: (val) => (val > 10 ? '' : val)
+        },
         grid: { color: gridColor }
       },
       x: {
         ticks: {
           color: themeTextColor,
-          maxTicksLimit: trendRange === '30' ? 8 : 12,
+          maxTicksLimit: 8,
           maxRotation: 0,
           font: { size: 10, weight: '500' }
         },
@@ -310,29 +276,7 @@ export default function AnalyticsView() {
 
       <div className="analytics-charts-grid">
         <div className="card-glass">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
-            <h2 className="analytics-card-title" style={{ margin: 0 }}>Score Trend</h2>
-            
-            {/* Trend Range Filters */}
-            <div className="segmented" style={{ padding: '2px' }}>
-              {[
-                { id: 'active', label: 'Active Days' },
-                { id: '7', label: '7 Days' },
-                { id: '14', label: '14 Days' },
-                { id: '30', label: '30 Days' }
-              ].map(r => (
-                <div
-                  key={r.id}
-                  className={`segmented-option ${trendRange === r.id ? 'active' : ''}`}
-                  onClick={() => setTrendRange(r.id)}
-                  style={{ fontSize: '0.72rem', padding: '3px 8px' }}
-                >
-                  {r.label}
-                </div>
-              ))}
-            </div>
-          </div>
-
+          <h2 className="analytics-card-title">30-Day Score Trend</h2>
           <div className="analytics-chart-wrapper">
             <Line data={lineChartData} options={lineOptions} />
           </div>
