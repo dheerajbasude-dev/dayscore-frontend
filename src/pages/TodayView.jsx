@@ -690,7 +690,13 @@ export default function TodayView() {
     const rawList = viewMode === 'all' ? allTasksAcrossDates : tasks;
     let list = [...rawList];
 
-    // --- 1. FILTERING ---
+    // --- 1. SEARCH FILTERING (Strictly show ONLY matched tasks) ---
+    const trimmedSearch = searchQuery.trim().toLowerCase();
+    if (trimmedSearch) {
+      list = list.filter(t => (t.title || '').toLowerCase().includes(trimmedSearch));
+    }
+
+    // --- 2. CATEGORY, PRIORITY, STATUS, RATING, DATE FILTERING ---
     // Category Filter
     if (filterCategory !== 'all') {
       list = list.filter(t => (t.category || 'Work').toLowerCase() === filterCategory.toLowerCase());
@@ -760,9 +766,6 @@ export default function TodayView() {
       });
     }
 
-    // --- 2. SEARCH & TITLE MATCHING ---
-    const trimmedSearch = searchQuery.trim().toLowerCase();
-
     // Helper: Near ending / upcoming due task urgency timestamp
     const getNearEndingUrgency = (t) => {
       const due = t.dueDateTime || t.due_date_time;
@@ -772,61 +775,35 @@ export default function TodayView() {
 
     // --- 3. SORTING ---
     list.sort((a, b) => {
-      // Rule 1: Search match prioritization (matched title comes FIRST)
-      if (trimmedSearch) {
-        const aMatch = (a.title || '').toLowerCase().includes(trimmedSearch);
-        const bMatch = (b.title || '').toLowerCase().includes(trimmedSearch);
-        if (aMatch !== bMatch) return aMatch ? -1 : 1;
-      }
-
-      // Rule 2: Sort option requested by user
-      if (sortOption === 'pending') {
-        const aPending = a.status === 'pending' || a.status === 'inprogress';
-        const bPending = b.status === 'pending' || b.status === 'inprogress';
-        if (aPending !== bPending) return aPending ? -1 : 1;
-      } else if (sortOption === 'carriedOver') {
-        const aCO = Boolean(a.carriedOver || a.carried_over);
-        const bCO = Boolean(b.carriedOver || b.carried_over);
-        if (aCO !== bCO) return aCO ? -1 : 1;
-      } else if (sortOption === 'missed') {
-        const aMissed = a.status === 'missed';
-        const bMissed = b.status === 'missed';
-        if (aMissed !== bMissed) return aMissed ? -1 : 1;
-      } else if (sortOption === 'completed') {
-        const aDone = a.status === 'done';
-        const bDone = b.status === 'done';
-        if (aDone !== bDone) return aDone ? 1 : -1;
-      } else if (sortOption === 'reward') {
-        const aR = Boolean(a.reward);
-        const bR = Boolean(b.reward);
-        if (aR !== bR) return aR ? -1 : 1;
-      } else if (sortOption === 'penalty') {
-        const aP = Boolean(a.penalty);
-        const bP = Boolean(b.penalty);
-        if (aP !== bP) return aP ? -1 : 1;
-      } else if (sortOption === 'rating_red') {
-        const aRed = a.status === 'done' && a.rating != null && Number(a.rating) <= 4.0;
-        const bRed = b.status === 'done' && b.rating != null && Number(b.rating) <= 4.0;
-        if (aRed !== bRed) return aRed ? -1 : 1;
-      } else if (sortOption === 'rating_blue') {
-        const aBlue = a.status === 'done' && a.rating != null && Number(a.rating) > 4.0 && Number(a.rating) <= 8.5;
-        const bBlue = b.status === 'done' && b.rating != null && Number(b.rating) > 4.0 && Number(b.rating) <= 8.5;
-        if (aBlue !== bBlue) return aBlue ? -1 : 1;
-      } else if (sortOption === 'rating_green') {
-        const aGreen = a.status === 'done' && a.rating != null && Number(a.rating) > 8.5;
-        const bGreen = b.status === 'done' && b.rating != null && Number(b.rating) > 8.5;
-        if (aGreen !== bGreen) return aGreen ? -1 : 1;
+      if (sortOption === 'urgency') {
+        const urgencyDiff = getNearEndingUrgency(a) - getNearEndingUrgency(b);
+        if (urgencyDiff !== 0) return urgencyDiff;
+      } else if (sortOption === 'rating_desc') {
+        const rA = a.rating != null ? Number(a.rating) : -1;
+        const rB = b.rating != null ? Number(b.rating) : -1;
+        if (rA !== rB) return rB - rA;
+      } else if (sortOption === 'rating_asc') {
+        const rA = a.rating != null ? Number(a.rating) : 999;
+        const rB = b.rating != null ? Number(b.rating) : 999;
+        if (rA !== rB) return rA - rB;
+      } else if (sortOption === 'title_asc') {
+        const titleA = (a.title || '').toLowerCase();
+        const titleB = (b.title || '').toLowerCase();
+        if (titleA !== titleB) return titleA.localeCompare(titleB);
       } else if (sortOption === 'category') {
         const catA = (a.category || 'Work').toLowerCase();
         const catB = (b.category || 'Work').toLowerCase();
         if (catA !== catB) return catA.localeCompare(catB);
+      } else if (sortOption === 'created_desc') {
+        const cA = new Date(a.createdAt || a.created_at || 0).getTime();
+        const cB = new Date(b.createdAt || b.created_at || 0).getTime();
+        if (cA !== cB) return cB - cA;
       }
 
-      // Rule 3: ALWAYS give privilege to near ending task first (upcoming due time urgency)!
+      // Default sort with near-ending task privilege
       const urgencyDiff = getNearEndingUrgency(a) - getNearEndingUrgency(b);
       if (urgencyDiff !== 0) return urgencyDiff;
 
-      // Fallback to default urgency sort
       return sortTasksByUrgency(a, b);
     });
 
@@ -1352,17 +1329,13 @@ export default function TodayView() {
                   value={sortOption}
                   onChange={e => setSortOption(e.target.value)}
                 >
-                  <option value="default">⏰ Default (Near Ending Task Privilege + Original Sequence)</option>
-                  <option value="pending">⏳ Pending Tasks First</option>
-                  <option value="carriedOver">↻ Carried Over Tasks First</option>
-                  <option value="missed">🚨 Missed Tasks First</option>
-                  <option value="completed">✓ Completed Tasks First</option>
-                  <option value="reward">🎁 Tasks With Reward First</option>
-                  <option value="penalty">⚠️ Tasks With Penalty First</option>
-                  <option value="rating_red">🔴 Rating ≤ 4.0 (Red Threshold)</option>
-                  <option value="rating_blue">🔵 Rating &gt; 4.0 &amp; ≤ 8.5 (Blue Threshold)</option>
-                  <option value="rating_green">🟢 Rating &gt; 8.5 (Green Threshold)</option>
+                  <option value="default">⏰ Default (Near Ending Task Privilege + Sequence)</option>
+                  <option value="urgency">⏰ Due Time / Urgency (Near Ending First)</option>
+                  <option value="rating_desc">★ Highest Rating First (★ 10 → ★ 0)</option>
+                  <option value="rating_asc">★ Lowest Rating First (★ 0 → ★ 10)</option>
+                  <option value="title_asc">🔤 Title (A to Z)</option>
                   <option value="category">📁 Category (Work / Learning / Health / Personal)</option>
+                  <option value="created_desc">🆕 Newly Created First</option>
                 </select>
               </div>
 
