@@ -245,12 +245,19 @@ export default function TodayView() {
   useNotifications(tasks, settings.notifications, settings.reminderLeadTime ?? 30)
 
   const handleAddTask = async (newTask) => {
-    const updatedTasks = await store.addTask(currentDateStr, newTask)
-    setTasks(Array.isArray(updatedTasks) ? updatedTasks : store.getTasks(currentDateStr))
+    // ALWAYS create new tasks for TODAY's date (todayStr) as requested by user
+    await store.addTask(todayStr, newTask)
+    await store.fetchAllTasksApi()
+    setTasks(store.getTasks(currentDateStr))
+    setArchives(store.getAllArchives())
     setShowAddModal(false)
   }
 
-  const handleStatusChange = async (taskId, newStatus) => {
+  const handleStatusChange = async (taskOrId, newStatus) => {
+    const isObject = typeof taskOrId === 'object' && taskOrId !== null;
+    const taskId = isObject ? (taskOrId.id || taskOrId._id) : taskOrId;
+    const taskDate = isObject ? (taskOrId.date || taskOrId.dateLabel || currentDateStr) : currentDateStr;
+
     const updates = { status: newStatus }
     if (newStatus === 'done') {
       updates.completedAt = new Date().toISOString()
@@ -266,12 +273,10 @@ export default function TodayView() {
       updates.penaltyAccepted = false
       updates.penalty_accepted = 0
     }
-    const updatedTasks = await store.updateTask(currentDateStr, taskId, updates)
-    const freshTasks = Array.isArray(updatedTasks) ? updatedTasks : store.getTasks(currentDateStr)
-    setTasks(freshTasks)
-
-    // Recalculate score
-    const result = scoring.calculateDailyScore(freshTasks)
+    await store.updateTask(taskDate, taskId, updates)
+    await store.fetchAllTasksApi()
+    setTasks(store.getTasks(currentDateStr))
+    setArchives(store.getAllArchives())
   }
 
   // Rating flow: open slider modal instead of directly completing
@@ -279,8 +284,11 @@ export default function TodayView() {
     setRatingTask(task)
   }
 
-  const handleRatingConfirm = async (taskId, rating, maxRating) => {
-    const targetTask = tasks.find(t => t.id === taskId || t._id === taskId)
+  const handleRatingConfirm = async (ratingTaskId, rating, maxRating) => {
+    const targetTask = ratingTask || tasks.find(t => t.id === ratingTaskId || t._id === ratingTaskId)
+    const taskDate = targetTask?.date || targetTask?.dateLabel || currentDateStr;
+    const targetId = targetTask?.id || targetTask?._id || ratingTaskId;
+
     const now = new Date()
 
     let dueDateObj = null
@@ -344,12 +352,10 @@ export default function TodayView() {
       penaltyAccepted: false,
       penalty_accepted: 0
     }
-    const updatedTasks = await store.updateTask(currentDateStr, taskId, updates)
-    const freshTasks = Array.isArray(updatedTasks) ? updatedTasks : store.getTasks(currentDateStr)
-    setTasks(freshTasks)
-
-    const result = scoring.calculateDailyScore(freshTasks)
-
+    await store.updateTask(taskDate, targetId, updates)
+    await store.fetchAllTasksApi()
+    setTasks(store.getTasks(currentDateStr))
+    setArchives(store.getAllArchives())
     setRatingTask(null)
   }
 
@@ -357,32 +363,50 @@ export default function TodayView() {
     setRatingTask(null)
   }
 
-  const handleDeleteTask = async (taskId) => {
-    const updatedTasks = await store.deleteTask(currentDateStr, taskId)
-    const freshTasks = Array.isArray(updatedTasks) ? updatedTasks : store.getTasks(currentDateStr)
-    setTasks(freshTasks)
+  const handleDeleteTask = async (taskOrId) => {
+    const isObject = typeof taskOrId === 'object' && taskOrId !== null;
+    const taskId = isObject ? (taskOrId.id || taskOrId._id) : taskOrId;
+    const taskDate = isObject ? (taskOrId.date || taskOrId.dateLabel || currentDateStr) : currentDateStr;
 
-    // Recalculate score
-    const result = scoring.calculateDailyScore(freshTasks)
-  }
-
-  const handleCarryOver = (task) => {
-    const newTask = { ...task, id: Date.now().toString(), carriedOver: true, status: 'pending', createdAt: new Date().toISOString() }
-    store.addTask(currentDateStr, newTask)
-    
-    // Mark as missed in yesterday
-    const yesterdayStr = format(subDays(parseISO(currentDateStr), 1), 'yyyy-MM-dd')
-    store.updateTask(yesterdayStr, task.id, { status: 'missed' })
-    
+    await store.deleteTask(taskDate, taskId)
+    await store.fetchAllTasksApi()
     setTasks(store.getTasks(currentDateStr))
-    setCarryOverTasks(prev => prev.filter(t => t.id !== task.id))
+    setArchives(store.getAllArchives())
   }
 
-  const handleDismissCarryOver = (taskId) => {
-    // Mark as missed in yesterday
-    const yesterdayStr = format(subDays(parseISO(currentDateStr), 1), 'yyyy-MM-dd')
-    store.updateTask(yesterdayStr, taskId, { status: 'missed' })
-    setCarryOverTasks(prev => prev.filter(t => t.id !== taskId))
+  const handleCarryOver = async (task) => {
+    const sourceDate = task.sourceDate || task.date || format(subDays(parseISO(currentDateStr), 1), 'yyyy-MM-dd');
+    const taskId = task.id || task._id;
+
+    // Mark as missed in past date
+    await store.updateTask(sourceDate, taskId, { status: 'missed' });
+
+    // Add new task to Today's date (todayStr)
+    const newTask = {
+      title: task.title,
+      category: task.category || 'Work',
+      priority: task.priority || 'Med',
+      dueDateTime: task.dueDateTime || task.due_date_time,
+      carriedOver: true,
+      status: 'pending'
+    };
+    await store.addTask(todayStr, newTask);
+    await store.fetchAllTasksApi();
+    setTasks(store.getTasks(currentDateStr));
+    setArchives(store.getAllArchives());
+    setCarryOverTasks(prev => prev.filter(t => (t.id || t._id) !== taskId));
+  }
+
+  const handleDismissCarryOver = async (taskOrId) => {
+    const isObject = typeof taskOrId === 'object' && taskOrId !== null;
+    const taskId = isObject ? (taskOrId.id || taskOrId._id) : taskOrId;
+    const sourceDate = isObject ? (taskOrId.sourceDate || taskOrId.date || currentDateStr) : format(subDays(parseISO(currentDateStr), 1), 'yyyy-MM-dd');
+
+    await store.updateTask(sourceDate, taskId, { status: 'missed' });
+    await store.fetchAllTasksApi();
+    setTasks(store.getTasks(currentDateStr));
+    setArchives(store.getAllArchives());
+    setCarryOverTasks(prev => prev.filter(t => (t.id || t._id) !== taskId));
   }
 
   const handleAcknowledgePunishment = async () => {

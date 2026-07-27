@@ -11,10 +11,10 @@ export default function TaskCard({ task, onStatusChange, onDelete, onRequestComp
       if (onRequestComplete) {
         onRequestComplete(task);
       } else {
-        onStatusChange(task.id, 'done');
+        onStatusChange(task, 'done');
       }
     } else if (task.status === 'done') {
-      onStatusChange(task.id, 'pending');
+      onStatusChange(task, 'pending');
     }
   };
 
@@ -68,7 +68,7 @@ export default function TaskCard({ task, onStatusChange, onDelete, onRequestComp
                task.status === 'missed' ? <span className="text-danger">Missed</span> :
                timeLeft}
             </div>
-            <button className="delete-btn" onClick={() => onDelete(task.id)} title="Delete Task">
+            <button className="delete-btn" onClick={() => onDelete(task)} title="Delete Task">
               <X size={16} />
             </button>
           </div>
@@ -109,7 +109,7 @@ export default function TaskCard({ task, onStatusChange, onDelete, onRequestComp
                     onClaimReward && (
                       <button 
                         className="badge-action-btn badge-action-success"
-                        onClick={(e) => { e.stopPropagation(); onClaimReward(task.id || task._id); }}
+                        onClick={(e) => { e.stopPropagation(); onClaimReward(task); }}
                       >
                         Claim
                       </button>
@@ -130,7 +130,7 @@ export default function TaskCard({ task, onStatusChange, onDelete, onRequestComp
                     onAcceptPenalty && (
                       <button 
                         className="badge-action-btn badge-action-danger"
-                        onClick={(e) => { e.stopPropagation(); onAcceptPenalty(task.id || task._id); }}
+                        onClick={(e) => { e.stopPropagation(); onAcceptPenalty(task); }}
                       >
                         Acknowledge
                       </button>
