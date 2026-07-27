@@ -649,9 +649,9 @@ export default function TodayView() {
           {/* Date Navigation & View Mode Header */}
           <div className="card-glass date-nav-card" style={{ padding: '12px 18px', marginBottom: '20px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
             {viewMode === 'date' ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <div className="date-nav-left" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                 <button 
-                  className="btn btn-secondary btn-sm" 
+                  className="btn btn-secondary btn-sm date-nav-btn" 
                   onClick={handlePrevDay} 
                   title="Previous Day"
                   style={{ padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
@@ -659,8 +659,8 @@ export default function TodayView() {
                   <ChevronLeft size={16} /> Yesterday
                 </button>
 
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'var(--bg-glass-light)', padding: '4px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-glass)' }}>
-                  <Calendar size={16} style={{ color: 'var(--accent-primary)' }} />
+                <div className="date-picker-wrapper" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'var(--bg-glass-light)', padding: '4px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-glass)' }}>
+                  <Calendar size={15} style={{ color: 'var(--accent-primary)', flexShrink: 0 }} />
                   <input 
                     type="date" 
                     value={currentDateStr}
@@ -670,12 +670,13 @@ export default function TodayView() {
                         setCurrentDateStr(e.target.value);
                       }
                     }}
+                    className="date-picker-input"
                     style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer', fontFamily: 'inherit' }}
                   />
                 </div>
 
                 <button 
-                  className="btn btn-secondary btn-sm" 
+                  className="btn btn-secondary btn-sm date-nav-btn" 
                   onClick={handleNextDay} 
                   disabled={currentDateStr >= todayStr}
                   title="Next Day"
@@ -693,7 +694,7 @@ export default function TodayView() {
 
                 {currentDateStr !== todayStr && (
                   <button 
-                    className="btn btn-primary btn-sm" 
+                    className="btn btn-primary btn-sm date-nav-btn" 
                     onClick={handleToday}
                     style={{ padding: '6px 12px' }}
                   >
@@ -702,7 +703,7 @@ export default function TodayView() {
                 )}
               </div>
             ) : (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div className="date-nav-left" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ fontWeight: '700', fontSize: '0.9rem', color: 'var(--text-primary)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                   <Layers size={16} style={{ color: 'var(--accent-primary)' }} /> All Tasks View
                 </span>

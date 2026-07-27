@@ -3115,3 +3115,56 @@ body {
   border: 1px solid rgba(248, 113, 113, 0.35);
 }
 
+/* Mobile Responsive Date Nav & View Mode Header */
+@media (max-width: 640px) {
+  .date-nav-card {
+    padding: 10px 12px !important;
+    gap: 10px !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .date-nav-left {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 4px !important;
+    width: 100% !important;
+    flex-wrap: nowrap !important;
+  }
+
+  .date-nav-btn {
+    padding: 5px 8px !important;
+    font-size: 0.76rem !important;
+    gap: 2px !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+  }
+
+  .date-picker-wrapper {
+    padding: 3px 6px !important;
+    flex: 1 !important;
+    justify-content: center !important;
+    min-width: 0 !important;
+  }
+
+  .date-picker-input {
+    font-size: 0.76rem !important;
+    width: 100% !important;
+    text-align: center !important;
+    padding: 0 !important;
+  }
+
+  .view-mode-toggle {
+    width: 100% !important;
+    justify-content: space-between !important;
+  }
+
+  .view-mode-toggle .btn {
+    flex: 1 !important;
+    justify-content: center !important;
+    padding: 6px 6px !important;
+    font-size: 0.78rem !important;
+  }
+}
+
