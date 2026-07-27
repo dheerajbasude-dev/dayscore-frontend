@@ -65,9 +65,12 @@ export default function TodayView() {
   }
 
   const handleNextDay = () => {
+    if (currentDateStr >= todayStr) return
     try {
       const next = format(addDays(parseISO(currentDateStr), 1), 'yyyy-MM-dd')
-      setCurrentDateStr(next)
+      if (next <= todayStr) {
+        setCurrentDateStr(next)
+      }
     } catch {
       setCurrentDateStr(todayStr)
     }
@@ -631,7 +634,12 @@ export default function TodayView() {
                 <input 
                   type="date" 
                   value={currentDateStr}
-                  onChange={(e) => e.target.value && setCurrentDateStr(e.target.value)}
+                  max={todayStr}
+                  onChange={(e) => {
+                    if (e.target.value && e.target.value <= todayStr) {
+                      setCurrentDateStr(e.target.value);
+                    }
+                  }}
                   style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer', fontFamily: 'inherit' }}
                 />
               </div>
@@ -639,8 +647,16 @@ export default function TodayView() {
               <button 
                 className="btn btn-secondary btn-sm" 
                 onClick={handleNextDay} 
+                disabled={currentDateStr >= todayStr}
                 title="Next Day"
-                style={{ padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                style={{ 
+                  padding: '6px 12px', 
+                  display: 'inline-flex', 
+                  alignItems: 'center', 
+                  gap: '4px',
+                  opacity: currentDateStr >= todayStr ? 0.4 : 1,
+                  cursor: currentDateStr >= todayStr ? 'not-allowed' : 'pointer'
+                }}
               >
                 Next <ChevronRight size={16} />
               </button>
