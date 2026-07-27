@@ -1362,24 +1362,32 @@ export default function TodayView() {
 
               {/* Date Range Filter */}
               <div className="form-group">
-                <label className="form-label">Date Range Filter</label>
+                <label className="form-label" style={{ fontWeight: '600' }}>Date Range Filter (Only Available Task Dates)</label>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                  <input
-                    type="date"
-                    className="input"
-                    value={filterDateFrom}
-                    onChange={e => setFilterDateFrom(e.target.value)}
-                    placeholder="From Date"
-                    style={{ fontSize: '0.85rem' }}
-                  />
-                  <input
-                    type="date"
-                    className="input"
-                    value={filterDateTo}
-                    onChange={e => setFilterDateTo(e.target.value)}
-                    placeholder="To Date"
-                    style={{ fontSize: '0.85rem' }}
-                  />
+                  <div>
+                    <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>From Date</label>
+                    <input
+                      type="date"
+                      className="input"
+                      value={filterDateFrom}
+                      min={minAvailableDate}
+                      max={filterDateTo || todayStr}
+                      onChange={e => setFilterDateFrom(e.target.value)}
+                      style={{ fontSize: '0.85rem' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>To Date</label>
+                    <input
+                      type="date"
+                      className="input"
+                      value={filterDateTo}
+                      min={filterDateFrom || minAvailableDate}
+                      max={todayStr}
+                      onChange={e => setFilterDateTo(e.target.value)}
+                      style={{ fontSize: '0.85rem' }}
+                    />
+                  </div>
                 </div>
               </div>
 
