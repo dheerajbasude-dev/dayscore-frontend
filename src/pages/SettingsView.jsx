@@ -454,12 +454,13 @@ export default function SettingsView() {
               {/* Custom Date & Time Restrictions for Template */}
               <div className="form-group">
                 <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>Default Due Date & Time</span>
+                  <span>Default Due Time</span>
                   <span style={{ fontSize: '0.78rem', color: 'var(--accent-primary)', fontWeight: '700' }}>
                     ⏰ {(() => {
                       try {
-                        const [y, m, d] = tDate.split('-').map(Number);
-                        return format(new Date(y, m - 1, d, tHour, tMinute), 'iii, MMM d • hh:mm a');
+                        const ampm = tHour >= 12 ? 'PM' : 'AM';
+                        const displayH = tHour % 12 === 0 ? 12 : tHour % 12;
+                        return `${String(displayH).padStart(2, '0')}:${String(tMinute).padStart(2, '0')} ${ampm} (Applies to active date)`;
                       } catch {
                         return '';
                       }

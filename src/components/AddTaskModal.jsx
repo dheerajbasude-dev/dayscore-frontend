@@ -77,21 +77,39 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
       setCategory(tpl.category);
       setPriority(tpl.priority);
 
-      if (tpl.defaultDate && tpl.defaultDate >= todayDateStr) {
-        setSelectedDate(tpl.defaultDate);
-      }
+      // Always set due date to current active date (today when used today, tomorrow when used tomorrow)
+      const currentToday = format(new Date(), 'yyyy-MM-dd');
+      setSelectedDate(currentToday);
+
+      let targetH = selectedHour;
+      let targetM = selectedMinute;
+
       if (tpl.defaultHour !== undefined && tpl.defaultHour !== null) {
-        setSelectedHour(tpl.defaultHour);
-      }
-      if (tpl.defaultMinute !== undefined && tpl.defaultMinute !== null) {
-        setSelectedMinute(tpl.defaultMinute);
+        targetH = Number(tpl.defaultHour);
       } else if (tpl.relativeTime) {
         const parts = tpl.relativeTime.split(':').map(Number);
-        if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
-          setSelectedHour(parts[0]);
-          setSelectedMinute(parts[1]);
-        }
+        if (parts.length >= 1 && !isNaN(parts[0])) targetH = parts[0];
       }
+
+      if (tpl.defaultMinute !== undefined && tpl.defaultMinute !== null) {
+        targetM = Number(tpl.defaultMinute);
+      } else if (tpl.relativeTime) {
+        const parts = tpl.relativeTime.split(':').map(Number);
+        if (parts.length === 2 && !isNaN(parts[1])) targetM = parts[1];
+      }
+
+      // Auto-clamp if time has passed for today
+      const nowObj = new Date();
+      const curH = nowObj.getHours();
+      const curM = nowObj.getMinutes();
+
+      if (targetH < curH || (targetH === curH && targetM < curM)) {
+        targetH = curH;
+        targetM = Math.min(curM + 5, 59);
+      }
+
+      setSelectedHour(targetH);
+      setSelectedMinute(targetM);
     }
   };
 
