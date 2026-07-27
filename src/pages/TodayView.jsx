@@ -72,24 +72,48 @@ export default function TodayView() {
   const [settings, setSettings] = useState({ notifications: false })
   const [loading, setLoading] = useState(true)
 
+  // Compute all dates that contain recorded task data or archives (plus today)
+  const validTaskDates = useMemo(() => {
+    const dateSet = new Set([todayStr]);
+    const allArcs = archives.length > 0 ? archives : store.getAllArchives();
+
+    (allArcs || []).forEach(arc => {
+      if (arc && arc.date) {
+        const cleanD = arc.date.includes('T') ? arc.date.split('T')[0] : arc.date.trim().substring(0, 10);
+        const hasData = (Array.isArray(arc.tasks) && arc.tasks.length > 0) || arc.hasDone || (arc.score && Number(arc.score) > 0);
+        if (hasData) {
+          dateSet.add(cleanD);
+        }
+      }
+    });
+
+    (todayTasks || []).forEach(t => {
+      const tDate = t.completedAt ? t.completedAt.substring(0, 10) : (t.date || todayStr);
+      if (tDate) {
+        const cleanD = tDate.includes('T') ? tDate.split('T')[0] : tDate.substring(0, 10);
+        dateSet.add(cleanD);
+      }
+    });
+
+    return Array.from(dateSet).sort();
+  }, [archives, todayTasks, todayStr]);
+
+  const minAvailableDate = validTaskDates.length > 0 ? validTaskDates[0] : todayStr;
+  const canGoPrev = currentDateStr > minAvailableDate && validTaskDates.some(d => d < currentDateStr);
+  const canGoNext = currentDateStr < todayStr && validTaskDates.some(d => d > currentDateStr);
+
   const handlePrevDay = () => {
-    try {
-      const prev = format(subDays(parseISO(currentDateStr), 1), 'yyyy-MM-dd')
-      setCurrentDateStr(prev)
-    } catch {
-      setCurrentDateStr(todayStr)
+    const prevDates = validTaskDates.filter(d => d < currentDateStr);
+    if (prevDates.length > 0) {
+      const targetPrev = prevDates[prevDates.length - 1];
+      setCurrentDateStr(targetPrev);
     }
   }
 
   const handleNextDay = () => {
-    if (currentDateStr >= todayStr) return
-    try {
-      const next = format(addDays(parseISO(currentDateStr), 1), 'yyyy-MM-dd')
-      if (next <= todayStr) {
-        setCurrentDateStr(next)
-      }
-    } catch {
-      setCurrentDateStr(todayStr)
+    const nextDate = validTaskDates.find(d => d > currentDateStr);
+    if (nextDate && nextDate <= todayStr) {
+      setCurrentDateStr(nextDate);
     }
   }
 
@@ -722,8 +746,16 @@ export default function TodayView() {
                 <button
                   className="btn btn-secondary btn-sm date-nav-btn"
                   onClick={handlePrevDay}
-                  title="Previous Day"
-                  style={{ padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                  disabled={!canGoPrev}
+                  title={canGoPrev ? "Previous Day with Tasks" : "No Earlier Tasks Found"}
+                  style={{
+                    padding: '6px 12px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    opacity: canGoPrev ? 1 : 0.4,
+                    cursor: canGoPrev ? 'pointer' : 'not-allowed'
+                  }}
                 >
                   <ChevronLeft size={14} /> Prev
                 </button>
@@ -733,10 +765,12 @@ export default function TodayView() {
                   <input
                     type="date"
                     value={currentDateStr}
+                    min={minAvailableDate}
                     max={todayStr}
                     onChange={(e) => {
-                      if (e.target.value && e.target.value <= todayStr) {
-                        setCurrentDateStr(e.target.value);
+                      const val = e.target.value;
+                      if (val && val >= minAvailableDate && val <= todayStr) {
+                        setCurrentDateStr(val);
                       }
                     }}
                     className="date-picker-input"
@@ -747,15 +781,15 @@ export default function TodayView() {
                 <button
                   className="btn btn-secondary btn-sm date-nav-btn"
                   onClick={handleNextDay}
-                  disabled={currentDateStr >= todayStr}
-                  title="Next Day"
+                  disabled={!canGoNext}
+                  title={canGoNext ? "Next Day with Tasks" : "Latest Date Reached"}
                   style={{
                     padding: '6px 12px',
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '4px',
-                    opacity: currentDateStr >= todayStr ? 0.4 : 1,
-                    cursor: currentDateStr >= todayStr ? 'not-allowed' : 'pointer'
+                    opacity: !canGoNext ? 0.4 : 1,
+                    cursor: !canGoNext ? 'not-allowed' : 'pointer'
                   }}
                 >
                   Next <ChevronRight size={16} />
