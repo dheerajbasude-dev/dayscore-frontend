@@ -918,9 +918,10 @@ export default function TodayView() {
               </div>
             ) : (
               <div className="task-group-list">
-                {displayTasksList.map(task => (
+                {displayTasksList.map((task, idx) => (
                   <TaskCard
                     key={task.id || task._id}
+                    index={idx + 1}
                     task={task}
                     onStatusChange={(taskId, newStatus) => handleStatusChange(taskId, newStatus)}
                     onDelete={(taskId) => handleDeleteTask(taskId)}

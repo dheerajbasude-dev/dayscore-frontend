@@ -999,6 +999,36 @@ body {
   transition: color var(--transition-normal);
 }
 
+.task-index-num {
+  font-size: clamp(0.68rem, 2vw, 0.78rem);
+  font-weight: 800;
+  color: var(--accent-primary);
+  background: rgba(99, 102, 241, 0.15);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 5px;
+  padding: 1px 6px;
+  flex-shrink: 0;
+  line-height: 1.2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
+.task-card:hover .task-index-num {
+  border-color: rgba(99, 102, 241, 0.5);
+  background: rgba(99, 102, 241, 0.25);
+  box-shadow: 0 0 8px rgba(99, 102, 241, 0.25);
+}
+
+.task-card.done .task-index-num {
+  opacity: 0.6;
+  color: var(--text-muted);
+  border-color: var(--border-glass);
+  background: rgba(255, 255, 255, 0.05);
+}
+
 .task-header-row {
   display: flex;
   align-items: center;

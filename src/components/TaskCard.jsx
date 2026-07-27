@@ -3,7 +3,7 @@ import { X, Loader2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useTimer } from '../hooks/useTimer';
 
-export default function TaskCard({ task, onStatusChange, onDelete, onRequestComplete, onClaimReward, onAcceptPenalty }) {
+export default function TaskCard({ index, task, onStatusChange, onDelete, onRequestComplete, onClaimReward, onAcceptPenalty }) {
   const { timeLeft, urgencyClass, isOverdue } = useTimer(task.dueDateTime);
   const [claiming, setClaiming] = useState(false);
   const [accepting, setAccepting] = useState(false);
@@ -83,8 +83,15 @@ export default function TaskCard({ task, onStatusChange, onDelete, onRequestComp
 
       <div className="task-info">
         <div className="task-header-row">
-          <div className={`task-title ${task.status === 'done' ? 'strikethrough' : ''}`}>
-            {task.title}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
+            {index !== undefined && index !== null && (
+              <span className="task-index-num" title={`Task #${index}`}>
+                #{index}
+              </span>
+            )}
+            <div className={`task-title ${task.status === 'done' ? 'strikethrough' : ''}`}>
+              {task.title}
+            </div>
           </div>
           <div className="task-actions-right">
             <div className={`countdown ${urgencyClass}`}>
