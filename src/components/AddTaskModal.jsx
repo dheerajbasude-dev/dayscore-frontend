@@ -76,6 +76,22 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
       setTitle(tpl.title);
       setCategory(tpl.category);
       setPriority(tpl.priority);
+
+      if (tpl.defaultDate && tpl.defaultDate >= todayDateStr) {
+        setSelectedDate(tpl.defaultDate);
+      }
+      if (tpl.defaultHour !== undefined && tpl.defaultHour !== null) {
+        setSelectedHour(tpl.defaultHour);
+      }
+      if (tpl.defaultMinute !== undefined && tpl.defaultMinute !== null) {
+        setSelectedMinute(tpl.defaultMinute);
+      } else if (tpl.relativeTime) {
+        const parts = tpl.relativeTime.split(':').map(Number);
+        if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+          setSelectedHour(parts[0]);
+          setSelectedMinute(parts[1]);
+        }
+      }
     }
   };
 

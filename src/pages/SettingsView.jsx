@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Trash2, Download, Upload, AlertTriangle, Moon, Sun, Bell, Plus, X } from 'lucide-react'
+import { format, addHours } from 'date-fns'
 import * as store from '../store/store'
 import { useTheme } from '../hooks/useTheme'
 import { triggerDesktopNotification } from '../hooks/useNotifications'
@@ -17,7 +18,54 @@ export default function SettingsView() {
   const [tTitle, setTTitle] = useState('')
   const [tCategory, setTCategory] = useState('Work')
   const [tPriority, setTPriority] = useState('Med')
-  const [tRelativeTime, setTRelativeTime] = useState('')
+
+  const todayDateStr = format(new Date(), 'yyyy-MM-dd')
+  const [tDate, setTDate] = useState(todayDateStr)
+  const [tHour, setTHour] = useState(() => addHours(new Date(), 2).getHours())
+  const [tMinute, setTMinute] = useState(() => addHours(new Date(), 2).getMinutes())
+
+  const now = new Date()
+  const isSelectedToday = tDate === todayDateStr
+  const currentHour = now.getHours()
+  const currentMinute = now.getMinutes()
+
+  useEffect(() => {
+    if (showAddTemplate) {
+      const initialDate = format(new Date(), 'yyyy-MM-dd')
+      const initialDue = addHours(new Date(), 2)
+      setTDate(initialDate)
+      setTHour(initialDue.getHours())
+      setTMinute(initialDue.getMinutes())
+      setTTitle('')
+      setTCategory('Work')
+      setTPriority('Med')
+    }
+  }, [showAddTemplate])
+
+  // Clamp hour/minute if today is selected and selected time is in the past
+  useEffect(() => {
+    if (isSelectedToday) {
+      if (tHour < currentHour) {
+        setTHour(currentHour)
+        setTMinute(Math.min(currentMinute + 5, 59))
+      } else if (tHour === currentHour && tMinute < currentMinute) {
+        setTMinute(Math.min(currentMinute + 5, 59))
+      }
+    }
+  }, [tDate, isSelectedToday, currentHour, currentMinute, tHour, tMinute])
+
+  const setTemplatePresetTime = (minutesToAdd) => {
+    const target = new Date(Date.now() + minutesToAdd * 60 * 1000)
+    setTDate(format(target, 'yyyy-MM-dd'))
+    setTHour(target.getHours())
+    setTMinute(target.getMinutes())
+  }
+
+  const setTemplateEndOfDay = () => {
+    setTDate(todayDateStr)
+    setTHour(23)
+    setTMinute(59)
+  }
 
   useEffect(() => {
     let isMounted = true;
@@ -49,17 +97,9 @@ export default function SettingsView() {
     const newSettings = { ...settings, notifications: nextState }
     store.saveSettings(newSettings)
     setSettings(newSettings)
-    if (nextState && 'Notification' in window) {
-      if (Notification.permission !== 'granted') {
-        const perm = await Notification.requestPermission()
-        if (perm !== 'granted') {
-          alert('Notification permission was blocked. Please enable notification permissions in your browser address bar.')
-        }
-      }
-    }
   }
 
-  const handleUpdateReminderLeadTime = (minutes) => {
+  const handleReminderChange = (minutes) => {
     const newSettings = { ...settings, reminderLeadTime: minutes }
     store.saveSettings(newSettings)
     setSettings(newSettings)
@@ -80,11 +120,39 @@ export default function SettingsView() {
   const handleAddTemplate = (e) => {
     e.preventDefault()
     if (!tTitle.trim()) return
-    const newTemplate = { id: Date.now().toString(), title: tTitle.trim(), category: tCategory, priority: tPriority, relativeTime: tRelativeTime || null }
+
+    const [year, month, day] = tDate.split('-').map(Number)
+    const dueObj = new Date(year, month - 1, day, tHour, tMinute, 0)
+
+    const currentTime = new Date()
+    if (dueObj < currentTime) {
+      alert("⚠️ Default due date & time cannot be in the past! Please select a valid current or future date and time.")
+      setTDate(format(currentTime, 'yyyy-MM-dd'))
+      setTHour(currentTime.getHours())
+      setTMinute(Math.min(currentTime.getMinutes() + 5, 59))
+      return
+    }
+
+    const pad = (num) => String(num).padStart(2, '0')
+    const relativeTime = `${pad(tHour)}:${pad(tMinute)}`
+
+    const newTemplate = {
+      id: Date.now().toString(),
+      title: tTitle.trim(),
+      category: tCategory,
+      priority: tPriority,
+      defaultDate: tDate,
+      defaultHour: tHour,
+      defaultMinute: tMinute,
+      relativeTime
+    }
+
     const updated = [...templates, newTemplate]
     store.saveTemplates(updated)
     setTemplates(updated)
-    setTTitle(''); setTCategory('Work'); setTPriority('Med'); setTRelativeTime('')
+    setTTitle('')
+    setTCategory('Work')
+    setTPriority('Med')
     setShowAddTemplate(false)
   }
 
@@ -158,70 +226,74 @@ export default function SettingsView() {
               <div className="settings-row-sublabel">
                 {settings.notifications 
                   ? (settings.reminderLeadTime === 0 ? 'Notifies at exact due time' : `Notifies ${settings.reminderLeadTime ?? 30} min before due time`)
-                  : 'Desktop reminders disabled'}
+                  : 'Desktop notifications disabled'}
               </div>
             </div>
           </div>
           <Toggle active={settings.notifications} onClick={handleToggleNotifications} />
         </div>
 
+        {/* Lead time selection */}
         {settings.notifications && (
-          <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border-glass)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <div className="form-group" style={{ margin: 0 }}>
-              <label className="form-label">Reminder Timing Choice</label>
-              <select
-                className="input"
-                value={settings.reminderLeadTime ?? 30}
-                onChange={(e) => handleUpdateReminderLeadTime(Number(e.target.value))}
-                style={{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)', borderRadius: '8px', padding: '8px 12px' }}
-              >
-                <option value={5}>5 minutes before due time</option>
-                <option value={15}>15 minutes before due time</option>
-                <option value={30}>30 minutes before due time</option>
-                <option value={60}>1 hour before due time</option>
-                <option value={0}>At exact due time</option>
-              </select>
+          <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border-glass)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <label className="form-label" style={{ fontSize: '0.85rem' }}>Notification Trigger Time</label>
+            <div className="segmented">
+              {[
+                { label: 'At Due Time', value: 0 },
+                { label: '15 Min Before', value: 15 },
+                { label: '30 Min Before', value: 30 },
+                { label: '1 Hour Before', value: 60 },
+              ].map(opt => (
+                <div
+                  key={opt.value}
+                  className={`segmented-option ${(settings.reminderLeadTime ?? 30) === opt.value ? 'active' : ''}`}
+                  onClick={() => handleReminderChange(opt.value)}
+                  style={{ fontSize: '0.78rem', padding: '5px 8px' }}
+                >
+                  {opt.label}
+                </div>
+              ))}
             </div>
 
-            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '6px' }}>
               <button 
-                type="button"
-                className="btn btn-secondary btn-sm"
+                type="button" 
+                className="btn btn-secondary btn-sm" 
                 onClick={handleTestNotification}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                style={{ fontSize: '0.75rem', gap: '4px' }}
               >
-                <Bell size={14} /> Send Test Notification
+                🔔 Send Test Notification
               </button>
             </div>
           </div>
         )}
       </div>
 
-      {/* Templates */}
+      {/* Task Templates */}
       <div className="card-glass settings-card">
-        <div className="settings-templates-header">
-          <h2 className="settings-section-title" style={{ margin: 0 }}>Task Templates</h2>
+        <div className="settings-card-header">
+          <h2 className="settings-section-title">Task Templates</h2>
           <button onClick={() => setShowAddTemplate(true)} className="btn btn-primary btn-sm">
-            <Plus size={14} /> New
+            <Plus size={16} /> Add Template
           </button>
         </div>
 
         {templates.length === 0 ? (
-          <div className="settings-templates-empty">
-            No templates yet. Create one for recurring tasks.
-          </div>
+          <p className="settings-empty-note">No templates saved yet.</p>
         ) : (
-          <div className="settings-templates-list">
+          <div className="settings-template-list">
             {templates.map(t => (
               <div key={t.id} className="settings-template-item">
-                <div className="settings-template-info">
-                  <div className="settings-template-title">{t.title}</div>
+                <div>
+                  <span className="settings-template-title">{t.title}</span>
                   <div className="settings-template-meta">
-                    <span className={`badge badge-${t.category.toLowerCase()}`}>{t.category}</span>
+                    <span className="badge badge-cat">{t.category}</span>
+                    <span className="badge badge-pri">{t.priority}</span>
+                    {t.relativeTime && <span className="settings-template-time">⏰ {t.relativeTime}</span>}
                   </div>
                 </div>
-                <button onClick={() => handleDeleteTemplate(t.id)} className="btn-icon" style={{ color: 'var(--accent-danger)', width: '30px', height: '30px' }}>
-                  <Trash2 size={15} />
+                <button onClick={() => handleDeleteTemplate(t.id)} className="btn-icon settings-delete-btn" title="Delete template">
+                  <Trash2 size={16} />
                 </button>
               </div>
             ))}
@@ -229,14 +301,25 @@ export default function SettingsView() {
         )}
       </div>
 
-      {/* Data */}
-      <div className="card-glass">
-        <h2 className="settings-section-title">Data</h2>
-        
-        <div className="settings-data-buttons">
+      {/* Data Management */}
+      <div className="card-glass settings-card">
+        <h2 className="settings-section-title">Data Management</h2>
+
+        <div className="settings-row settings-row--bordered">
+          <div>
+            <div className="settings-row-label">Export Data</div>
+            <div className="settings-row-sublabel">Download JSON backup of all tasks & history</div>
+          </div>
           <button onClick={handleExport} className="btn btn-secondary">
             <Download size={16} /> Export
           </button>
+        </div>
+
+        <div className="settings-row settings-row--bordered settings-row--top-padded">
+          <div>
+            <div className="settings-row-label">Import Data</div>
+            <div className="settings-row-sublabel">Restore tasks from a JSON backup file</div>
+          </div>
           <button onClick={() => fileInputRef.current.click()} className="btn btn-secondary">
             <Upload size={16} /> Import
           </button>
@@ -256,16 +339,17 @@ export default function SettingsView() {
       {/* Template Modal */}
       {showAddTemplate && (
         <div className="modal-overlay" onClick={() => setShowAddTemplate(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '480px' }}>
             <div className="modal-header">
               <h2 className="modal-title">New Template</h2>
               <button className="btn-icon" onClick={() => setShowAddTemplate(false)}><X size={18} /></button>
             </div>
-            <form onSubmit={handleAddTemplate} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <form onSubmit={handleAddTemplate} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div className="form-group">
                 <label className="form-label">Title</label>
                 <input required type="text" className="input" value={tTitle} onChange={e => setTTitle(e.target.value)} placeholder="Task title" autoFocus />
               </div>
+
               <div className="form-group">
                 <label className="form-label">Category</label>
                 <div className="segmented">
@@ -274,6 +358,7 @@ export default function SettingsView() {
                   ))}
                 </div>
               </div>
+
               <div className="form-group">
                 <label className="form-label">Priority</label>
                 <div className="segmented">
@@ -282,10 +367,86 @@ export default function SettingsView() {
                   ))}
                 </div>
               </div>
+
+              {/* Custom Date & Time Restrictions for Template */}
               <div className="form-group">
-                <label className="form-label">Default Due Time</label>
-                <input type="time" className="input" value={tRelativeTime} onChange={e => setTRelativeTime(e.target.value)} />
+                <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>Default Due Date & Time</span>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--accent-primary)', fontWeight: '700' }}>
+                    ⏰ {(() => {
+                      try {
+                        const [y, m, d] = tDate.split('-').map(Number);
+                        return format(new Date(y, m - 1, d, tHour, tMinute), 'iii, MMM d • hh:mm a');
+                      } catch {
+                        return '';
+                      }
+                    })()}
+                  </span>
+                </label>
+
+                {/* Quick Presets */}
+                <div style={{ display: 'flex', gap: '6px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => setTemplatePresetTime(30)} style={{ fontSize: '0.75rem', padding: '3px 8px' }}>+30 Min</button>
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => setTemplatePresetTime(60)} style={{ fontSize: '0.75rem', padding: '3px 8px' }}>+1 Hour</button>
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => setTemplatePresetTime(120)} style={{ fontSize: '0.75rem', padding: '3px 8px' }}>+2 Hours</button>
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={setTemplateEndOfDay} style={{ fontSize: '0.75rem', padding: '3px 8px' }}>End of Day (11:59 PM)</button>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr', gap: '8px' }}>
+                  {/* Date Input */}
+                  <input
+                    type="date"
+                    className="input"
+                    min={todayDateStr}
+                    value={tDate}
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (val && val >= todayDateStr) {
+                        setTDate(val);
+                      }
+                    }}
+                    required
+                    style={{ padding: '8px 10px', fontSize: '0.85rem' }}
+                  />
+
+                  {/* Hour Dropdown */}
+                  <select
+                    className="select"
+                    value={tHour}
+                    onChange={e => setTHour(Number(e.target.value))}
+                    style={{ padding: '8px 10px', fontSize: '0.85rem' }}
+                  >
+                    {Array.from({ length: 24 }).map((_, h) => {
+                      const isPast = isSelectedToday && h < currentHour;
+                      const ampm = h >= 12 ? 'PM' : 'AM';
+                      const displayH = h % 12 === 0 ? 12 : h % 12;
+                      return (
+                        <option key={h} value={h} disabled={isPast}>
+                          {String(displayH).padStart(2, '0')}:00 {ampm} {isPast ? '(Past)' : ''}
+                        </option>
+                      );
+                    })}
+                  </select>
+
+                  {/* Minute Dropdown */}
+                  <select
+                    className="select"
+                    value={tMinute}
+                    onChange={e => setTMinute(Number(e.target.value))}
+                    style={{ padding: '8px 10px', fontSize: '0.85rem' }}
+                  >
+                    {Array.from({ length: 60 }).map((_, m) => {
+                      const isPast = isSelectedToday && tHour === currentHour && m < currentMinute;
+                      return (
+                        <option key={m} value={m} disabled={isPast}>
+                          :{String(m).padStart(2, '0')} {isPast ? '(Past)' : ''}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
               </div>
+
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowAddTemplate(false)}>Cancel</button>
                 <button type="submit" className="btn btn-primary">Save</button>
