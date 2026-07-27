@@ -106,7 +106,7 @@ export default function RatingSliderModal({ task, onConfirm, onCancel }) {
         ) : (
           <div className="rating-ontime-notice">
             <Clock size={16} />
-            <span>Click stars to rate effort (0.5 to <strong>10</strong>)</span>
+            <span>Click stars or 0.0 to rate effort (0 to <strong>10</strong>)</span>
           </div>
         )}
 
@@ -116,6 +116,29 @@ export default function RatingSliderModal({ task, onConfirm, onCancel }) {
             {activeRating % 1 === 0 ? activeRating.toFixed(0) : activeRating.toFixed(1)}
           </span>
           <span className="rating-max" style={{ fontSize: '1.2rem' }}>/ {maxRating}</span>
+        </div>
+
+        {/* Zero Effort Chip */}
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={() => setRating(0)}
+            onMouseEnter={() => setHoverRating(0)}
+            style={{
+              padding: '4px 12px',
+              fontSize: '0.8rem',
+              borderRadius: '20px',
+              border: activeRating === 0 ? '1px solid #f87171' : '1px solid var(--border-glass)',
+              background: activeRating === 0 ? 'rgba(248, 113, 113, 0.18)' : 'var(--bg-glass-light)',
+              color: activeRating === 0 ? '#f87171' : 'var(--text-muted)',
+              fontWeight: activeRating === 0 ? '700' : '500',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            0.0 (Zero Effort)
+          </button>
         </div>
 
         {/* Pure Interactive 10-Star Rating Bar */}
@@ -131,7 +154,7 @@ export default function RatingSliderModal({ task, onConfirm, onCancel }) {
             background: 'var(--bg-glass-light)',
             borderRadius: 'var(--radius-lg)',
             border: '1px solid var(--border-glass)',
-            margin: '8px 0 16px 0',
+            margin: '4px 0 16px 0',
             flexWrap: 'wrap'
           }}
         >
@@ -207,7 +230,7 @@ export default function RatingSliderModal({ task, onConfirm, onCancel }) {
         </div>
 
         <p style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0 0 16px 0' }}>
-          💡 Click left side of star for half star (<strong>0.5</strong>), right side for full star (<strong>1.0</strong>)
+          💡 Click "<strong>0.0 (Zero Effort)</strong>" or click stars (half star <strong>0.5</strong>, full star <strong>1.0</strong>)
         </p>
 
         <div className="modal-footer">
