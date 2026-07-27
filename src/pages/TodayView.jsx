@@ -8,7 +8,7 @@ import ReflectionBox from '../components/ReflectionBox'
 import ConfettiCelebration from '../components/ConfettiCelebration'
 import PenaltyCelebration from '../components/PenaltyCelebration'
 import AuthModal from '../components/AuthModal'
-import { Plus, AlertTriangle, Gift, PenLine, ChevronLeft, ChevronRight, Calendar, Layers } from 'lucide-react'
+import { Plus, AlertTriangle, Gift, PenLine, ChevronLeft, ChevronRight, Calendar, Layers, Search, SlidersHorizontal, Filter, RotateCcw, X } from 'lucide-react'
 import * as store from '../store/store'
 import * as scoring from '../store/scoring'
 import { useDayRollover } from '../hooks/useDayRollover'
@@ -44,6 +44,41 @@ export default function TodayView() {
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [showReflectionModal, setShowReflectionModal] = useState(false)
   const [showConfetti, setShowConfetti] = useState(false)
+
+  // Filter, Sort & Search States
+  const [searchQuery, setSearchQuery] = useState('')
+  const [sortOption, setSortOption] = useState('default') // default, pending, carriedOver, missed, completed, reward, penalty, rating_red, rating_blue, rating_green, category
+  const [filterCategory, setFilterCategory] = useState('all') // all, Work, Learning, Health, Personal
+  const [filterPriority, setFilterPriority] = useState('all') // all, High, Med, Low
+  const [filterStatus, setFilterStatus] = useState('all') // all, pending, done, missed, carriedOver, reward, penalty, unclaimedReward, unackPenalty
+  const [filterRatingRange, setFilterRatingRange] = useState('all') // all, red, blue, green, or rating number string
+  const [filterDateFrom, setFilterDateFrom] = useState('')
+  const [filterDateTo, setFilterDateTo] = useState('')
+  const [showFilterModal, setShowFilterModal] = useState(false)
+
+  const resetAllFilters = () => {
+    setSearchQuery('')
+    setSortOption('default')
+    setFilterCategory('all')
+    setFilterPriority('all')
+    setFilterStatus('all')
+    setFilterRatingRange('all')
+    setFilterDateFrom('')
+    setFilterDateTo('')
+  }
+
+  const activeFilterCount = useMemo(() => {
+    let count = 0
+    if (searchQuery.trim()) count++
+    if (sortOption !== 'default') count++
+    if (filterCategory !== 'all') count++
+    if (filterPriority !== 'all') count++
+    if (filterStatus !== 'all') count++
+    if (filterRatingRange !== 'all') count++
+    if (filterDateFrom) count++
+    if (filterDateTo) count++
+    return count
+  }, [searchQuery, sortOption, filterCategory, filterPriority, filterStatus, filterRatingRange, filterDateFrom, filterDateTo])
 
   const isToday = currentDateStr === todayStr
 
@@ -653,8 +688,163 @@ export default function TodayView() {
 
   const displayTasksList = useMemo(() => {
     const rawList = viewMode === 'all' ? allTasksAcrossDates : tasks;
-    return rawList.slice().sort(sortTasksByUrgency);
-  }, [viewMode, allTasksAcrossDates, tasks]);
+    let list = [...rawList];
+
+    // --- 1. FILTERING ---
+    // Category Filter
+    if (filterCategory !== 'all') {
+      list = list.filter(t => (t.category || 'Work').toLowerCase() === filterCategory.toLowerCase());
+    }
+
+    // Priority Filter
+    if (filterPriority !== 'all') {
+      list = list.filter(t => (t.priority || 'Med').toLowerCase() === filterPriority.toLowerCase());
+    }
+
+    // Status / Special Type Filter
+    if (filterStatus !== 'all') {
+      if (filterStatus === 'pending') {
+        list = list.filter(t => t.status === 'pending' || t.status === 'inprogress');
+      } else if (filterStatus === 'done') {
+        list = list.filter(t => t.status === 'done');
+      } else if (filterStatus === 'missed') {
+        list = list.filter(t => t.status === 'missed');
+      } else if (filterStatus === 'carriedOver') {
+        list = list.filter(t => Boolean(t.carriedOver || t.carried_over));
+      } else if (filterStatus === 'reward') {
+        list = list.filter(t => Boolean(t.reward));
+      } else if (filterStatus === 'penalty') {
+        list = list.filter(t => Boolean(t.penalty));
+      } else if (filterStatus === 'unclaimedReward') {
+        list = list.filter(t => {
+          if (!t.reward) return false;
+          const isClaimed = t.rewardClaimed === true || t.rewardClaimed === 1 || t.reward_claimed === 1 || t.reward_claimed === '1';
+          return !isClaimed;
+        });
+      } else if (filterStatus === 'unackPenalty') {
+        list = list.filter(t => {
+          if (!t.penalty) return false;
+          const isAccepted = t.penaltyAccepted === true || t.penaltyAccepted === 1 || t.penalty_accepted === 1 || t.penalty_accepted === '1';
+          return !isAccepted;
+        });
+      }
+    }
+
+    // Rating Filter
+    if (filterRatingRange !== 'all') {
+      if (filterRatingRange === 'red') {
+        list = list.filter(t => t.status === 'done' && t.rating != null && Number(t.rating) <= 4.0);
+      } else if (filterRatingRange === 'blue') {
+        list = list.filter(t => t.status === 'done' && t.rating != null && Number(t.rating) > 4.0 && Number(t.rating) <= 8.5);
+      } else if (filterRatingRange === 'green') {
+        list = list.filter(t => t.status === 'done' && t.rating != null && Number(t.rating) > 8.5);
+      } else {
+        const targetR = Number(filterRatingRange);
+        if (!isNaN(targetR)) {
+          list = list.filter(t => t.status === 'done' && t.rating != null && Math.abs(Number(t.rating) - targetR) < 0.25);
+        }
+      }
+    }
+
+    // Date Range Filter
+    if (filterDateFrom) {
+      list = list.filter(t => {
+        const tDate = t.date || (t.createdAt ? t.createdAt.substring(0, 10) : currentDateStr);
+        return tDate >= filterDateFrom;
+      });
+    }
+    if (filterDateTo) {
+      list = list.filter(t => {
+        const tDate = t.date || (t.createdAt ? t.createdAt.substring(0, 10) : currentDateStr);
+        return tDate <= filterDateTo;
+      });
+    }
+
+    // --- 2. SEARCH & TITLE MATCHING ---
+    const trimmedSearch = searchQuery.trim().toLowerCase();
+
+    // Helper: Near ending / upcoming due task urgency timestamp
+    const getNearEndingUrgency = (t) => {
+      const due = t.dueDateTime || t.due_date_time;
+      if (!due) return 9999999999999;
+      return new Date(due).getTime();
+    };
+
+    // --- 3. SORTING ---
+    list.sort((a, b) => {
+      // Rule 1: Search match prioritization (matched title comes FIRST)
+      if (trimmedSearch) {
+        const aMatch = (a.title || '').toLowerCase().includes(trimmedSearch);
+        const bMatch = (b.title || '').toLowerCase().includes(trimmedSearch);
+        if (aMatch !== bMatch) return aMatch ? -1 : 1;
+      }
+
+      // Rule 2: Sort option requested by user
+      if (sortOption === 'pending') {
+        const aPending = a.status === 'pending' || a.status === 'inprogress';
+        const bPending = b.status === 'pending' || b.status === 'inprogress';
+        if (aPending !== bPending) return aPending ? -1 : 1;
+      } else if (sortOption === 'carriedOver') {
+        const aCO = Boolean(a.carriedOver || a.carried_over);
+        const bCO = Boolean(b.carriedOver || b.carried_over);
+        if (aCO !== bCO) return aCO ? -1 : 1;
+      } else if (sortOption === 'missed') {
+        const aMissed = a.status === 'missed';
+        const bMissed = b.status === 'missed';
+        if (aMissed !== bMissed) return aMissed ? -1 : 1;
+      } else if (sortOption === 'completed') {
+        const aDone = a.status === 'done';
+        const bDone = b.status === 'done';
+        if (aDone !== bDone) return aDone ? 1 : -1;
+      } else if (sortOption === 'reward') {
+        const aR = Boolean(a.reward);
+        const bR = Boolean(b.reward);
+        if (aR !== bR) return aR ? -1 : 1;
+      } else if (sortOption === 'penalty') {
+        const aP = Boolean(a.penalty);
+        const bP = Boolean(b.penalty);
+        if (aP !== bP) return aP ? -1 : 1;
+      } else if (sortOption === 'rating_red') {
+        const aRed = a.status === 'done' && a.rating != null && Number(a.rating) <= 4.0;
+        const bRed = b.status === 'done' && b.rating != null && Number(b.rating) <= 4.0;
+        if (aRed !== bRed) return aRed ? -1 : 1;
+      } else if (sortOption === 'rating_blue') {
+        const aBlue = a.status === 'done' && a.rating != null && Number(a.rating) > 4.0 && Number(a.rating) <= 8.5;
+        const bBlue = b.status === 'done' && b.rating != null && Number(b.rating) > 4.0 && Number(b.rating) <= 8.5;
+        if (aBlue !== bBlue) return aBlue ? -1 : 1;
+      } else if (sortOption === 'rating_green') {
+        const aGreen = a.status === 'done' && a.rating != null && Number(a.rating) > 8.5;
+        const bGreen = b.status === 'done' && b.rating != null && Number(b.rating) > 8.5;
+        if (aGreen !== bGreen) return aGreen ? -1 : 1;
+      } else if (sortOption === 'category') {
+        const catA = (a.category || 'Work').toLowerCase();
+        const catB = (b.category || 'Work').toLowerCase();
+        if (catA !== catB) return catA.localeCompare(catB);
+      }
+
+      // Rule 3: ALWAYS give privilege to near ending task first (upcoming due time urgency)!
+      const urgencyDiff = getNearEndingUrgency(a) - getNearEndingUrgency(b);
+      if (urgencyDiff !== 0) return urgencyDiff;
+
+      // Fallback to default urgency sort
+      return sortTasksByUrgency(a, b);
+    });
+
+    return list;
+  }, [
+    viewMode,
+    allTasksAcrossDates,
+    tasks,
+    searchQuery,
+    sortOption,
+    filterCategory,
+    filterPriority,
+    filterStatus,
+    filterRatingRange,
+    filterDateFrom,
+    filterDateTo,
+    currentDateStr
+  ]);
 
   // Get punishment text safely
   const punishmentText = activePunishment && !activePunishment.acknowledged
@@ -900,20 +1090,175 @@ export default function TodayView() {
             />
           </div>
 
+          {/* Filter, Sort & Search Control Bar */}
+          <div className="card-glass task-controls-card">
+            {/* Search Input Row & Advanced Filter Button */}
+            <div className="task-search-row">
+              <div className="task-search-input-wrapper">
+                <Search size={16} className="search-icon" />
+                <input
+                  type="text"
+                  className="task-search-input"
+                  placeholder="Search task title (matching titles appear first)..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                />
+                {searchQuery && (
+                  <button type="button" className="task-search-clear" onClick={() => setSearchQuery('')}>
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+
+              <button
+                type="button"
+                className={`btn btn-secondary btn-sm ${activeFilterCount > 0 ? 'active' : ''}`}
+                onClick={() => setShowFilterModal(true)}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', padding: '9px 14px' }}
+              >
+                <SlidersHorizontal size={15} />
+                <span>Filter & Sort</span>
+                {activeFilterCount > 0 && (
+                  <span className="badge badge-pri" style={{ fontSize: '0.68rem', padding: '1px 6px', borderRadius: '10px' }}>
+                    {activeFilterCount}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {/* Quick Presets Chips Bar (Horizontal Scrollable) */}
+            <div className="quick-filter-chips">
+              <button
+                className={`chip-btn ${activeFilterCount === 0 ? 'active' : ''}`}
+                onClick={resetAllFilters}
+              >
+                All Tasks
+              </button>
+              <button
+                className={`chip-btn ${sortOption === 'default' && activeFilterCount > 0 ? 'active' : ''}`}
+                onClick={() => setSortOption('default')}
+              >
+                ⏰ Near Due (Default)
+              </button>
+              <button
+                className={`chip-btn ${filterStatus === 'pending' ? 'active' : ''}`}
+                onClick={() => setFilterStatus(filterStatus === 'pending' ? 'all' : 'pending')}
+              >
+                ⏳ Pending
+              </button>
+              <button
+                className={`chip-btn ${filterStatus === 'unclaimedReward' ? 'active' : ''}`}
+                onClick={() => setFilterStatus(filterStatus === 'unclaimedReward' ? 'all' : 'unclaimedReward')}
+              >
+                🎁 Unclaimed Rewards
+              </button>
+              <button
+                className={`chip-btn ${filterStatus === 'unackPenalty' ? 'active' : ''}`}
+                onClick={() => setFilterStatus(filterStatus === 'unackPenalty' ? 'all' : 'unackPenalty')}
+              >
+                ⚠️ Unacknowledged Penalties
+              </button>
+              <button
+                className={`chip-btn ${filterRatingRange === 'red' ? 'active' : ''}`}
+                onClick={() => setFilterRatingRange(filterRatingRange === 'red' ? 'all' : 'red')}
+              >
+                🔴 Rating ≤ 4 (Red)
+              </button>
+              <button
+                className={`chip-btn ${filterRatingRange === 'blue' ? 'active' : ''}`}
+                onClick={() => setFilterRatingRange(filterRatingRange === 'blue' ? 'all' : 'blue')}
+              >
+                🔵 Rating 4.1–8.5 (Blue)
+              </button>
+              <button
+                className={`chip-btn ${filterRatingRange === 'green' ? 'active' : ''}`}
+                onClick={() => setFilterRatingRange(filterRatingRange === 'green' ? 'all' : 'green')}
+              >
+                🟢 Rating &gt; 8.5 (Green)
+              </button>
+            </div>
+
+            {/* Active Filters Bar & Reset Action */}
+            {activeFilterCount > 0 && (
+              <div className="active-filter-bar">
+                <div className="active-filter-tags">
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: '600' }}>Active Filters:</span>
+                  {searchQuery && (
+                    <span className="active-filter-tag">
+                      Search: "{searchQuery}" <X size={12} style={{ cursor: 'pointer' }} onClick={() => setSearchQuery('')} />
+                    </span>
+                  )}
+                  {sortOption !== 'default' && (
+                    <span className="active-filter-tag">
+                      Sort: {sortOption} <X size={12} style={{ cursor: 'pointer' }} onClick={() => setSortOption('default')} />
+                    </span>
+                  )}
+                  {filterCategory !== 'all' && (
+                    <span className="active-filter-tag">
+                      Category: {filterCategory} <X size={12} style={{ cursor: 'pointer' }} onClick={() => setFilterCategory('all')} />
+                    </span>
+                  )}
+                  {filterPriority !== 'all' && (
+                    <span className="active-filter-tag">
+                      Priority: {filterPriority} <X size={12} style={{ cursor: 'pointer' }} onClick={() => setFilterPriority('all')} />
+                    </span>
+                  )}
+                  {filterStatus !== 'all' && (
+                    <span className="active-filter-tag">
+                      Status: {filterStatus} <X size={12} style={{ cursor: 'pointer' }} onClick={() => setFilterStatus('all')} />
+                    </span>
+                  )}
+                  {filterRatingRange !== 'all' && (
+                    <span className="active-filter-tag">
+                      Rating: {filterRatingRange} <X size={12} style={{ cursor: 'pointer' }} onClick={() => setFilterRatingRange('all')} />
+                    </span>
+                  )}
+                  {filterDateFrom && (
+                    <span className="active-filter-tag">
+                      From: {filterDateFrom} <X size={12} style={{ cursor: 'pointer' }} onClick={() => setFilterDateFrom('')} />
+                    </span>
+                  )}
+                  {filterDateTo && (
+                    <span className="active-filter-tag">
+                      To: {filterDateTo} <X size={12} style={{ cursor: 'pointer' }} onClick={() => setFilterDateTo('')} />
+                    </span>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={resetAllFilters}
+                  style={{ fontSize: '0.75rem', padding: '3px 8px', gap: '4px' }}
+                >
+                  <RotateCcw size={12} /> Reset All
+                </button>
+              </div>
+            )}
+          </div>
+
           <div className="tasks-section">
             {displayTasksList.length === 0 ? (
               <div className="card-glass empty-state">
                 <div className="empty-icon">📝</div>
                 <p className="empty-text">
-                  {viewMode === 'all' ? 'No tasks found in MongoDB Atlas!' : `No tasks added for ${currentDateStr} yet!`}
+                  {activeFilterCount > 0 
+                    ? 'No tasks match the active filters or search criteria.' 
+                    : (viewMode === 'all' ? 'No tasks found in MongoDB Atlas!' : `No tasks added for ${currentDateStr} yet!`)}
                 </p>
-                {isToday && (
-                  <button
-                    className="btn btn-primary"
-                    onClick={handleOpenAddModal}
-                  >
-                    <Plus size={18} /> Add Your First Task
+                {activeFilterCount > 0 ? (
+                  <button className="btn btn-secondary btn-sm" onClick={resetAllFilters} style={{ gap: '6px' }}>
+                    <RotateCcw size={14} /> Clear All Filters
                   </button>
+                ) : (
+                  isToday && (
+                    <button
+                      className="btn btn-primary"
+                      onClick={handleOpenAddModal}
+                    >
+                      <Plus size={18} /> Add Your First Task
+                    </button>
+                  )
                 )}
               </div>
             ) : (
@@ -980,6 +1325,136 @@ export default function TodayView() {
               isModal={true}
               onClose={() => setShowReflectionModal(false)}
             />
+          </div>
+        </div>
+      )}
+
+      {/* Advanced Filter & Sort Modal */}
+      {showFilterModal && (
+        <div className="modal-overlay" onClick={() => setShowFilterModal(false)}>
+          <div className="modal-content card-glass animate-scale-up" onClick={e => e.stopPropagation()} style={{ maxWidth: '560px', width: '92%' }}>
+            <div className="modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <SlidersHorizontal size={20} color="var(--accent-primary)" />
+                <h2 className="modal-title">Filter & Sort Tasks</h2>
+              </div>
+              <button className="btn-icon" onClick={() => setShowFilterModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '12px' }}>
+              {/* Sort Selection */}
+              <div className="form-group">
+                <label className="form-label" style={{ fontWeight: '700' }}>Sort By (Near Ending Task Privileged)</label>
+                <select
+                  className="select"
+                  value={sortOption}
+                  onChange={e => setSortOption(e.target.value)}
+                >
+                  <option value="default">⏰ Default (Near Ending Task Privilege + Original Sequence)</option>
+                  <option value="pending">⏳ Pending Tasks First</option>
+                  <option value="carriedOver">↻ Carried Over Tasks First</option>
+                  <option value="missed">🚨 Missed Tasks First</option>
+                  <option value="completed">✓ Completed Tasks First</option>
+                  <option value="reward">🎁 Tasks With Reward First</option>
+                  <option value="penalty">⚠️ Tasks With Penalty First</option>
+                  <option value="rating_red">🔴 Rating ≤ 4.0 (Red Threshold)</option>
+                  <option value="rating_blue">🔵 Rating &gt; 4.0 &amp; ≤ 8.5 (Blue Threshold)</option>
+                  <option value="rating_green">🟢 Rating &gt; 8.5 (Green Threshold)</option>
+                  <option value="category">📁 Category (Work / Learning / Health / Personal)</option>
+                </select>
+              </div>
+
+              <div className="filter-modal-grid">
+                {/* Category Filter */}
+                <div className="form-group">
+                  <label className="form-label">Category</label>
+                  <select className="select" value={filterCategory} onChange={e => setFilterCategory(e.target.value)}>
+                    <option value="all">All Categories</option>
+                    <option value="Work">Work</option>
+                    <option value="Learning">Learning</option>
+                    <option value="Health">Health</option>
+                    <option value="Personal">Personal</option>
+                  </select>
+                </div>
+
+                {/* Priority Filter */}
+                <div className="form-group">
+                  <label className="form-label">Priority</label>
+                  <select className="select" value={filterPriority} onChange={e => setFilterPriority(e.target.value)}>
+                    <option value="all">All Priorities</option>
+                    <option value="High">High</option>
+                    <option value="Med">Medium</option>
+                    <option value="Low">Low</option>
+                  </select>
+                </div>
+
+                {/* Status & Special Type Filter */}
+                <div className="form-group">
+                  <label className="form-label">Task Type / Status</label>
+                  <select className="select" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+                    <option value="all">All Task Types</option>
+                    <option value="pending">Pending Tasks</option>
+                    <option value="done">Completed Tasks</option>
+                    <option value="missed">Missed Tasks</option>
+                    <option value="carriedOver">Carried Over Tasks</option>
+                    <option value="reward">Tasks with Reward</option>
+                    <option value="penalty">Tasks with Penalty</option>
+                    <option value="unclaimedReward">🎁 Unclaimed Rewards</option>
+                    <option value="unackPenalty">⚠️ Unacknowledged Penalties</option>
+                  </select>
+                </div>
+
+                {/* Rating Range Filter */}
+                <div className="form-group">
+                  <label className="form-label">Rating Range</label>
+                  <select className="select" value={filterRatingRange} onChange={e => setFilterRatingRange(e.target.value)}>
+                    <option value="all">All Ratings</option>
+                    <option value="red">🔴 Red Threshold (≤ 4.0)</option>
+                    <option value="blue">🔵 Blue Threshold (4.1 – 8.5)</option>
+                    <option value="green">🟢 Green Threshold (&gt; 8.5)</option>
+                    <option value="" disabled>── Specific Rating Values ──</option>
+                    {Array.from({ length: 21 }).map((_, i) => {
+                      const val = (i * 0.5).toFixed(1);
+                      return <option key={val} value={val}>Rating: ★ {val}</option>;
+                    })}
+                  </select>
+                </div>
+              </div>
+
+              {/* Date Range Filter */}
+              <div className="form-group">
+                <label className="form-label">Date Range Filter</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  <input
+                    type="date"
+                    className="input"
+                    value={filterDateFrom}
+                    onChange={e => setFilterDateFrom(e.target.value)}
+                    placeholder="From Date"
+                    style={{ fontSize: '0.85rem' }}
+                  />
+                  <input
+                    type="date"
+                    className="input"
+                    value={filterDateTo}
+                    onChange={e => setFilterDateTo(e.target.value)}
+                    placeholder="To Date"
+                    style={{ fontSize: '0.85rem' }}
+                  />
+                </div>
+              </div>
+
+              <div className="modal-footer" style={{ marginTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={resetAllFilters} style={{ gap: '4px' }}>
+                  <RotateCcw size={14} /> Reset All
+                </button>
+                <button type="button" className="btn btn-primary" onClick={() => setShowFilterModal(false)}>
+                  Apply & Close
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
