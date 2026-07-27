@@ -63,29 +63,66 @@ export default function AnalyticsView() {
   const mergedArchives = useMemo(() => {
     const todayStr = format(new Date(), 'yyyy-MM-dd')
     const map = new Map()
-    archives.forEach(a => {
+
+    // 1. Process all archives
+    (archives || []).forEach(a => {
       if (a && a.date) {
         const cleanDate = a.date.includes('T') ? a.date.split('T')[0] : a.date.trim().substring(0, 10);
-        const scoreVal = (a.score !== undefined && a.score !== null && a.score > 0)
-          ? Number(a.score)
-          : (Array.isArray(a.tasks) && a.tasks.length > 0 ? scoring.calculateDailyScore(a.tasks).score : 0);
+        let scoreVal = 0;
+
+        if (Array.isArray(a.tasks) && a.tasks.length > 0) {
+          const res = scoring.calculateDailyScore(a.tasks);
+          scoreVal = res.score;
+        } else if (a.score !== undefined && a.score !== null) {
+          scoreVal = Number(a.score);
+        }
 
         map.set(cleanDate, {
           ...a,
           date: cleanDate,
-          score: scoreVal
+          score: scoreVal,
+          hasTasks: Array.isArray(a.tasks) && a.tasks.length > 0
         });
       }
-    })
+    });
 
-    if (todayTasks.length > 0) {
-      const todayResult = scoring.calculateDailyScore(todayTasks)
-      map.set(todayStr, {
-        date: todayStr,
-        score: todayResult.score,
-        tasks: todayTasks
-      })
+    // 2. Group ALL tasks across archives & todayTasks by their specific completed/target date
+    const allTasksMap = new Map();
+    (archives || []).forEach(a => {
+      if (a && Array.isArray(a.tasks)) {
+        a.tasks.forEach(t => {
+          const tDate = t.completedAt ? t.completedAt.substring(0, 10) : (t.date || a.date);
+          if (tDate) {
+            const cleanD = tDate.includes('T') ? tDate.split('T')[0] : tDate.substring(0, 10);
+            if (!allTasksMap.has(cleanD)) allTasksMap.set(cleanD, []);
+            allTasksMap.get(cleanD).push(t);
+          }
+        });
+      }
+    });
+
+    (todayTasks || []).forEach(t => {
+      const tDate = t.completedAt ? t.completedAt.substring(0, 10) : (t.date || todayStr);
+      if (tDate) {
+        const cleanD = tDate.includes('T') ? tDate.split('T')[0] : tDate.substring(0, 10);
+        if (!allTasksMap.has(cleanD)) allTasksMap.set(cleanD, []);
+        allTasksMap.get(cleanD).push(t);
+      }
+    });
+
+    // Recalculate exact daily score for every date found in allTasksMap
+    for (const [dStr, taskList] of allTasksMap.entries()) {
+      const res = scoring.calculateDailyScore(taskList);
+      const existing = map.get(dStr) || {};
+      map.set(dStr, {
+        ...existing,
+        date: dStr,
+        score: res.score,
+        tasks: taskList,
+        hasTasks: taskList.length > 0
+      });
     }
+
     return Array.from(map.values()).sort((a, b) => (a.date || '').localeCompare(b.date || ''))
   }, [archives, todayTasks])
 
@@ -100,10 +137,13 @@ export default function AnalyticsView() {
     const last30 = []
     const today = new Date()
     for (let i = 29; i >= 0; i--) {
-      const dStr = format(subDays(today, i), 'yyyy-MM-dd')
-      const label = format(subDays(today, i), 'dd')
+      const dDate = subDays(today, i)
+      const dStr = format(dDate, 'yyyy-MM-dd')
+      const label = format(dDate, 'MMM dd')
       const arc = mergedArchives.find(a => a.date === dStr)
-      last30.push({ label, score: arc ? (arc.score || 0) : 0 })
+
+      const score = (arc && arc.hasTasks && arc.score > 0) ? arc.score : (arc && arc.score > 0 ? arc.score : null)
+      last30.push({ label, score, dateStr: dStr })
     }
 
     return {
@@ -112,14 +152,16 @@ export default function AnalyticsView() {
         label: 'Daily Score',
         data: last30.map(d => d.score),
         borderColor: '#818cf8',
-        backgroundColor: 'rgba(129, 140, 248, 0.08)',
+        backgroundColor: 'rgba(129, 140, 248, 0.12)',
         fill: true,
-        tension: 0.4,
-        pointRadius: 2,
-        pointHoverRadius: 5,
+        tension: 0.35,
+        spanGaps: true,
+        pointRadius: last30.map(d => d.score !== null ? 4 : 0),
+        pointHoverRadius: 6,
         pointBackgroundColor: '#818cf8',
-        pointBorderColor: '#818cf8',
-        borderWidth: 2,
+        pointBorderColor: '#ffffff',
+        pointBorderWidth: 1.5,
+        borderWidth: 2.5,
       }]
     }
   }, [mergedArchives])
@@ -132,7 +174,19 @@ export default function AnalyticsView() {
       y: { min: 0, max: 10, ticks: { color: themeTextColor, stepSize: 2, font: { size: 11 } }, grid: { color: gridColor } },
       x: { ticks: { color: themeTextColor, maxTicksLimit: 15, font: { size: 10 } }, grid: { display: false } }
     },
-    plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(0,0,0,0.8)', titleFont: { size: 12 }, bodyFont: { size: 12 }, cornerRadius: 8, padding: 10 } }
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+        titleFont: { size: 12 },
+        bodyFont: { size: 12 },
+        cornerRadius: 8,
+        padding: 10,
+        callbacks: {
+          label: (context) => `Daily Score: ${context.raw !== null ? context.raw : 'No activity'}`
+        }
+      }
+    }
   }
 
   const barChartData = useMemo(() => {
