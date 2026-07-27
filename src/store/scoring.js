@@ -140,66 +140,82 @@ export function getRollingAverage(archives = [], days = 0, todayTasks = []) {
   return Number((totalScore / count).toFixed(1));
 }
 
-const isValidStreakDay = (entry) => {
-  if (!entry) return false;
-  if (entry.tasks && Array.isArray(entry.tasks)) {
-    const hasAddedTask = entry.tasks.length > 0;
-    const hasCompletedTask = entry.tasks.some(t => t.status === 'done');
-    return hasAddedTask && hasCompletedTask;
+function getCleanDateStr(rawDate) {
+  if (!rawDate) return null;
+  if (typeof rawDate === 'string') {
+    const s = rawDate.trim();
+    if (s.length >= 10) return s.substring(0, 10);
   }
-  return Boolean(entry.hasDone || (entry.score && entry.score > 0));
-};
+  try {
+    return format(new Date(rawDate), 'yyyy-MM-dd');
+  } catch {
+    return null;
+  }
+}
 
-export function getStreak(archives = [], todayTasks = []) {
-  const validArchives = (archives || []).filter(a => a && a.date && typeof a.date === 'string');
+export function getAllValidStreakDates(archives = [], todayTasks = []) {
+  const activeDates = new Set();
   const todayStr = format(new Date(), 'yyyy-MM-dd');
-  
-  const archiveMap = new Map();
-  validArchives.forEach(a => {
-    if (isValidStreakDay(a)) {
-      archiveMap.set(a.date, a);
+
+  // 1. Process archives
+  (archives || []).forEach(arc => {
+    if (!arc) return;
+    const cleanD = getCleanDateStr(arc.date);
+    let isArcValid = false;
+
+    if (Array.isArray(arc.tasks) && arc.tasks.length > 0) {
+      arc.tasks.forEach(t => {
+        if (t && t.status === 'done') {
+          isArcValid = true;
+          const tDate = getCleanDateStr(t.completedAt || t.completed_at || t.date || arc.date);
+          if (tDate) activeDates.add(tDate);
+        }
+      });
+    }
+
+    if (isArcValid || arc.hasDone || (arc.score && Number(arc.score) > 0)) {
+      if (cleanD) activeDates.add(cleanD);
     }
   });
 
-  const hasDoneToday = Array.isArray(todayTasks) && todayTasks.length > 0 && todayTasks.some(t => t.status === 'done');
-  const todayScoreResult = calculateDailyScore(todayTasks || []);
-  
-  if (hasDoneToday || (todayTasks.length > 0 && todayScoreResult.score > 0)) {
-    archiveMap.set(todayStr, {
-      date: todayStr,
-      score: todayScoreResult.score,
-      tasks: todayTasks,
-      hasDone: true
-    });
-  }
-
-  let streakCount = 0;
-  let isActive = false;
-  let checkDate = new Date();
-
-  // Check today first
-  const todayEntry = archiveMap.get(todayStr);
-  if (todayEntry && isValidStreakDay(todayEntry)) {
-    isActive = true;
-    streakCount++;
-    checkDate = subDays(checkDate, 1);
-  } else {
-    // Check yesterday to keep streak active if today isn't completed yet
-    const yesterdayStr = format(subDays(checkDate, 1), 'yyyy-MM-dd');
-    const yesterdayEntry = archiveMap.get(yesterdayStr);
-    if (yesterdayEntry && isValidStreakDay(yesterdayEntry)) {
-      isActive = true;
-      checkDate = subDays(checkDate, 1);
-    } else {
-      return { current: 0, isActive: false };
+  // 2. Process today's tasks
+  if (Array.isArray(todayTasks) && todayTasks.length > 0) {
+    const hasDoneToday = todayTasks.some(t => t && t.status === 'done');
+    const todayScoreResult = calculateDailyScore(todayTasks);
+    if (hasDoneToday || todayScoreResult.score > 0) {
+      activeDates.add(todayStr);
     }
   }
 
-  // Count consecutive past days
+  return Array.from(activeDates).sort();
+}
+
+export function getStreak(archives = [], todayTasks = []) {
+  const activeDatesSet = new Set(getAllValidStreakDates(archives, todayTasks));
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const yesterdayStr = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+
+  let checkDate = new Date();
+  let streakCount = 0;
+  let isActive = false;
+
+  // Check if today is active
+  if (activeDatesSet.has(todayStr)) {
+    isActive = true;
+    streakCount++;
+    checkDate = subDays(checkDate, 1);
+  } else if (activeDatesSet.has(yesterdayStr)) {
+    // Keep streak active if yesterday was completed and today is in progress
+    isActive = true;
+    checkDate = subDays(checkDate, 1);
+  } else {
+    return { current: 0, isActive: false };
+  }
+
+  // Count backwards for consecutive active days
   while (true) {
-    const dateKey = format(checkDate, 'yyyy-MM-dd');
-    const entry = archiveMap.get(dateKey);
-    if (entry && isValidStreakDay(entry)) {
+    const dStr = format(checkDate, 'yyyy-MM-dd');
+    if (activeDatesSet.has(dStr)) {
       streakCount++;
       checkDate = subDays(checkDate, 1);
     } else {
@@ -211,57 +227,38 @@ export function getStreak(archives = [], todayTasks = []) {
 }
 
 export function getBestStreak(archives = [], todayTasks = []) {
+  const sortedDates = getAllValidStreakDates(archives, todayTasks);
   const currentStreakObj = getStreak(archives, todayTasks);
   const currentStreak = currentStreakObj.current || 0;
 
-  const validArchives = (archives || []).filter(a => a && a.date && typeof a.date === 'string');
-  const todayStr = format(new Date(), 'yyyy-MM-dd');
-  
-  const archiveMap = new Map();
-  validArchives.forEach(a => {
-    if (isValidStreakDay(a)) {
-      archiveMap.set(a.date, a);
-    }
-  });
+  if (sortedDates.length === 0) return 0;
 
-  const hasDoneToday = Array.isArray(todayTasks) && todayTasks.length > 0 && todayTasks.some(t => t.status === 'done');
-  const todayScoreResult = calculateDailyScore(todayTasks || []);
-  if (hasDoneToday || (todayTasks.length > 0 && todayScoreResult.score > 0)) {
-    archiveMap.set(todayStr, {
-      date: todayStr,
-      score: todayScoreResult.score,
-      tasks: todayTasks,
-      hasDone: true
-    });
-  }
-
-  const sortedDates = Array.from(archiveMap.keys()).sort();
   let maxStreak = 0;
-  let runningStreak = 0;
-  let prevDate = null;
+  let currentRun = 0;
+  let prevDateObj = null;
 
   for (const dateStr of sortedDates) {
-    const entry = archiveMap.get(dateStr);
-    if (entry && isValidStreakDay(entry)) {
-      try {
-        const currentDate = parseISO(dateStr);
-        if (prevDate) {
-          const diff = differenceInCalendarDays(currentDate, prevDate);
-          if (diff === 1) {
-            runningStreak++;
-          } else {
-            runningStreak = 1;
-          }
-        } else {
-          runningStreak = 1;
+    try {
+      const currentDateObj = parseISO(dateStr);
+      if (isNaN(currentDateObj.getTime())) continue;
+
+      if (prevDateObj) {
+        const diff = differenceInCalendarDays(currentDateObj, prevDateObj);
+        if (diff === 1) {
+          currentRun++;
+        } else if (diff > 1) {
+          currentRun = 1;
         }
-        prevDate = currentDate;
-        if (runningStreak > maxStreak) {
-          maxStreak = runningStreak;
-        }
-      } catch {
-        continue;
+      } else {
+        currentRun = 1;
       }
+
+      prevDateObj = currentDateObj;
+      if (currentRun > maxStreak) {
+        maxStreak = currentRun;
+      }
+    } catch {
+      continue;
     }
   }
 
