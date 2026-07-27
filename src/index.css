@@ -4052,17 +4052,20 @@ body {
 }
 
 .task-sort-inline-select {
-  padding: 10px 38px 10px 14px;
+  flex: 0 1 auto;
+  width: auto;
+  max-width: fit-content;
+  padding: 8px 30px 8px 12px;
   border-radius: var(--radius-md);
   background-color: var(--bg-tertiary);
   border: 1px solid var(--border-glass);
   color: var(--text-primary);
-  font-size: 0.85rem;
+  font-size: 0.84rem;
   font-weight: 600;
   cursor: pointer;
   outline: none;
   transition: all 0.25s ease;
-  min-width: 160px;
+  white-space: nowrap;
 }
 
 /* ==========================================================================
@@ -4074,16 +4077,15 @@ body {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23818cf8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23818cf8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 12px center;
-  background-size: 16px 16px;
-  padding: 10px 38px 10px 14px;
+  background-position: right 10px center;
+  background-size: 14px 14px;
   border-radius: var(--radius-md);
   background-color: var(--bg-tertiary);
   border: 1px solid var(--border-glass);
   color: var(--text-primary);
-  font-size: 0.88rem;
+  font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
   outline: none;

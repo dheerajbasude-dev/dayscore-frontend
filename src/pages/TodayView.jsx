@@ -1100,13 +1100,13 @@ export default function TodayView() {
                 onChange={e => setSortOption(e.target.value)}
                 title="Sort Tasks"
               >
-                <option value="default">⚡ Sort: Smart Sequence (Default)</option>
-                <option value="urgency">⏰ Sort: Due Time Urgency</option>
-                <option value="rating_desc">★ Sort: Highest Rating</option>
-                <option value="rating_asc">★ Sort: Lowest Rating</option>
+                <option value="default">⚡ Sort: Default</option>
+                <option value="urgency">⏰ Sort: Due Time</option>
+                <option value="rating_desc">★ Sort: High Rating</option>
+                <option value="rating_asc">★ Sort: Low Rating</option>
                 <option value="title_asc">🔤 Sort: Title (A-Z)</option>
                 <option value="category">📁 Sort: Category (Health → Learning → Work → Personal)</option>
-                <option value="created_desc">🆕 Sort: Newly Created</option>
+                <option value="created_desc">🆕 Sort: Newest</option>
               </select>
 
               <button
