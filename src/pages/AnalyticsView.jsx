@@ -61,11 +61,13 @@ export default function AnalyticsView() {
   }, [user])
 
   const mergedArchives = useMemo(() => {
-    const todayStr = format(new Date(), 'yyyy-MM-dd')
-    const map = new Map()
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    const map = new Map();
+    const safeArchives = Array.isArray(archives) ? archives : [];
+    const safeTodayTasks = Array.isArray(todayTasks) ? todayTasks : [];
 
     // 1. Process all archives
-    (archives || []).forEach(a => {
+    safeArchives.forEach(a => {
       if (a && a.date) {
         const cleanDate = a.date.includes('T') ? a.date.split('T')[0] : a.date.trim().substring(0, 10);
         let scoreVal = 0;
@@ -88,7 +90,7 @@ export default function AnalyticsView() {
 
     // 2. Group ALL tasks across archives & todayTasks by their specific completed/target date
     const allTasksMap = new Map();
-    (archives || []).forEach(a => {
+    safeArchives.forEach(a => {
       if (a && Array.isArray(a.tasks)) {
         a.tasks.forEach(t => {
           const tDate = t.completedAt ? t.completedAt.substring(0, 10) : (t.date || a.date);
@@ -101,7 +103,7 @@ export default function AnalyticsView() {
       }
     });
 
-    (todayTasks || []).forEach(t => {
+    safeTodayTasks.forEach(t => {
       const tDate = t.completedAt ? t.completedAt.substring(0, 10) : (t.date || todayStr);
       if (tDate) {
         const cleanD = tDate.includes('T') ? tDate.split('T')[0] : tDate.substring(0, 10);
@@ -123,8 +125,8 @@ export default function AnalyticsView() {
       });
     }
 
-    return Array.from(map.values()).sort((a, b) => (a.date || '').localeCompare(b.date || ''))
-  }, [archives, todayTasks])
+    return Array.from(map.values()).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  }, [archives, todayTasks]);
 
   const streakData = useMemo(() => scoring.getStreak(mergedArchives, todayTasks), [mergedArchives, todayTasks])
   const bestStreak = useMemo(() => scoring.getBestStreak(mergedArchives, todayTasks), [mergedArchives, todayTasks])
