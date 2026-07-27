@@ -132,8 +132,7 @@ export default function AnalyticsView() {
   const bestStreak = useMemo(() => scoring.getBestStreak(mergedArchives, todayTasks), [mergedArchives, todayTasks])
   const avgScore = useMemo(() => scoring.getRollingAverage(mergedArchives, 0, todayTasks), [mergedArchives, todayTasks])
   const totalDone = useMemo(() => scoring.getTotalTasksDone(mergedArchives), [mergedArchives])
-  const bestCategory = useMemo(() => scoring.getMostProductiveCategory(mergedArchives), [mergedArchives])
-  const missedTime = useMemo(() => scoring.getMostMissedTimeOfDay(mergedArchives), [mergedArchives])
+  const bestCategory = useMemo(() => scoring.getMostProductiveCategory(mergedArchives, todayTasks), [mergedArchives, todayTasks]);
 
   const lineChartData = useMemo(() => {
     const last30 = []
@@ -192,40 +191,32 @@ export default function AnalyticsView() {
   }
 
   const barChartData = useMemo(() => {
-    const cats = { 'Work': 0, 'Learning': 0, 'Health': 0, 'Personal': 0 }
-    const countedTaskIds = new Set()
+    const cats = scoring.getCategoryCounts(mergedArchives, todayTasks);
+    const labels = Object.keys(cats);
+    const values = Object.values(cats);
 
-    mergedArchives.forEach(arc => {
-      if (arc.tasks) {
-        arc.tasks.forEach(t => {
-          if (t.status === 'done' && t.category) {
-            const catName = t.category.trim();
-            const matchingCat = Object.keys(cats).find(c => c.toLowerCase() === catName.toLowerCase()) || 'Work';
-            const taskId = t.id || t._id;
-            if (taskId && !countedTaskIds.has(taskId)) {
-              countedTaskIds.add(taskId);
-              cats[matchingCat] = (cats[matchingCat] || 0) + 1;
-            } else if (!taskId) {
-              cats[matchingCat] = (cats[matchingCat] || 0) + 1;
-            }
-          }
-        })
-      }
-    })
+    const palette = [
+      { bg: 'rgba(129, 140, 248, 0.65)', border: '#818cf8' },
+      { bg: 'rgba(167, 139, 250, 0.65)', border: '#a78bfa' },
+      { bg: 'rgba(52, 211, 153, 0.65)', border: '#34d399' },
+      { bg: 'rgba(251, 191, 36, 0.65)', border: '#fbbf24' },
+      { bg: 'rgba(248, 113, 113, 0.65)', border: '#f87171' },
+      { bg: 'rgba(56, 189, 248, 0.65)', border: '#38bdf8' }
+    ];
 
     return {
-      labels: Object.keys(cats),
+      labels,
       datasets: [{
-        label: 'Completed',
-        data: Object.values(cats),
-        backgroundColor: ['rgba(129,140,248,0.65)', 'rgba(167,139,250,0.65)', 'rgba(52,211,153,0.65)', 'rgba(251,191,36,0.65)'],
-        borderColor: ['#818cf8', '#a78bfa', '#34d399', '#fbbf24'],
+        label: 'Tasks',
+        data: values,
+        backgroundColor: labels.map((_, i) => palette[i % palette.length].bg),
+        borderColor: labels.map((_, i) => palette[i % palette.length].border),
         borderWidth: 1,
         borderRadius: 6,
         borderSkipped: false,
       }]
-    }
-  }, [mergedArchives])
+    };
+  }, [mergedArchives, todayTasks]);
 
   const barOptions = {
     responsive: true,

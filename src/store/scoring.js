@@ -265,37 +265,79 @@ export function getBestStreak(archives = [], todayTasks = []) {
   return Math.max(currentStreak, maxStreak);
 }
 
-export function getMostProductiveCategory(archives) {
-  if (!archives || archives.length === 0) return 'N/A';
-  
-  const counts = {};
+export function getCategoryCounts(archives = [], todayTasks = []) {
+  const cats = { 'Work': 0, 'Learning': 0, 'Health': 0, 'Personal': 0 };
   const countedTaskIds = new Set();
 
-  for (const archive of archives) {
-    if (archive.tasks) {
-      for (const task of archive.tasks) {
-        if (task.status === 'done' && task.category) {
-          const taskId = task.id || task._id;
-          if (taskId && !countedTaskIds.has(taskId)) {
-            countedTaskIds.add(taskId);
-            counts[task.category] = (counts[task.category] || 0) + 1;
-          } else if (!taskId) {
-            counts[task.category] = (counts[task.category] || 0) + 1;
-          }
-        }
-      }
+  const processTask = (t) => {
+    if (!t) return;
+    const taskId = t.id || t._id;
+    if (taskId && countedTaskIds.has(taskId)) return;
+    if (taskId) countedTaskIds.add(taskId);
+
+    const isDone = t.status === 'done';
+    if (!isDone) return;
+
+    const rawCat = (t.category || '').trim();
+    if (!rawCat) {
+      cats['Personal'] = (cats['Personal'] || 0) + 1;
+      return;
     }
+
+    const standardMatch = Object.keys(cats).find(c => c.toLowerCase() === rawCat.toLowerCase());
+    if (standardMatch) {
+      cats[standardMatch] = (cats[standardMatch] || 0) + 1;
+    } else {
+      const formattedCat = rawCat.charAt(0).toUpperCase() + rawCat.slice(1).toLowerCase();
+      cats[formattedCat] = (cats[formattedCat] || 0) + 1;
+    }
+  };
+
+  (archives || []).forEach(arc => {
+    if (arc && Array.isArray(arc.tasks)) {
+      arc.tasks.forEach(processTask);
+    }
+  });
+
+  (todayTasks || []).forEach(processTask);
+
+  // Fallback: If no completed tasks exist yet, process ALL tasks regardless of status
+  if (Object.values(cats).reduce((a, b) => a + b, 0) === 0) {
+    const processAnyTask = (t) => {
+      if (!t) return;
+      const rawCat = (t.category || '').trim();
+      const standardMatch = Object.keys(cats).find(c => c.toLowerCase() === rawCat.toLowerCase());
+      if (standardMatch) {
+        cats[standardMatch] = (cats[standardMatch] || 0) + 1;
+      } else if (rawCat) {
+        const formattedCat = rawCat.charAt(0).toUpperCase() + rawCat.slice(1).toLowerCase();
+        cats[formattedCat] = (cats[formattedCat] || 0) + 1;
+      } else {
+        cats['Work'] = (cats['Work'] || 0) + 1;
+      }
+    };
+
+    (archives || []).forEach(arc => {
+      if (arc && Array.isArray(arc.tasks)) arc.tasks.forEach(processAnyTask);
+    });
+    (todayTasks || []).forEach(processAnyTask);
   }
-  
+
+  return cats;
+}
+
+export function getMostProductiveCategory(archives = [], todayTasks = []) {
+  const cats = getCategoryCounts(archives, todayTasks);
   let bestCategory = 'N/A';
   let maxCount = 0;
-  for (const [category, count] of Object.entries(counts)) {
+
+  for (const [category, count] of Object.entries(cats)) {
     if (count > maxCount) {
       maxCount = count;
       bestCategory = category;
     }
   }
-  
+
   return bestCategory;
 }
 
