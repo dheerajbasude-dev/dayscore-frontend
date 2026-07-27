@@ -20,11 +20,11 @@ export default function RatingSliderModal({ task, onConfirm, onCancel }) {
   }, [task.dueDateTime, task.due_date_time]);
 
   const maxRating = isOverdue ? 3 : 10;
-  const [rating, setRating] = useState(Math.ceil(maxRating / 2));
+  const [rating, setRating] = useState(maxRating === 3 ? 1.5 : 5.0);
 
   // Reset rating default when task or maxRating changes
   useEffect(() => {
-    setRating(Math.ceil(maxRating / 2));
+    setRating(maxRating === 3 ? 1.5 : 5.0);
     setSubmitting(false);
   }, [maxRating, task.id, task._id]);
 
@@ -68,6 +68,55 @@ export default function RatingSliderModal({ task, onConfirm, onCancel }) {
 
   const sliderPercent = maxRating > 0 ? (rating / maxRating) * 100 : 0;
 
+  const presets = useMemo(() => {
+    const list = [];
+    for (let v = 0.5; v <= maxRating; v += 0.5) {
+      list.push(v);
+    }
+    return list;
+  }, [maxRating]);
+
+  const renderStars = () => {
+    const stars = [];
+    const fullStars = Math.floor(rating);
+    const hasHalfStar = rating % 1 !== 0;
+
+    for (let i = 1; i <= maxRating; i++) {
+      let fillState = 'empty';
+      if (i <= fullStars) {
+        fillState = 'full';
+      } else if (i === fullStars + 1 && hasHalfStar) {
+        fillState = 'half';
+      }
+
+      stars.push(
+        <div 
+          key={i} 
+          className="star-wrapper"
+          onClick={() => setRating(i)}
+          style={{ cursor: 'pointer', position: 'relative', display: 'inline-block' }}
+          title={`Rate ${i}`}
+        >
+          {fillState === 'half' ? (
+            <div style={{ position: 'relative', display: 'inline-block' }}>
+              <Star size={isOverdue ? 26 : 20} stroke="var(--text-muted)" fill="none" />
+              <div style={{ position: 'absolute', top: 0, left: 0, width: '50%', overflow: 'hidden' }}>
+                <Star size={isOverdue ? 26 : 20} stroke={getSliderColor()} fill={getSliderColor()} />
+              </div>
+            </div>
+          ) : (
+            <Star
+              size={isOverdue ? 26 : 20}
+              fill={fillState === 'full' ? getSliderColor() : 'none'}
+              stroke={fillState === 'full' ? getSliderColor() : 'var(--text-muted)'}
+            />
+          )}
+        </div>
+      );
+    }
+    return stars;
+  };
+
   return (
     <div className="modal-overlay" onClick={onCancel}>
       <div className="modal-content rating-modal" onClick={e => e.stopPropagation()}>
@@ -102,16 +151,53 @@ export default function RatingSliderModal({ task, onConfirm, onCancel }) {
         ) : (
           <div className="rating-ontime-notice">
             <Clock size={16} />
-            <span>Completed on time — rate your effort (0 to max <strong>10</strong>)</span>
+            <span>Completed on time — rate effort (0 to max <strong>10</strong> in 0.5 steps)</span>
           </div>
         )}
 
         <div className="rating-display">
           <span className="rating-emoji">{getEmoji()}</span>
           <span className="rating-value" style={{ color: getSliderColor() }}>
-            {rating}
+            {rating % 1 === 0 ? rating.toFixed(0) : rating.toFixed(1)}
           </span>
           <span className="rating-max">/ {maxRating}</span>
+        </div>
+
+        {/* Preset Pills Row */}
+        <div 
+          className="rating-presets-row" 
+          style={{ 
+            display: 'flex', 
+            gap: '6px', 
+            overflowX: 'auto', 
+            padding: '6px 2px', 
+            margin: '8px 0',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none'
+          }}
+        >
+          {presets.map(val => (
+            <button
+              key={val}
+              type="button"
+              className={`preset-pill ${rating === val ? 'active' : ''}`}
+              onClick={() => setRating(val)}
+              style={{
+                padding: '4px 10px',
+                borderRadius: '14px',
+                fontSize: '0.8rem',
+                fontWeight: '600',
+                border: '1px solid ' + (rating === val ? getSliderColor() : 'var(--border-glass)'),
+                background: rating === val ? getSliderColor() : 'var(--bg-glass-light)',
+                color: rating === val ? '#fff' : 'var(--text-secondary)',
+                cursor: 'pointer',
+                flexShrink: 0,
+                transition: 'all 0.2s ease'
+              }}
+            >
+              {val % 1 === 0 ? val.toFixed(0) : val.toFixed(1)}
+            </button>
+          ))}
         </div>
 
         <div className="rating-slider-container">
@@ -121,7 +207,7 @@ export default function RatingSliderModal({ task, onConfirm, onCancel }) {
               type="range"
               min="0"
               max={maxRating}
-              step="1"
+              step="0.5"
               value={rating}
               onChange={e => setRating(Number(e.target.value))}
               className="rating-slider"
@@ -131,29 +217,28 @@ export default function RatingSliderModal({ task, onConfirm, onCancel }) {
               }}
             />
             <div className="rating-slider-ticks">
-              {Array.from({ length: maxRating + 1 }).map((_, i) => (
-                <span
-                  key={i}
-                  className={`rating-tick ${i <= rating ? 'active' : ''}`}
-                  style={{ left: `${(i / maxRating) * 100}%` }}
-                />
-              ))}
+              {Array.from({ length: maxRating * 2 + 1 }).map((_, i) => {
+                const val = i * 0.5;
+                const isWhole = val % 1 === 0;
+                return (
+                  <span
+                    key={i}
+                    className={`rating-tick ${val <= rating ? 'active' : ''} ${isWhole ? 'tick-whole' : 'tick-half'}`}
+                    style={{ 
+                      left: `${(val / maxRating) * 100}%`,
+                      height: isWhole ? '8px' : '4px',
+                      opacity: isWhole ? 0.9 : 0.4
+                    }}
+                  />
+                );
+              })}
             </div>
           </div>
           <span className="rating-slider-label-max">{maxRating}</span>
         </div>
 
         <div className="rating-stars">
-          {Array.from({ length: maxRating }).map((_, i) => (
-            <Star
-              key={i}
-              size={isOverdue ? 24 : 18}
-              className={`rating-star ${i < rating ? 'filled' : ''}`}
-              onClick={() => setRating(i + 1)}
-              fill={i < rating ? getSliderColor() : 'none'}
-              stroke={i < rating ? getSliderColor() : 'var(--text-muted)'}
-            />
-          ))}
+          {renderStars()}
         </div>
 
         <div className="modal-footer">
