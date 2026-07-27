@@ -799,9 +799,10 @@ export default function TodayView() {
         const titleB = (b.title || '').toLowerCase();
         if (titleA !== titleB) return titleA.localeCompare(titleB);
       } else if (sortOption === 'category') {
-        const catA = (a.category || 'Work').toLowerCase();
-        const catB = (b.category || 'Work').toLowerCase();
-        if (catA !== catB) return catA.localeCompare(catB);
+        const catOrderMap = { health: 1, learning: 2, work: 3, personal: 4 };
+        const orderA = catOrderMap[(a.category || '').toLowerCase()] || 99;
+        const orderB = catOrderMap[(b.category || '').toLowerCase()] || 99;
+        if (orderA !== orderB) return orderA - orderB;
       } else if (sortOption === 'created_desc') {
         const cA = new Date(a.createdAt || a.created_at || 0).getTime();
         const cB = new Date(b.createdAt || b.created_at || 0).getTime();
@@ -1104,7 +1105,7 @@ export default function TodayView() {
                 <option value="rating_desc">★ Sort: Highest Rating</option>
                 <option value="rating_asc">★ Sort: Lowest Rating</option>
                 <option value="title_asc">🔤 Sort: Title (A-Z)</option>
-                <option value="category">📁 Sort: Category</option>
+                <option value="category">📁 Sort: Category (Health → Learning → Work → Personal)</option>
                 <option value="created_desc">🆕 Sort: Newly Created</option>
               </select>
 
