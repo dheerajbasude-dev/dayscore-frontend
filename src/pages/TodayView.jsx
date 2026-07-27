@@ -645,42 +645,50 @@ export default function TodayView() {
   }
 
   const sortTasksByUrgency = (a, b) => {
-    // 1. Missed tasks ALWAYS come FIRST at the top of the list!
-    const aMissed = a.status === 'missed';
-    const bMissed = b.status === 'missed';
-    if (aMissed !== bMissed) return aMissed ? -1 : 1;
+    // Status Tier Grouping:
+    // Tier 1: Missed tasks (Top of list)
+    // Tier 2: Pending / In-progress tasks (Middle of list)
+    // Tier 3: Completed / Done tasks (Bottom of list)
+    const getStatusTier = (t) => {
+      if (t.status === 'missed') return 1;
+      if (t.status === 'done') return 3;
+      return 2;
+    };
 
-    // For missed tasks: sort by nearest past date (most recent past missed tasks FIRST, e.g. Jul 26 before Jul 25)
-    if (aMissed && bMissed) {
-      const dateA = new Date(a.date || a.dateLabel || a.createdAt || 0).getTime();
-      const dateB = new Date(b.date || b.dateLabel || b.createdAt || 0).getTime();
-      return dateB - dateA;
+    const tierA = getStatusTier(a);
+    const tierB = getStatusTier(b);
+
+    if (tierA !== tierB) {
+      return tierA - tierB;
     }
 
-    // 2. Completed (done) tasks ALWAYS come LAST at the bottom
-    const aDone = a.status === 'done';
-    const bDone = b.status === 'done';
-    if (aDone !== bDone) return aDone ? 1 : -1;
-
-    // For completed tasks: show most recently completed FIRST
-    if (aDone && bDone) {
-      const aTime = new Date(a.completedAt || a.completed_at || a.createdAt || 0).getTime();
-      const bTime = new Date(b.completedAt || b.completed_at || b.createdAt || 0).getTime();
-      return bTime - aTime;
+    // Within Tier 1 (Missed Tasks): Most recent missed date / creation time FIRST
+    if (tierA === 1) {
+      const timeA = new Date(a.date || a.dateLabel || a.createdAt || a.created_at || 0).getTime();
+      const timeB = new Date(b.date || b.dateLabel || b.createdAt || b.created_at || 0).getTime();
+      return timeB - timeA;
     }
 
-    // 3. For active tasks (pending / inprogress):
-    // Priority: Nearest ending task OR just added task comes FIRST!
+    // Within Tier 3 (Completed / Done Tasks): Most recent completed time FIRST
+    if (tierA === 3) {
+      const timeA = new Date(a.completedAt || a.completed_at || a.createdAt || a.created_at || 0).getTime();
+      const timeB = new Date(b.completedAt || b.completed_at || b.createdAt || b.created_at || 0).getTime();
+      return timeB - timeA;
+    }
+
+    // Within Tier 2 (Pending / In-Progress Tasks): Near ending due time OR newly created FIRST
     const dueA = a.dueDateTime || a.due_date_time;
     const dueB = b.dueDateTime || b.due_date_time;
 
     if (dueA && dueB) {
-      return new Date(dueA).getTime() - new Date(dueB).getTime();
+      const diff = new Date(dueA).getTime() - new Date(dueB).getTime();
+      if (diff !== 0) return diff;
+    } else if (dueA) {
+      return -1;
+    } else if (dueB) {
+      return 1;
     }
-    if (dueA) return -1;
-    if (dueB) return 1;
 
-    // If neither has due date, sort by creation date/time descending (newly added task comes FIRST!)
     const createdA = new Date(a.createdAt || a.created_at || 0).getTime();
     const createdB = new Date(b.createdAt || b.created_at || 0).getTime();
     return createdB - createdA;
@@ -800,10 +808,7 @@ export default function TodayView() {
         if (cA !== cB) return cB - cA;
       }
 
-      // Default sort with near-ending task privilege
-      const urgencyDiff = getNearEndingUrgency(a) - getNearEndingUrgency(b);
-      if (urgencyDiff !== 0) return urgencyDiff;
-
+      // Default sort: Tier 1 Missed Most Recent -> Tier 2 Active/Pending Near Ending -> Tier 3 Completed Most Recent
       return sortTasksByUrgency(a, b);
     });
 
