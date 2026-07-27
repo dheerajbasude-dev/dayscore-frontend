@@ -514,10 +514,6 @@ export default function TodayView() {
     setTasks(store.getTasks(currentDateStr))
     setArchives(store.getAllArchives())
     setTodaysReward(null)
-
-    // Trigger celebratory confetti burst!
-    setShowConfetti(true)
-    setTimeout(() => setShowConfetti(false), 3500)
   }
 
   const handleAcceptTaskPenalty = async (taskOrId) => {
