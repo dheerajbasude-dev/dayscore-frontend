@@ -496,11 +496,18 @@ export default function TodayView() {
     setTasks(freshTasks);
   }
 
-  const handleClaimTaskReward = async (taskId) => {
-    const target = tasks.find(t => t.id === taskId || t._id === taskId)
-    const targetId = target?.id || target?._id || taskId;
+  const handleClaimTaskReward = async (taskOrId) => {
+    const isObject = typeof taskOrId === 'object' && taskOrId !== null;
+    const target = isObject ? taskOrId : tasks.find(t => t.id === taskOrId || t._id === taskOrId);
+    const targetId = isObject ? (taskOrId.id || taskOrId._id) : (target?.id || target?._id || taskOrId);
+    const taskDate = (isObject && (taskOrId.date || taskOrId.dateLabel)) ? (taskOrId.date || taskOrId.dateLabel) : currentDateStr;
 
-    const updatedTasks = await store.updateTask(currentDateStr, targetId, {
+    if (!targetId) return;
+
+    const isAlreadyClaimed = target?.rewardClaimed === true || target?.rewardClaimed === 1 || target?.reward_claimed === 1 || target?.reward_claimed === '1';
+    if (isAlreadyClaimed) return;
+
+    await store.updateTask(taskDate, targetId, {
       rewardClaimed: true,
       reward_claimed: 1,
       rewardAcknowledged: true,
@@ -509,30 +516,38 @@ export default function TodayView() {
       penalty_accepted: 0,
       rewardClaimedAt: new Date().toISOString()
     })
-    const freshTasks = Array.isArray(updatedTasks) ? updatedTasks : store.getTasks(currentDateStr)
-    setTasks(freshTasks)
 
+    setShowConfetti(true)
+    setTimeout(() => setShowConfetti(false), 3000)
+
+    await store.fetchAllTasksApi()
+    setTasks(store.getTasks(currentDateStr))
+    setArchives(store.getAllArchives())
     setTodaysReward(null)
   }
 
-  const handleAcceptTaskPenalty = async (taskId) => {
-    const target = tasks.find(t => t.id === taskId || t._id === taskId)
-    if (!target) return;
+  const handleAcceptTaskPenalty = async (taskOrId) => {
+    const isObject = typeof taskOrId === 'object' && taskOrId !== null;
+    const target = isObject ? taskOrId : tasks.find(t => t.id === taskOrId || t._id === taskOrId);
+    const targetId = isObject ? (taskOrId.id || taskOrId._id) : (target?.id || target?._id || taskOrId);
+    const taskDate = (isObject && (taskOrId.date || taskOrId.dateLabel)) ? (taskOrId.date || taskOrId.dateLabel) : currentDateStr;
 
-    const isAlreadyAccepted = target.penaltyAccepted === true || target.penaltyAccepted === 1 || target.penalty_accepted === 1 || target.penalty_accepted === '1';
+    if (!targetId) return;
+
+    const isAlreadyAccepted = target?.penaltyAccepted === true || target?.penaltyAccepted === 1 || target?.penalty_accepted === 1 || target?.penalty_accepted === '1';
     if (isAlreadyAccepted) return;
 
-    const targetId = target.id || target._id;
-
-    const updatedTasks = await store.updateTask(currentDateStr, targetId, {
+    await store.updateTask(taskDate, targetId, {
       penaltyAccepted: true,
       penalty_accepted: 1,
       rewardClaimed: false,
       reward_claimed: 0,
       penaltyAcceptedAt: new Date().toISOString()
     })
-    const freshTasks = Array.isArray(updatedTasks) ? updatedTasks : store.getTasks(currentDateStr)
-    setTasks(freshTasks)
+
+    await store.fetchAllTasksApi()
+    setTasks(store.getTasks(currentDateStr))
+    setArchives(store.getAllArchives())
 
     store.acknowledgePunishment()
     setActivePunishment(null)
