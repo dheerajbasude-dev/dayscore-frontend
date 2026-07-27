@@ -509,29 +509,46 @@ export default function TodayView() {
     const bMissed = b.status === 'missed';
     if (aMissed !== bMissed) return aMissed ? -1 : 1;
 
+    // For missed tasks: sort by nearest past date (most recent past missed tasks FIRST, e.g. Jul 26 before Jul 25)
+    if (aMissed && bMissed) {
+      const dateA = new Date(a.date || a.dateLabel || a.createdAt || 0).getTime();
+      const dateB = new Date(b.date || b.dateLabel || b.createdAt || 0).getTime();
+      return dateB - dateA;
+    }
+
     // 2. Completed (done) tasks ALWAYS come LAST at the bottom
     const aDone = a.status === 'done';
     const bDone = b.status === 'done';
     if (aDone !== bDone) return aDone ? 1 : -1;
 
-    // 3. For completed tasks: show most recently completed FIRST
+    // For completed tasks: show most recently completed FIRST
     if (aDone && bDone) {
-      const aTime = new Date(a.completedAt || a.createdAt || 0).getTime();
-      const bTime = new Date(b.completedAt || b.createdAt || 0).getTime();
+      const aTime = new Date(a.completedAt || a.completed_at || a.createdAt || 0).getTime();
+      const bTime = new Date(b.completedAt || b.completed_at || b.createdAt || 0).getTime();
       return bTime - aTime;
     }
 
-    // 4. For active tasks (pending / inprogress): Nearest dueDateTime comes FIRST
-    if (a.dueDateTime && b.dueDateTime) {
-      return new Date(a.dueDateTime) - new Date(b.dueDateTime);
-    }
-    if (a.dueDateTime) return -1;
-    if (b.dueDateTime) return 1;
+    // 3. For active tasks (pending / inprogress):
+    // Priority: Nearest ending task OR just added task comes FIRST!
+    const dueA = a.dueDateTime || a.due_date_time;
+    const dueB = b.dueDateTime || b.due_date_time;
 
-    return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+    if (dueA && dueB) {
+      return new Date(dueA).getTime() - new Date(dueB).getTime();
+    }
+    if (dueA) return -1;
+    if (dueB) return 1;
+
+    // If neither has due date, sort by creation date/time descending (newly added task comes FIRST!)
+    const createdA = new Date(a.createdAt || a.created_at || 0).getTime();
+    const createdB = new Date(b.createdAt || b.created_at || 0).getTime();
+    return createdB - createdA;
   };
 
-  const sortedTasks = tasks.slice().sort(sortTasksByUrgency)
+  const displayTasksList = useMemo(() => {
+    const rawList = viewMode === 'all' ? allTasksAcrossDates : tasks;
+    return rawList.slice().sort(sortTasksByUrgency);
+  }, [viewMode, allTasksAcrossDates, tasks]);
 
   // Get punishment text safely
   const punishmentText = activePunishment && !activePunishment.acknowledged
@@ -728,7 +745,7 @@ export default function TodayView() {
           </div>
 
           <div className="tasks-section">
-            {(viewMode === 'all' ? allTasksAcrossDates : sortedTasks).length === 0 ? (
+            {displayTasksList.length === 0 ? (
               <div className="card-glass empty-state">
                 <div className="empty-icon">📝</div>
                 <p className="empty-text">
@@ -745,7 +762,7 @@ export default function TodayView() {
               </div>
             ) : (
               <div className="task-group-list">
-                {(viewMode === 'all' ? allTasksAcrossDates : sortedTasks).map(task => (
+                {displayTasksList.map(task => (
                   <TaskCard 
                     key={task.id || task._id} 
                     task={task} 
