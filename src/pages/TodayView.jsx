@@ -391,6 +391,9 @@ export default function TodayView() {
     let taskReward = null
     let taskPenalty = null
 
+    let shouldTriggerPenalty = false
+    let shouldTriggerReward = false
+
     const triggeredPenalty = isLowRating || isOverdue
 
     // Trigger Penalty if individual task rating is <= 4 OR if task was completed overdue
@@ -401,9 +404,7 @@ export default function TodayView() {
         taskPenalty = randomPunishment
         store.setActivePunishment(randomPunishment)
         setActivePunishment(store.getActivePunishment())
-        setShowConfetti(false)
-        setShowPenaltyFlash(true)
-        setTimeout(() => setShowPenaltyFlash(false), 3000)
+        shouldTriggerPenalty = true
       }
     }
 
@@ -417,8 +418,7 @@ export default function TodayView() {
         : "Treat yourself!"
 
       setTodaysReward(taskReward)
-      setShowConfetti(true)
-      setTimeout(() => setShowConfetti(false), 3000)
+      shouldTriggerReward = true
     }
 
     const updates = {
@@ -442,6 +442,17 @@ export default function TodayView() {
     setTasks(store.getTasks(currentDateStr))
     setArchives(store.getAllArchives())
     setRatingTask(null)
+
+    // Trigger celebrations ONLY after saving completes and modal closes
+    if (shouldTriggerPenalty) {
+      setShowConfetti(false)
+      setShowPenaltyFlash(true)
+      setTimeout(() => setShowPenaltyFlash(false), 3000)
+    } else if (shouldTriggerReward) {
+      setShowPenaltyFlash(false)
+      setShowConfetti(true)
+      setTimeout(() => setShowConfetti(false), 3000)
+    }
   }
 
   const handleRatingCancel = () => {
