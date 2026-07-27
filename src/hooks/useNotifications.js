@@ -39,37 +39,38 @@ export async function triggerDesktopNotification(title, body) {
   // 1. Play single audio chime sound
   playNotificationSound();
 
-  // 2. Try Service Worker Notification first (Routes directly through Windows 11 Action Center)
-  if ('serviceWorker' in navigator) {
-    try {
-      const reg = await navigator.serviceWorker.ready;
-      if (reg && reg.showNotification) {
-        await reg.showNotification(title, {
-          body,
-          icon: '/favicon.svg',
-          tag: 'dayscore-notif',
-          renotify: true,
-          requireInteraction: true
-        });
-        return true; // Return immediately to prevent duplicate notification!
-      }
-    } catch (err) {
-      console.warn('SW showNotification error:', err);
-    }
-  }
-
-  // 3. Fallback ONLY if Service Worker is unavailable
+  // 2. Direct browser Notification (Instant & Reliable across desktop browsers)
   try {
     const notif = new Notification(title, {
       body,
       icon: '/favicon.svg',
-      tag: 'dayscore-notif',
+      tag: 'dayscore-notif-' + Date.now(),
       requireInteraction: true
     });
-    notif.onclick = () => window.focus();
+    notif.onclick = () => {
+      try { window.focus(); } catch (e) {}
+      try { notif.close(); } catch (e) {}
+    };
     return true;
   } catch (err) {
     console.warn('Standard Notification error:', err);
+  }
+
+  // 3. Fallback Service Worker check only if controller exists
+  if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+    try {
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (reg && reg.showNotification) {
+        await reg.showNotification(title, {
+          body,
+          icon: '/favicon.svg',
+          tag: 'dayscore-notif-' + Date.now()
+        });
+        return true;
+      }
+    } catch (err) {
+      console.warn('SW showNotification error:', err);
+    }
   }
 
   return false;
@@ -94,20 +95,25 @@ export function useNotifications(tasks, enabled, leadTimeMinutes = 30) {
     const timeouts = [];
 
     tasks.forEach(task => {
-      if ((task.status === 'pending' || task.status === 'inprogress') && task.dueDateTime) {
-        const dueTime = new Date(task.dueDateTime).getTime();
-        const now = new Date().getTime();
-        
-        const leadTimeMs = Number(leadTimeMinutes) * 60 * 1000;
-        const notifyTime = dueTime - leadTimeMs;
-        
-        if (notifyTime > now) {
-          const timeout = setTimeout(() => {
-            const timeMsg = leadTimeMinutes === 0 ? 'is due right now!' : `is due in ${leadTimeMinutes} minutes!`;
-            triggerDesktopNotification(`⏰ Task Due: ${task.title}`, `Task '${task.title}' (${task.priority} Priority) ${timeMsg}`);
-          }, notifyTime - now);
+      if (task.status === 'pending' || task.status === 'inprogress') {
+        const rawDue = task.dueDateTime || task.due_date_time;
+        if (rawDue) {
+          const dueTime = new Date(rawDue).getTime();
+          const now = new Date().getTime();
           
-          timeouts.push(timeout);
+          if (!isNaN(dueTime)) {
+            const leadTimeMs = Number(leadTimeMinutes) * 60 * 1000;
+            const notifyTime = dueTime - leadTimeMs;
+            
+            if (notifyTime > now) {
+              const timeout = setTimeout(() => {
+                const timeMsg = Number(leadTimeMinutes) === 0 ? 'is due right now!' : `is due in ${leadTimeMinutes} minutes!`;
+                triggerDesktopNotification(`⏰ Task Due: ${task.title}`, `Task '${task.title}' (${task.priority} Priority) ${timeMsg}`);
+              }, notifyTime - now);
+              
+              timeouts.push(timeout);
+            }
+          }
         }
       }
     });

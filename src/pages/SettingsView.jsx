@@ -68,10 +68,13 @@ export default function SettingsView() {
   const handleTestNotification = async () => {
     const minutes = settings.reminderLeadTime ?? 30
     const label = minutes === 0 ? 'at exact due time' : `${minutes} minutes before due time`
-    await triggerDesktopNotification(
+    const sent = await triggerDesktopNotification(
       '⏰ DayScore Reminders Active!',
       `Desktop Notification Test Successful!\nReminders set to trigger ${label}.`
     )
+    if (!sent) {
+      alert("⚠️ Notification permission is required. Please check your browser address bar permissions and ensure notifications are allowed for this site.")
+    }
   }
 
   const handleAddTemplate = (e) => {
