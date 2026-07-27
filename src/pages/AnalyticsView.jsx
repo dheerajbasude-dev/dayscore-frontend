@@ -133,6 +133,7 @@ export default function AnalyticsView() {
   const avgScore = useMemo(() => scoring.getRollingAverage(mergedArchives, 0, todayTasks), [mergedArchives, todayTasks])
   const totalDone = useMemo(() => scoring.getTotalTasksDone(mergedArchives), [mergedArchives])
   const bestCategory = useMemo(() => scoring.getMostProductiveCategory(mergedArchives, todayTasks), [mergedArchives, todayTasks]);
+  const missedTime = useMemo(() => scoring.getMostMissedTimeOfDay(mergedArchives), [mergedArchives]);
 
   const lineChartData = useMemo(() => {
     const last30 = []
