@@ -21,12 +21,16 @@ export default function RatingSliderModal({ task, onConfirm, onCancel }) {
 
   const maxRating = isOverdue ? 3 : 10;
   const [rating, setRating] = useState(maxRating === 3 ? 1.5 : 5.0);
+  const [hoverRating, setHoverRating] = useState(null);
 
   // Reset rating default when task or maxRating changes
   useEffect(() => {
     setRating(maxRating === 3 ? 1.5 : 5.0);
+    setHoverRating(null);
     setSubmitting(false);
   }, [maxRating, task.id, task._id]);
+
+  const activeRating = hoverRating !== null ? hoverRating : rating;
 
   const handleConfirm = async () => {
     if (submitting) return;
@@ -40,86 +44,39 @@ export default function RatingSliderModal({ task, onConfirm, onCancel }) {
     }
   };
 
-  const getSliderColor = () => {
+  const getRatingColor = (val) => {
+    const currentVal = val !== undefined ? val : activeRating;
     if (isOverdue) {
-      const ratio = rating / maxRating;
+      const ratio = currentVal / maxRating;
       if (ratio <= 0.33) return 'var(--accent-danger)';
       if (ratio <= 0.66) return 'var(--accent-warning)';
       return 'var(--accent-warning)';
     }
-    const ratio = rating / maxRating;
+    const ratio = currentVal / maxRating;
     if (ratio <= 0.3) return 'var(--accent-danger)';
     if (ratio <= 0.6) return 'var(--accent-warning)';
     return 'var(--accent-success)';
   };
 
-  const getEmoji = () => {
+  const getEmoji = (val) => {
+    const currentVal = val !== undefined ? val : activeRating;
     if (isOverdue) {
-      if (rating <= 1) return '😔';
-      if (rating <= 2) return '😐';
+      if (currentVal <= 1) return '😔';
+      if (currentVal <= 2) return '😐';
       return '🙂';
     }
-    if (rating <= 2) return '😔';
-    if (rating <= 4) return '😐';
-    if (rating <= 6) return '🙂';
-    if (rating <= 8) return '😊';
+    if (currentVal <= 2) return '😔';
+    if (currentVal <= 4) return '😐';
+    if (currentVal <= 6) return '🙂';
+    if (currentVal <= 8) return '😊';
     return '🤩';
   };
 
-  const sliderPercent = maxRating > 0 ? (rating / maxRating) * 100 : 0;
-
-  const presets = useMemo(() => {
-    const list = [];
-    for (let v = 0.5; v <= maxRating; v += 0.5) {
-      list.push(v);
-    }
-    return list;
-  }, [maxRating]);
-
-  const renderStars = () => {
-    const stars = [];
-    const fullStars = Math.floor(rating);
-    const hasHalfStar = rating % 1 !== 0;
-
-    for (let i = 1; i <= maxRating; i++) {
-      let fillState = 'empty';
-      if (i <= fullStars) {
-        fillState = 'full';
-      } else if (i === fullStars + 1 && hasHalfStar) {
-        fillState = 'half';
-      }
-
-      stars.push(
-        <div 
-          key={i} 
-          className="star-wrapper"
-          onClick={() => setRating(i)}
-          style={{ cursor: 'pointer', position: 'relative', display: 'inline-block' }}
-          title={`Rate ${i}`}
-        >
-          {fillState === 'half' ? (
-            <div style={{ position: 'relative', display: 'inline-block' }}>
-              <Star size={isOverdue ? 26 : 20} stroke="var(--text-muted)" fill="none" />
-              <div style={{ position: 'absolute', top: 0, left: 0, width: '50%', overflow: 'hidden' }}>
-                <Star size={isOverdue ? 26 : 20} stroke={getSliderColor()} fill={getSliderColor()} />
-              </div>
-            </div>
-          ) : (
-            <Star
-              size={isOverdue ? 26 : 20}
-              fill={fillState === 'full' ? getSliderColor() : 'none'}
-              stroke={fillState === 'full' ? getSliderColor() : 'var(--text-muted)'}
-            />
-          )}
-        </div>
-      );
-    }
-    return stars;
-  };
+  const starSize = isOverdue ? 36 : 28;
 
   return (
     <div className="modal-overlay" onClick={onCancel}>
-      <div className="modal-content rating-modal" onClick={e => e.stopPropagation()}>
+      <div className="modal-content rating-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '520px' }}>
         <div className="modal-header">
           <h2 className="modal-title">Rate Your Completion Effort</h2>
           <button className="btn-icon" onClick={onCancel} aria-label="Close">
@@ -151,95 +108,109 @@ export default function RatingSliderModal({ task, onConfirm, onCancel }) {
         ) : (
           <div className="rating-ontime-notice">
             <Clock size={16} />
-            <span>Completed on time — rate effort (0 to max <strong>10</strong> in 0.5 steps)</span>
+            <span>Click stars to rate effort (0.5 to <strong>10</strong>)</span>
           </div>
         )}
 
-        <div className="rating-display">
+        <div className="rating-display" style={{ margin: '20px 0 12px 0' }}>
           <span className="rating-emoji">{getEmoji()}</span>
-          <span className="rating-value" style={{ color: getSliderColor() }}>
-            {rating % 1 === 0 ? rating.toFixed(0) : rating.toFixed(1)}
+          <span className="rating-value" style={{ color: getRatingColor(), fontSize: '2.4rem', fontWeight: '800' }}>
+            {activeRating % 1 === 0 ? activeRating.toFixed(0) : activeRating.toFixed(1)}
           </span>
-          <span className="rating-max">/ {maxRating}</span>
+          <span className="rating-max" style={{ fontSize: '1.2rem' }}>/ {maxRating}</span>
         </div>
 
-        {/* Preset Pills Row */}
+        {/* Pure Interactive 10-Star Rating Bar */}
         <div 
-          className="rating-presets-row" 
+          className="star-rating-bar"
+          onMouseLeave={() => setHoverRating(null)}
           style={{ 
             display: 'flex', 
-            gap: '6px', 
-            overflowX: 'auto', 
-            padding: '6px 2px', 
-            margin: '8px 0',
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none'
+            justifyContent: 'center', 
+            alignItems: 'center', 
+            gap: isOverdue ? '12px' : '6px', 
+            padding: '16px 8px',
+            background: 'var(--bg-glass-light)',
+            borderRadius: 'var(--radius-lg)',
+            border: '1px solid var(--border-glass)',
+            margin: '8px 0 16px 0',
+            flexWrap: 'wrap'
           }}
         >
-          {presets.map(val => (
-            <button
-              key={val}
-              type="button"
-              className={`preset-pill ${rating === val ? 'active' : ''}`}
-              onClick={() => setRating(val)}
-              style={{
-                padding: '4px 10px',
-                borderRadius: '14px',
-                fontSize: '0.8rem',
-                fontWeight: '600',
-                border: '1px solid ' + (rating === val ? getSliderColor() : 'var(--border-glass)'),
-                background: rating === val ? getSliderColor() : 'var(--bg-glass-light)',
-                color: rating === val ? '#fff' : 'var(--text-secondary)',
-                cursor: 'pointer',
-                flexShrink: 0,
-                transition: 'all 0.2s ease'
-              }}
-            >
-              {val % 1 === 0 ? val.toFixed(0) : val.toFixed(1)}
-            </button>
-          ))}
-        </div>
+          {Array.from({ length: maxRating }).map((_, idx) => {
+            const starNum = idx + 1;
+            const isFull = starNum <= activeRating;
+            const isHalf = starNum - 0.5 === activeRating;
 
-        <div className="rating-slider-container">
-          <span className="rating-slider-label-min">0</span>
-          <div className="rating-slider-track-wrapper">
-            <input
-              type="range"
-              min="0"
-              max={maxRating}
-              step="0.5"
-              value={rating}
-              onChange={e => setRating(Number(e.target.value))}
-              className="rating-slider"
-              style={{
-                '--slider-percent': `${sliderPercent}%`,
-                '--slider-color': getSliderColor()
-              }}
-            />
-            <div className="rating-slider-ticks">
-              {Array.from({ length: maxRating * 2 + 1 }).map((_, i) => {
-                const val = i * 0.5;
-                const isWhole = val % 1 === 0;
-                return (
-                  <span
-                    key={i}
-                    className={`rating-tick ${val <= rating ? 'active' : ''} ${isWhole ? 'tick-whole' : 'tick-half'}`}
-                    style={{ 
-                      left: `${(val / maxRating) * 100}%`,
-                      height: isWhole ? '8px' : '4px',
-                      opacity: isWhole ? 0.9 : 0.4
-                    }}
+            return (
+              <div 
+                key={starNum}
+                style={{ 
+                  position: 'relative', 
+                  width: `${starSize}px`, 
+                  height: `${starSize}px`, 
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'transform 0.15s ease',
+                  transform: (isFull || isHalf) ? 'scale(1.08)' : 'scale(1)'
+                }}
+              >
+                {/* Left Half Click/Hover Zone */}
+                <div 
+                  style={{ 
+                    position: 'absolute', 
+                    top: 0, 
+                    left: 0, 
+                    width: '50%', 
+                    height: '100%', 
+                    zIndex: 10 
+                  }}
+                  onMouseEnter={() => setHoverRating(starNum - 0.5)}
+                  onClick={() => setRating(starNum - 0.5)}
+                  title={`Rate ${starNum - 0.5}`}
+                />
+
+                {/* Right Half Click/Hover Zone */}
+                <div 
+                  style={{ 
+                    position: 'absolute', 
+                    top: 0, 
+                    right: 0, 
+                    width: '50%', 
+                    height: '100%', 
+                    zIndex: 10 
+                  }}
+                  onMouseEnter={() => setHoverRating(starNum)}
+                  onClick={() => setRating(starNum)}
+                  title={`Rate ${starNum}`}
+                />
+
+                {/* Star SVG Rendering */}
+                {isHalf ? (
+                  <div style={{ position: 'relative', width: `${starSize}px`, height: `${starSize}px` }}>
+                    <Star size={starSize} stroke="var(--text-muted)" fill="none" />
+                    <div style={{ position: 'absolute', top: 0, left: 0, width: '50%', overflow: 'hidden' }}>
+                      <Star size={starSize} stroke={getRatingColor()} fill={getRatingColor()} />
+                    </div>
+                  </div>
+                ) : (
+                  <Star
+                    size={starSize}
+                    fill={isFull ? getRatingColor() : 'none'}
+                    stroke={isFull ? getRatingColor() : 'var(--text-muted)'}
+                    style={{ transition: 'all 0.2s ease' }}
                   />
-                );
-              })}
-            </div>
-          </div>
-          <span className="rating-slider-label-max">{maxRating}</span>
+                )}
+              </div>
+            );
+          })}
         </div>
 
-        <div className="rating-stars">
-          {renderStars()}
-        </div>
+        <p style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0 0 16px 0' }}>
+          💡 Click left side of star for half star (<strong>0.5</strong>), right side for full star (<strong>1.0</strong>)
+        </p>
 
         <div className="modal-footer">
           <button type="button" className="btn btn-secondary" onClick={onCancel} disabled={submitting}>
