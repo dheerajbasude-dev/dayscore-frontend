@@ -648,58 +648,66 @@ export default function TodayView() {
         <>
           {/* Date Navigation & View Mode Header */}
           <div className="card-glass date-nav-card" style={{ padding: '12px 18px', marginBottom: '20px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <button 
-                className="btn btn-secondary btn-sm" 
-                onClick={handlePrevDay} 
-                title="Previous Day"
-                style={{ padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-              >
-                <ChevronLeft size={16} /> Yesterday
-              </button>
-
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'var(--bg-glass-light)', padding: '4px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-glass)' }}>
-                <Calendar size={16} style={{ color: 'var(--accent-primary)' }} />
-                <input 
-                  type="date" 
-                  value={currentDateStr}
-                  max={todayStr}
-                  onChange={(e) => {
-                    if (e.target.value && e.target.value <= todayStr) {
-                      setCurrentDateStr(e.target.value);
-                    }
-                  }}
-                  style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer', fontFamily: 'inherit' }}
-                />
-              </div>
-
-              <button 
-                className="btn btn-secondary btn-sm" 
-                onClick={handleNextDay} 
-                disabled={currentDateStr >= todayStr}
-                title="Next Day"
-                style={{ 
-                  padding: '6px 12px', 
-                  display: 'inline-flex', 
-                  alignItems: 'center', 
-                  gap: '4px',
-                  opacity: currentDateStr >= todayStr ? 0.4 : 1,
-                  cursor: currentDateStr >= todayStr ? 'not-allowed' : 'pointer'
-                }}
-              >
-                Next <ChevronRight size={16} />
-              </button>
-
-              {currentDateStr !== todayStr && (
+            {viewMode === 'date' ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                 <button 
-                  className="btn btn-primary btn-sm" 
-                  onClick={handleToday}
-                  style={{ padding: '6px 12px' }}
+                  className="btn btn-secondary btn-sm" 
+                  onClick={handlePrevDay} 
+                  title="Previous Day"
+                  style={{ padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                 >
-                  Today
+                  <ChevronLeft size={16} /> Yesterday
                 </button>
-              )}
-            </div>
+
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'var(--bg-glass-light)', padding: '4px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-glass)' }}>
+                  <Calendar size={16} style={{ color: 'var(--accent-primary)' }} />
+                  <input 
+                    type="date" 
+                    value={currentDateStr}
+                    max={todayStr}
+                    onChange={(e) => {
+                      if (e.target.value && e.target.value <= todayStr) {
+                        setCurrentDateStr(e.target.value);
+                      }
+                    }}
+                    style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer', fontFamily: 'inherit' }}
+                  />
+                </div>
+
+                <button 
+                  className="btn btn-secondary btn-sm" 
+                  onClick={handleNextDay} 
+                  disabled={currentDateStr >= todayStr}
+                  title="Next Day"
+                  style={{ 
+                    padding: '6px 12px', 
+                    display: 'inline-flex', 
+                    alignItems: 'center', 
+                    gap: '4px',
+                    opacity: currentDateStr >= todayStr ? 0.4 : 1,
+                    cursor: currentDateStr >= todayStr ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  Next <ChevronRight size={16} />
+                </button>
+
+                {currentDateStr !== todayStr && (
+                  <button 
+                    className="btn btn-primary btn-sm" 
+                    onClick={handleToday}
+                    style={{ padding: '6px 12px' }}
+                  >
+                    Today
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontWeight: '700', fontSize: '0.9rem', color: 'var(--text-primary)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <Layers size={16} style={{ color: 'var(--accent-primary)' }} /> All Tasks View
+                </span>
+              </div>
+            )}
 
             <div className="view-mode-toggle" style={{ display: 'flex', gap: '4px', background: 'var(--bg-glass-light)', padding: '3px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-glass)' }}>
               <button
