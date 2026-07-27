@@ -87,7 +87,7 @@ export default function TodayView() {
       }
     });
 
-    (todayTasks || []).forEach(t => {
+    (tasks || []).forEach(t => {
       const tDate = t.completedAt ? t.completedAt.substring(0, 10) : (t.date || todayStr);
       if (tDate) {
         const cleanD = tDate.includes('T') ? tDate.split('T')[0] : tDate.substring(0, 10);
@@ -96,7 +96,7 @@ export default function TodayView() {
     });
 
     return Array.from(dateSet).sort();
-  }, [archives, todayTasks, todayStr]);
+  }, [archives, tasks, todayStr]);
 
   const minAvailableDate = validTaskDates.length > 0 ? validTaskDates[0] : todayStr;
   const canGoPrev = currentDateStr > minAvailableDate && validTaskDates.some(d => d < currentDateStr);
