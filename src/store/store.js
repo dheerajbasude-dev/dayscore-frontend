@@ -43,13 +43,15 @@ const authFetch = async (url, options = {}) => {
 
 export function getTasks(dateStr) {
   const uid = getUserId();
-  const data = localStorage.getItem(`dayscore_${uid}_tasks_${dateStr}`);
+  const cleanDate = dateStr ? (dateStr.includes('T') ? dateStr.split('T')[0] : dateStr.trim().substring(0, 10)) : format(new Date(), 'yyyy-MM-dd');
+  const data = localStorage.getItem(`dayscore_${uid}_tasks_${cleanDate}`);
   return data ? JSON.parse(data) : [];
 }
 
 export function isTasksCached(dateStr) {
   const uid = getUserId();
-  return localStorage.getItem(`dayscore_${uid}_tasks_${dateStr}`) !== null;
+  const cleanDate = dateStr ? (dateStr.includes('T') ? dateStr.split('T')[0] : dateStr.trim().substring(0, 10)) : format(new Date(), 'yyyy-MM-dd');
+  return localStorage.getItem(`dayscore_${uid}_tasks_${cleanDate}`) !== null;
 }
 
 export function formatServerTask(t) {
@@ -62,10 +64,23 @@ export function formatServerTask(t) {
   const createdDate = t.createdAt || t.created_at || new Date().toISOString();
   const completedDate = t.completedAt || t.completed_at || null;
 
+  let taskDate = t.date;
+  if (taskDate && typeof taskDate === 'string' && taskDate.includes('T')) {
+    taskDate = taskDate.split('T')[0];
+  }
+  if (!taskDate && createdDate) {
+    taskDate = typeof createdDate === 'string' ? createdDate.substring(0, 10) : format(new Date(), 'yyyy-MM-dd');
+  }
+  if (!taskDate || typeof taskDate !== 'string' || taskDate.length < 10) {
+    taskDate = format(new Date(), 'yyyy-MM-dd');
+  }
+  taskDate = taskDate.trim().substring(0, 10);
+
   return {
     ...t,
     id: t.id || t._id,
     _id: t._id || t.id,
+    date: taskDate,
     dueDateTime: t.dueDateTime || t.due_date_time,
     due_date_time: t.due_date_time || t.dueDateTime,
     rewardClaimed: isClaimed,
@@ -86,22 +101,23 @@ export function formatServerTask(t) {
 
 export async function fetchTasksApi(dateStr) {
   const token = getToken();
-  if (!token) return getTasks(dateStr);
+  const cleanDate = dateStr ? (dateStr.includes('T') ? dateStr.split('T')[0] : dateStr.trim().substring(0, 10)) : format(new Date(), 'yyyy-MM-dd');
+  if (!token) return getTasks(cleanDate);
 
   try {
-    const res = await authFetch(`/api/tasks?date=${dateStr}`);
+    const res = await authFetch(`/api/tasks?date=${cleanDate}`);
     if (res.ok) {
       const data = await res.json();
       const serverTasks = (data.tasks || []).map(formatServerTask);
 
       // Directly update local cache with what exists in MongoDB Atlas
-      saveTasks(dateStr, serverTasks);
+      saveTasks(cleanDate, serverTasks);
       return serverTasks;
     }
   } catch (e) {
     console.warn('Failed to fetch tasks from server:', e);
   }
-  return getTasks(dateStr);
+  return getTasks(cleanDate);
 }
 
 export async function fetchAllTasksApi() {
@@ -116,7 +132,7 @@ export async function fetchAllTasksApi() {
 
       const tasksByDate = new Map();
       serverTasks.forEach(t => {
-        const d = t.date || (t.createdAt ? t.createdAt.substring(0, 10) : format(new Date(), 'yyyy-MM-dd'));
+        const d = t.date || format(new Date(), 'yyyy-MM-dd');
         if (!tasksByDate.has(d)) {
           tasksByDate.set(d, []);
         }
@@ -150,7 +166,8 @@ export async function fetchAllTasksApi() {
 
 export function saveTasks(dateStr, tasks) {
   const uid = getUserId();
-  localStorage.setItem(`dayscore_${uid}_tasks_${dateStr}`, JSON.stringify(tasks));
+  const cleanDate = dateStr ? (dateStr.includes('T') ? dateStr.split('T')[0] : dateStr.trim().substring(0, 10)) : format(new Date(), 'yyyy-MM-dd');
+  localStorage.setItem(`dayscore_${uid}_tasks_${cleanDate}`, JSON.stringify(tasks));
 }
 
 export async function addTask(dateStr, task) {
@@ -292,7 +309,12 @@ export function getArchivesFromTasks() {
       try {
         const tasks = JSON.parse(localStorage.getItem(key));
         if (Array.isArray(tasks) && tasks.length > 0) {
-          const dateStr = key.replace(prefix, '');
+          let dateStr = key.replace(prefix, '');
+          if (dateStr.includes('T')) {
+            dateStr = dateStr.split('T')[0];
+          }
+          dateStr = dateStr.trim().substring(0, 10);
+
           const scoreResult = calculateDailyScore(tasks);
           archiveMap.set(dateStr, {
             date: dateStr,
