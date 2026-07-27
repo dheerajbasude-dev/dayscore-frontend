@@ -278,6 +278,57 @@ export default function TodayView() {
     setShowAddModal(false)
   }
 
+  const handleCarryOver = async (task) => {
+    if (!task) return;
+    const targetId = task.id || task._id;
+    const sourceDate = task.sourceDate || task.date || task.dateLabel || currentDateStr;
+
+    // 1. Mark past task as missed on its original date
+    await store.updateTask(sourceDate, targetId, { status: 'missed' });
+
+    // 2. Create new pending task on TODAY's date (todayStr)
+    const newTask = {
+      title: task.title,
+      category: task.category || 'Work',
+      priority: task.priority || 'Med',
+      dueDateTime: task.dueDateTime || task.due_date_time || null,
+      due_date_time: task.dueDateTime || task.due_date_time || null,
+      status: 'pending',
+      createdAt: new Date().toISOString()
+    };
+
+    await store.addTask(todayStr, newTask);
+    await store.fetchAllTasksApi();
+
+    // 3. Refresh local view state
+    setTasks(store.getTasks(currentDateStr));
+    setArchives(store.getAllArchives());
+    setCarryOverTasks(prev => prev.filter(t => (t.id || t._id) !== targetId));
+  }
+
+  const handleDismissCarryOver = async (task) => {
+    if (!task) return;
+    const targetId = task.id || task._id;
+    const sourceDate = task.sourceDate || task.date || task.dateLabel || currentDateStr;
+
+    // Mark past task as missed on its original date
+    await store.updateTask(sourceDate, targetId, { status: 'missed' });
+    await store.fetchAllTasksApi();
+
+    // Refresh local view state
+    setTasks(store.getTasks(currentDateStr));
+    setArchives(store.getAllArchives());
+    setCarryOverTasks(prev => prev.filter(t => (t.id || t._id) !== targetId));
+  }
+
+  const handleCarryOverAll = async () => {
+    if (carryOverTasks.length === 0) return;
+    const tasksToProcess = [...carryOverTasks];
+    for (const task of tasksToProcess) {
+      await handleCarryOver(task);
+    }
+  }
+
   const handleStatusChange = async (taskOrId, newStatus) => {
     const isObject = typeof taskOrId === 'object' && taskOrId !== null;
     const taskId = isObject ? (taskOrId.id || taskOrId._id) : taskOrId;
@@ -585,19 +636,32 @@ export default function TodayView() {
     <div className="today-view">
 
       {carryOverTasks.length > 0 && (
-        <div className="card-glass carryover-section">
-          <h3 className="carryover-heading">
-            <AlertTriangle size={18} /> Missed Yesterday
-          </h3>
-          {carryOverTasks.map(task => (
-            <div key={task.id} className="carryover-item">
-              <span className="carryover-task-name">{task.title}</span>
-              <div className="carryover-actions">
-                <button className="btn btn-secondary btn-sm" onClick={() => handleDismissCarryOver(task)}>Dismiss</button>
-                <button className="btn btn-primary btn-sm" onClick={() => handleCarryOver(task)}>Carry Over</button>
-              </div>
-            </div>
-          ))}
+        <div className="card-glass carryover-section" style={{ padding: '14px 18px', marginBottom: '20px', borderRadius: 'var(--radius-lg)', border: '1px solid rgba(251, 191, 36, 0.35)', background: 'rgba(251, 191, 36, 0.05)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+            <h3 className="carryover-heading" style={{ margin: 0, fontSize: '0.95rem', color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <AlertTriangle size={18} color="#fbbf24" /> Unfinished Tasks From Previous Days ({carryOverTasks.length})
+            </h3>
+            <button className="btn btn-primary btn-sm" onClick={handleCarryOverAll} style={{ fontSize: '0.8rem', padding: '4px 10px' }}>
+              Carry All Over
+            </button>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {carryOverTasks.map(task => {
+              const targetId = task.id || task._id;
+              return (
+                <div key={targetId} className="carryover-item" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '10px 14px', borderRadius: 'var(--radius-md)', background: 'var(--bg-glass-light)', border: '1px solid var(--border-glass)', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span className="carryover-task-name" style={{ fontWeight: '600', fontSize: '0.9rem', color: 'var(--text-primary)' }}>{task.title}</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>From {task.sourceDate} • {task.category || 'Work'}</span>
+                  </div>
+                  <div className="carryover-actions" style={{ display: 'flex', gap: '6px' }}>
+                    <button className="btn btn-secondary btn-sm" onClick={() => handleDismissCarryOver(task)} style={{ padding: '4px 10px', fontSize: '0.8rem' }}>Dismiss</button>
+                    <button className="btn btn-primary btn-sm" onClick={() => handleCarryOver(task)} style={{ padding: '4px 10px', fontSize: '0.8rem' }}>Carry Over</button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
