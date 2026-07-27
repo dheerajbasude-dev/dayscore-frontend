@@ -154,10 +154,25 @@ export default function TodayView() {
   useEffect(() => {
     let isMounted = true;
     const loadTasks = async () => {
+      const isTaskRewardUnacknowledged = (t) => {
+        if (!t.reward) return false;
+        const targetId = t.id || t._id;
+        try {
+          if (sessionStorage.getItem(`dayscore_reward_ack_${targetId}`) || localStorage.getItem(`dayscore_reward_ack_${targetId}`)) {
+            return false;
+          }
+        } catch (e) {}
+        const isClaimed = t.rewardClaimed === true || t.rewardClaimed === 1 || t.reward_claimed === 1 || t.reward_claimed === '1';
+        const isAck = t.rewardAcknowledged === true || t.rewardAcknowledged === 1 || t.reward_acknowledged === 1 || t.reward_acknowledged === '1';
+        return !isClaimed && !isAck;
+      };
+
       // Instant cache load
       const cached = store.getTasks(currentDateStr);
       if (cached && cached.length > 0) {
         setTasks(cached);
+        const cachedUnack = cached.find(isTaskRewardUnacknowledged);
+        setTodaysReward(cachedUnack ? cachedUnack.reward : null);
         setLoading(false);
       } else {
         setLoading(true);
@@ -172,18 +187,6 @@ export default function TodayView() {
       setArchives(store.getAllArchives());
       setLoading(false);
 
-      const isTaskRewardUnacknowledged = (t) => {
-        if (!t.reward) return false;
-        const taskId = t.id || t._id;
-        try {
-          if (sessionStorage.getItem(`dayscore_reward_ack_${taskId}`) === 'true') {
-            return false;
-          }
-        } catch (e) {}
-        const isClaimed = t.rewardClaimed === true || t.rewardClaimed === 1 || t.reward_claimed === 1 || t.reward_claimed === '1';
-        const isAck = t.rewardAcknowledged === true || t.rewardAcknowledged === 1 || t.reward_acknowledged === 1 || t.reward_acknowledged === '1';
-        return !isClaimed && !isAck;
-      };
       const unacknowledgedTask = freshToday.find(isTaskRewardUnacknowledged);
       setTodaysReward(unacknowledgedTask ? unacknowledgedTask.reward : null);
 
@@ -495,7 +498,7 @@ export default function TodayView() {
     try {
       setTodaysReward(null)
 
-      // Mark unacknowledged task rewards for today as acknowledged in MongoDB Atlas
+      // Mark unacknowledged task rewards for today as acknowledged in MongoDB Atlas and local cache
       const unackTasks = tasks.filter(t => {
         if (!t.reward) return false;
         const isAck = t.rewardAcknowledged === true || t.rewardAcknowledged === 1 || t.reward_acknowledged === 1 || t.reward_acknowledged === '1';
@@ -504,11 +507,12 @@ export default function TodayView() {
 
       for (const t of unackTasks) {
         const targetId = t.id || t._id;
-        const targetDate = t.date || t.dateLabel || currentDateStr;
         try {
-          sessionStorage.setItem(`dayscore_reward_ack_${targetId}`, 'true');
+          sessionStorage.setItem(`dayscore_reward_ack_${targetId}`, '1');
+          localStorage.setItem(`dayscore_reward_ack_${targetId}`, '1');
         } catch (e) {}
-        await store.updateTask(targetDate, targetId, {
+
+        await store.updateTask(currentDateStr, targetId, {
           rewardAcknowledged: true,
           reward_acknowledged: 1
         });
@@ -525,10 +529,6 @@ export default function TodayView() {
     const isObject = typeof taskOrId === 'object' && taskOrId !== null;
     const targetId = isObject ? (taskOrId.id || taskOrId._id) : taskOrId;
     const targetDate = isObject ? (taskOrId.date || taskOrId.dateLabel || currentDateStr) : currentDateStr;
-
-    try {
-      sessionStorage.setItem(`dayscore_reward_ack_${targetId}`, 'true');
-    } catch (e) {}
 
     await store.updateTask(targetDate, targetId, {
       rewardClaimed: true,
