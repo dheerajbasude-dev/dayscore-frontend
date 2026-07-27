@@ -3115,11 +3115,12 @@ body {
   border: 1px solid rgba(248, 113, 113, 0.35);
 }
 
-/* Mobile Responsive Date Nav & View Mode Header */
+/* Mobile Responsive Date Nav & View Mode Header (Ultra Compact) */
 @media (max-width: 640px) {
   .date-nav-card {
-    padding: 10px 12px !important;
-    gap: 10px !important;
+    padding: 6px 8px !important;
+    gap: 6px !important;
+    margin-bottom: 12px !important;
     flex-direction: column !important;
     align-items: stretch !important;
   }
@@ -3128,28 +3129,32 @@ body {
     display: flex !important;
     align-items: center !important;
     justify-content: space-between !important;
-    gap: 4px !important;
+    gap: 3px !important;
     width: 100% !important;
     flex-wrap: nowrap !important;
   }
 
   .date-nav-btn {
-    padding: 5px 8px !important;
-    font-size: 0.76rem !important;
+    padding: 3px 6px !important;
+    height: 26px !important;
+    font-size: 0.72rem !important;
     gap: 2px !important;
     white-space: nowrap !important;
     flex-shrink: 0 !important;
+    border-radius: 6px !important;
   }
 
   .date-picker-wrapper {
-    padding: 3px 6px !important;
+    padding: 2px 4px !important;
+    height: 26px !important;
     flex: 1 !important;
     justify-content: center !important;
     min-width: 0 !important;
+    border-radius: 6px !important;
   }
 
   .date-picker-input {
-    font-size: 0.76rem !important;
+    font-size: 0.72rem !important;
     width: 100% !important;
     text-align: center !important;
     padding: 0 !important;
@@ -3157,14 +3162,17 @@ body {
 
   .view-mode-toggle {
     width: 100% !important;
-    justify-content: space-between !important;
+    padding: 2px !important;
+    border-radius: 6px !important;
   }
 
   .view-mode-toggle .btn {
     flex: 1 !important;
     justify-content: center !important;
-    padding: 6px 6px !important;
-    font-size: 0.78rem !important;
+    padding: 4px 6px !important;
+    height: 26px !important;
+    font-size: 0.74rem !important;
+    border-radius: 4px !important;
   }
 }
 

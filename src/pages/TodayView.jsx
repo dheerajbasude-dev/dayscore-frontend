@@ -656,7 +656,7 @@ export default function TodayView() {
                   title="Previous Day"
                   style={{ padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                 >
-                  <ChevronLeft size={16} /> Yesterday
+                  <ChevronLeft size={14} /> Prev
                 </button>
 
                 <div className="date-picker-wrapper" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'var(--bg-glass-light)', padding: '4px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-glass)' }}>
