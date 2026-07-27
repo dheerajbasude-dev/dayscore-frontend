@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Trash2, Download, Upload, AlertTriangle, Moon, Sun, Bell, Plus, X, Pencil, Settings as SettingsIcon } from 'lucide-react'
+import { Trash2, Download, Upload, AlertTriangle, Moon, Sun, Bell, Plus, X, Pencil, Settings as SettingsIcon, Loader2 } from 'lucide-react'
 import { format, addHours } from 'date-fns'
 import * as store from '../store/store'
 import { useTheme } from '../hooks/useTheme'
@@ -14,6 +14,8 @@ export default function SettingsView() {
   const [loading, setLoading] = useState(() => !store.isSettingsCached())
   const [showAddTemplate, setShowAddTemplate] = useState(false)
   const [editingTemplate, setEditingTemplate] = useState(null)
+  const [isSavingTemplate, setIsSavingTemplate] = useState(false)
+  const [deletingTemplateId, setDeletingTemplateId] = useState(null)
   const fileInputRef = useRef(null)
 
   const [tTitle, setTTitle] = useState('')
@@ -147,7 +149,7 @@ export default function SettingsView() {
 
   const handleSaveTemplate = async (e) => {
     e.preventDefault()
-    if (!tTitle.trim()) return
+    if (!tTitle.trim() || isSavingTemplate) return
 
     const [year, month, day] = tDate.split('-').map(Number)
     const dueObj = new Date(year, month - 1, day, tHour, tMinute, 0)
@@ -175,15 +177,26 @@ export default function SettingsView() {
       relativeTime
     }
 
-    const updated = await store.saveTemplateApi(templatePayload)
-    setTemplates(updated)
-    setEditingTemplate(null)
-    setShowAddTemplate(false)
+    setIsSavingTemplate(true)
+    try {
+      const updated = await store.saveTemplateApi(templatePayload)
+      setTemplates(updated)
+      setEditingTemplate(null)
+      setShowAddTemplate(false)
+    } finally {
+      setIsSavingTemplate(false)
+    }
   }
 
   const handleDeleteTemplate = async (id) => {
-    const updated = await store.deleteTemplateApi(id)
-    setTemplates(updated)
+    if (deletingTemplateId === id) return
+    setDeletingTemplateId(id)
+    try {
+      const updated = await store.deleteTemplateApi(id)
+      setTemplates(updated)
+    } finally {
+      setDeletingTemplateId(null)
+    }
   }
 
   const handleExport = () => {
@@ -336,11 +349,25 @@ export default function SettingsView() {
                       </div>
                     </div>
                     <div className="settings-template-actions">
-                      <button onClick={() => handleEditTemplate(t)} className="btn-icon settings-action-btn edit" title="Edit template">
+                      <button 
+                        onClick={() => handleEditTemplate(t)} 
+                        className="btn-icon settings-action-btn edit" 
+                        title="Edit template"
+                        disabled={deletingTemplateId === t.id}
+                      >
                         <Pencil size={15} />
                       </button>
-                      <button onClick={() => handleDeleteTemplate(t.id)} className="btn-icon settings-action-btn delete" title="Delete template">
-                        <Trash2 size={15} />
+                      <button 
+                        onClick={() => handleDeleteTemplate(t.id)} 
+                        className="btn-icon settings-action-btn delete" 
+                        title="Delete template"
+                        disabled={deletingTemplateId === t.id}
+                      >
+                        {deletingTemplateId === t.id ? (
+                          <Loader2 className="animate-spin" size={15} />
+                        ) : (
+                          <Trash2 size={15} />
+                        )}
                       </button>
                     </div>
                   </div>
@@ -392,23 +419,25 @@ export default function SettingsView() {
 
       {/* Template Modal */}
       {showAddTemplate && (
-        <div className="modal-overlay" onClick={() => setShowAddTemplate(false)}>
+        <div className="modal-overlay" onClick={() => !isSavingTemplate && setShowAddTemplate(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '480px' }}>
             <div className="modal-header">
               <h2 className="modal-title">{editingTemplate ? 'Edit Template' : 'New Template'}</h2>
-              <button className="btn-icon" onClick={() => setShowAddTemplate(false)}><X size={18} /></button>
+              <button className="btn-icon" onClick={() => !isSavingTemplate && setShowAddTemplate(false)} disabled={isSavingTemplate}>
+                <X size={18} />
+              </button>
             </div>
             <form onSubmit={handleSaveTemplate} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div className="form-group">
                 <label className="form-label">Title</label>
-                <input required type="text" className="input" value={tTitle} onChange={e => setTTitle(e.target.value)} placeholder="Task title" autoFocus />
+                <input required type="text" className="input" value={tTitle} onChange={e => setTTitle(e.target.value)} placeholder="Task title" autoFocus disabled={isSavingTemplate} />
               </div>
 
               <div className="form-group">
                 <label className="form-label">Category</label>
                 <div className="segmented">
                   {['Work', 'Learning', 'Health', 'Personal'].map(cat => (
-                    <div key={cat} className={`segmented-option ${tCategory === cat ? 'active' : ''}`} onClick={() => setTCategory(cat)}>{cat}</div>
+                    <div key={cat} className={`segmented-option ${tCategory === cat ? 'active' : ''}`} onClick={() => !isSavingTemplate && setTCategory(cat)}>{cat}</div>
                   ))}
                 </div>
               </div>
@@ -417,7 +446,7 @@ export default function SettingsView() {
                 <label className="form-label">Priority</label>
                 <div className="segmented">
                   {['High', 'Med', 'Low'].map(pri => (
-                    <div key={pri} className={`segmented-option ${tPriority === pri ? 'active' : ''}`} onClick={() => setTPriority(pri)}>{pri}</div>
+                    <div key={pri} className={`segmented-option ${tPriority === pri ? 'active' : ''}`} onClick={() => !isSavingTemplate && setTPriority(pri)}>{pri}</div>
                   ))}
                 </div>
               </div>
@@ -440,10 +469,10 @@ export default function SettingsView() {
 
                 {/* Quick Presets */}
                 <div style={{ display: 'flex', gap: '6px', marginBottom: '8px', flexWrap: 'wrap' }}>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => setTemplatePresetTime(30)} style={{ fontSize: '0.75rem', padding: '3px 8px' }}>+30 Min</button>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => setTemplatePresetTime(60)} style={{ fontSize: '0.75rem', padding: '3px 8px' }}>+1 Hour</button>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => setTemplatePresetTime(120)} style={{ fontSize: '0.75rem', padding: '3px 8px' }}>+2 Hours</button>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={setTemplateEndOfDay} style={{ fontSize: '0.75rem', padding: '3px 8px' }}>End of Day (11:59 PM)</button>
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => setTemplatePresetTime(30)} disabled={isSavingTemplate} style={{ fontSize: '0.75rem', padding: '3px 8px' }}>+30 Min</button>
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => setTemplatePresetTime(60)} disabled={isSavingTemplate} style={{ fontSize: '0.75rem', padding: '3px 8px' }}>+1 Hour</button>
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => setTemplatePresetTime(120)} disabled={isSavingTemplate} style={{ fontSize: '0.75rem', padding: '3px 8px' }}>+2 Hours</button>
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={setTemplateEndOfDay} disabled={isSavingTemplate} style={{ fontSize: '0.75rem', padding: '3px 8px' }}>End of Day (11:59 PM)</button>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr', gap: '8px' }}>
@@ -460,6 +489,7 @@ export default function SettingsView() {
                       }
                     }}
                     required
+                    disabled={isSavingTemplate}
                     style={{ padding: '8px 10px', fontSize: '0.85rem' }}
                   />
 
@@ -468,6 +498,7 @@ export default function SettingsView() {
                     className="select"
                     value={tHour}
                     onChange={e => setTHour(Number(e.target.value))}
+                    disabled={isSavingTemplate}
                     style={{ padding: '8px 10px', fontSize: '0.85rem' }}
                   >
                     {Array.from({ length: 24 }).map((_, h) => {
@@ -487,6 +518,7 @@ export default function SettingsView() {
                     className="select"
                     value={tMinute}
                     onChange={e => setTMinute(Number(e.target.value))}
+                    disabled={isSavingTemplate}
                     style={{ padding: '8px 10px', fontSize: '0.85rem' }}
                   >
                     {Array.from({ length: 60 }).map((_, m) => {
@@ -502,8 +534,17 @@ export default function SettingsView() {
               </div>
 
               <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowAddTemplate(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">{editingTemplate ? 'Update' : 'Save'}</button>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowAddTemplate(false)} disabled={isSavingTemplate}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={isSavingTemplate} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  {isSavingTemplate ? (
+                    <>
+                      <Loader2 className="animate-spin" size={16} />
+                      {editingTemplate ? 'Updating...' : 'Saving...'}
+                    </>
+                  ) : (
+                    editingTemplate ? 'Update' : 'Save'
+                  )}
+                </button>
               </div>
             </form>
           </div>
