@@ -1105,7 +1105,7 @@ export default function TodayView() {
                 <option value="rating_desc">★ Sort: High Rating</option>
                 <option value="rating_asc">★ Sort: Low Rating</option>
                 <option value="title_asc">🔤 Sort: Title (A-Z)</option>
-                <option value="category">📁 Sort: Category (Health → Learning → Work → Personal)</option>
+                <option value="category">📁 Sort: Category</option>
                 <option value="created_desc">🆕 Sort: Newest</option>
               </select>
 
