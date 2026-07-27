@@ -52,6 +52,38 @@ export function isTasksCached(dateStr) {
   return localStorage.getItem(`dayscore_${uid}_tasks_${dateStr}`) !== null;
 }
 
+export function formatServerTask(t) {
+  const isClaimed = t.reward_claimed === 1 || t.reward_claimed === '1' || t.reward_claimed === true || t.rewardClaimed === true || t.rewardClaimed === 1;
+  const isAcknowledged = t.reward_acknowledged === 1 || t.reward_acknowledged === '1' || t.reward_acknowledged === true || t.rewardAcknowledged === true || t.rewardAcknowledged === 1;
+  const isAccepted = t.penalty_accepted === 1 || t.penalty_accepted === '1' || t.penalty_accepted === true || t.penaltyAccepted === true || t.penaltyAccepted === 1;
+  const isPenaltyAck = t.penalty_acknowledged === 1 || t.penalty_acknowledged === '1' || t.penalty_acknowledged === true || t.penaltyAcknowledged === true || t.penaltyAcknowledged === 1;
+  const isCarried = t.carried_over === 1 || t.carried_over === '1' || t.carried_over === true || t.carriedOver === true || t.carriedOver === 1;
+
+  const createdDate = t.createdAt || t.created_at || new Date().toISOString();
+  const completedDate = t.completedAt || t.completed_at || null;
+
+  return {
+    ...t,
+    id: t.id || t._id,
+    _id: t._id || t.id,
+    dueDateTime: t.dueDateTime || t.due_date_time,
+    due_date_time: t.due_date_time || t.dueDateTime,
+    rewardClaimed: isClaimed,
+    reward_claimed: isClaimed ? 1 : 0,
+    rewardAcknowledged: isAcknowledged,
+    reward_acknowledged: isAcknowledged ? 1 : 0,
+    penaltyAccepted: isAccepted,
+    penalty_accepted: isAccepted ? 1 : 0,
+    penaltyAcknowledged: isPenaltyAck,
+    penalty_acknowledged: isPenaltyAck ? 1 : 0,
+    completedAt: completedDate,
+    completed_at: completedDate,
+    createdAt: createdDate,
+    created_at: createdDate,
+    carriedOver: isCarried
+  };
+}
+
 export async function fetchTasksApi(dateStr) {
   const token = getToken();
   if (!token) return getTasks(dateStr);
@@ -60,37 +92,7 @@ export async function fetchTasksApi(dateStr) {
     const res = await authFetch(`/api/tasks?date=${dateStr}`);
     if (res.ok) {
       const data = await res.json();
-      const serverTasks = (data.tasks || []).map(t => {
-        const isClaimed = t.reward_claimed === 1 || t.reward_claimed === '1' || t.reward_claimed === true || t.rewardClaimed === true || t.rewardClaimed === 1;
-        const isAcknowledged = t.reward_acknowledged === 1 || t.reward_acknowledged === '1' || t.reward_acknowledged === true || t.rewardAcknowledged === true || t.rewardAcknowledged === 1;
-        const isAccepted = t.penalty_accepted === 1 || t.penalty_accepted === '1' || t.penalty_accepted === true || t.penaltyAccepted === true || t.penaltyAccepted === 1;
-        const isPenaltyAck = t.penalty_acknowledged === 1 || t.penalty_acknowledged === '1' || t.penalty_acknowledged === true || t.penaltyAcknowledged === true || t.penaltyAcknowledged === 1;
-        const isCarried = t.carried_over === 1 || t.carried_over === '1' || t.carried_over === true || t.carriedOver === true || t.carriedOver === 1;
-
-        const createdDate = t.createdAt || t.created_at || new Date().toISOString();
-        const completedDate = t.completedAt || t.completed_at || null;
-
-        return {
-          ...t,
-          id: t.id || t._id,
-          _id: t._id || t.id,
-          dueDateTime: t.dueDateTime || t.due_date_time,
-          due_date_time: t.due_date_time || t.dueDateTime,
-          rewardClaimed: isClaimed,
-          reward_claimed: isClaimed ? 1 : 0,
-          rewardAcknowledged: isAcknowledged,
-          reward_acknowledged: isAcknowledged ? 1 : 0,
-          penaltyAccepted: isAccepted,
-          penalty_accepted: isAccepted ? 1 : 0,
-          penaltyAcknowledged: isPenaltyAck,
-          penalty_acknowledged: isPenaltyAck ? 1 : 0,
-          completedAt: completedDate,
-          completed_at: completedDate,
-          createdAt: createdDate,
-          created_at: createdDate,
-          carriedOver: isCarried
-        };
-      });
+      const serverTasks = (data.tasks || []).map(formatServerTask);
 
       // Directly update local cache with what exists in MongoDB Atlas
       saveTasks(dateStr, serverTasks);
@@ -100,6 +102,50 @@ export async function fetchTasksApi(dateStr) {
     console.warn('Failed to fetch tasks from server:', e);
   }
   return getTasks(dateStr);
+}
+
+export async function fetchAllTasksApi() {
+  const token = getToken();
+  if (!token) return getArchivesFromTasks();
+
+  try {
+    const res = await authFetch('/api/tasks');
+    if (res.ok) {
+      const data = await res.json();
+      const serverTasks = (data.tasks || []).map(formatServerTask);
+
+      const tasksByDate = new Map();
+      serverTasks.forEach(t => {
+        const d = t.date || (t.createdAt ? t.createdAt.substring(0, 10) : format(new Date(), 'yyyy-MM-dd'));
+        if (!tasksByDate.has(d)) {
+          tasksByDate.set(d, []);
+        }
+        tasksByDate.get(d).push(t);
+      });
+
+      // Clear local task cache for this user to remove stale/guest/un-synced items
+      const uid = getUserId();
+      const prefix = `dayscore_${uid}_tasks_`;
+      const keysToRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith(prefix)) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(k => localStorage.removeItem(k));
+
+      // Save fresh tasks per date
+      tasksByDate.forEach((tasks, dateStr) => {
+        saveTasks(dateStr, tasks);
+      });
+
+      return getArchivesFromTasks();
+    }
+  } catch (e) {
+    console.warn('Failed to fetch all tasks from server:', e);
+  }
+  return getArchivesFromTasks();
 }
 
 export function saveTasks(dateStr, tasks) {

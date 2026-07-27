@@ -36,10 +36,11 @@ export default function AnalyticsView() {
         setTodayTasks(cachedTasks)
       }
 
-      const loadedTasks = await store.fetchTasksApi(todayStr)
+      // Fetch ALL user tasks across dates from MongoDB Atlas
+      const allArchives = await store.fetchAllTasksApi()
       if (!isMounted) return;
-      setTodayTasks(loadedTasks)
-      setArchives(store.getArchivesFromTasks())
+      setArchives(allArchives)
+      setTodayTasks(store.getTasks(todayStr))
     }
 
     loadAnalyticsData()
@@ -64,7 +65,7 @@ export default function AnalyticsView() {
     const map = new Map()
     archives.forEach(a => map.set(a.date, a))
 
-    if (todayTasks.length > 0 && todayTasks.some(t => t.status === 'done')) {
+    if (todayTasks.length > 0) {
       const todayResult = scoring.calculateDailyScore(todayTasks)
       map.set(todayStr, {
         date: todayStr,
@@ -72,7 +73,7 @@ export default function AnalyticsView() {
         tasks: todayTasks
       })
     }
-    return Array.from(map.values())
+    return Array.from(map.values()).sort((a, b) => (a.date || '').localeCompare(b.date || ''))
   }, [archives, todayTasks])
 
   const streakData = useMemo(() => scoring.getStreak(mergedArchives, todayTasks), [mergedArchives, todayTasks])
@@ -123,8 +124,24 @@ export default function AnalyticsView() {
 
   const barChartData = useMemo(() => {
     const cats = { 'Work': 0, 'Learning': 0, 'Health': 0, 'Personal': 0 }
+    const countedTaskIds = new Set()
+
     mergedArchives.forEach(arc => {
-      if (arc.tasks) arc.tasks.forEach(t => { if (t.status === 'done' && cats[t.category] !== undefined) cats[t.category]++ })
+      if (arc.tasks) {
+        arc.tasks.forEach(t => {
+          if (t.status === 'done' && t.category) {
+            const catName = t.category.trim();
+            const matchingCat = Object.keys(cats).find(c => c.toLowerCase() === catName.toLowerCase()) || 'Work';
+            const taskId = t.id || t._id;
+            if (taskId && !countedTaskIds.has(taskId)) {
+              countedTaskIds.add(taskId);
+              cats[matchingCat] = (cats[matchingCat] || 0) + 1;
+            } else if (!taskId) {
+              cats[matchingCat] = (cats[matchingCat] || 0) + 1;
+            }
+          }
+        })
+      }
     })
 
     return {

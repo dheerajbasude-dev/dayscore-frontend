@@ -232,11 +232,19 @@ export function getMostProductiveCategory(archives) {
   if (!archives || archives.length === 0) return 'N/A';
   
   const counts = {};
+  const countedTaskIds = new Set();
+
   for (const archive of archives) {
     if (archive.tasks) {
       for (const task of archive.tasks) {
         if (task.status === 'done' && task.category) {
-          counts[task.category] = (counts[task.category] || 0) + 1;
+          const taskId = task.id || task._id;
+          if (taskId && !countedTaskIds.has(taskId)) {
+            countedTaskIds.add(taskId);
+            counts[task.category] = (counts[task.category] || 0) + 1;
+          } else if (!taskId) {
+            counts[task.category] = (counts[task.category] || 0) + 1;
+          }
         }
       }
     }
@@ -293,10 +301,21 @@ export function getMostMissedTimeOfDay(archives) {
 export function getTotalTasksDone(archives) {
   if (!archives || archives.length === 0) return 0;
   
+  const completedTaskIds = new Set();
   let total = 0;
   for (const archive of archives) {
     if (archive.tasks) {
-      total += archive.tasks.filter(t => t.status === 'done').length;
+      for (const t of archive.tasks) {
+        if (t.status === 'done') {
+          const taskId = t.id || t._id;
+          if (taskId && !completedTaskIds.has(taskId)) {
+            completedTaskIds.add(taskId);
+            total++;
+          } else if (!taskId) {
+            total++;
+          }
+        }
+      }
     }
   }
   return total;
