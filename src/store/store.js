@@ -644,6 +644,69 @@ export async function deleteTemplateApi(id) {
   return current;
 }
 
+// ==========================================
+// Daily Reflections Storage & API Sync
+// ==========================================
+
+export function getReflection(date) {
+  const uid = getUserId();
+  return localStorage.getItem(`dayscore_${uid}_reflection_${date}`) || '';
+}
+
+export function saveReflection(date, content) {
+  const uid = getUserId();
+  if (content) {
+    localStorage.setItem(`dayscore_${uid}_reflection_${date}`, content);
+  } else {
+    localStorage.removeItem(`dayscore_${uid}_reflection_${date}`);
+  }
+
+  const token = getToken();
+  if (token) {
+    authFetch(`/api/reflections/${date}`, {
+      method: 'PUT',
+      body: JSON.stringify({ content: content || '' })
+    }).catch(err => console.error('Save reflection API error:', err));
+  }
+}
+
+export async function fetchReflectionApi(date) {
+  const token = getToken();
+  if (!token) return getReflection(date);
+
+  try {
+    const res = await authFetch(`/api/reflections/${date}`);
+    if (res.ok) {
+      const data = await res.json();
+      const content = data.reflection ? data.reflection.content : '';
+      const uid = getUserId();
+      if (content) {
+        localStorage.setItem(`dayscore_${uid}_reflection_${date}`, content);
+      } else {
+        localStorage.removeItem(`dayscore_${uid}_reflection_${date}`);
+      }
+      return content;
+    }
+  } catch (e) {
+    console.warn('Fetch reflection API error:', e);
+  }
+  return getReflection(date);
+}
+
+export async function deleteReflectionApi(date) {
+  const uid = getUserId();
+  localStorage.removeItem(`dayscore_${uid}_reflection_${date}`);
+
+  const token = getToken();
+  if (token) {
+    try {
+      await authFetch(`/api/reflections/${date}`, { method: 'DELETE' });
+    } catch (e) {
+      console.error('Delete reflection API error:', e);
+    }
+  }
+}
+
 export function isSettingsCached() {
   const uid = getUserId();
   return localStorage.getItem(`dayscore_${uid}_settings`) !== null;

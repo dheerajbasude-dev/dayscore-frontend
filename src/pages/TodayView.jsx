@@ -174,9 +174,18 @@ export default function TodayView() {
     return () => { isMounted = false; }
   }, [currentDateStr, user])
 
-  // Load daily tasks per user & date
+  // Load daily tasks & reflection per user & date
   useEffect(() => {
     let isMounted = true;
+
+    // Load reflection instantly from local cache then fetch synced version from MongoDB
+    setReflection(store.getReflection(currentDateStr));
+    store.fetchReflectionApi(currentDateStr).then(syncedRef => {
+      if (isMounted && syncedRef !== undefined) {
+        setReflection(syncedRef || '');
+      }
+    });
+
     const loadTasks = async () => {
       const isTaskRewardUnacknowledged = (t) => {
         if (!t.reward) return false;
@@ -882,7 +891,13 @@ export default function TodayView() {
           )}
 
           <div className="reflection-section-top" style={{ marginBottom: '24px' }}>
-            <ReflectionBox value={reflection} onChange={setReflection} />
+            <ReflectionBox 
+              value={reflection} 
+              onChange={(val) => {
+                setReflection(val);
+                store.saveReflection(currentDateStr, val);
+              }} 
+            />
           </div>
 
           <div className="tasks-section">
@@ -957,7 +972,10 @@ export default function TodayView() {
           <div className="modal-content card-glass animate-scale-up" onClick={e => e.stopPropagation()} style={{ maxWidth: '540px', width: '92%' }}>
             <ReflectionBox
               value={reflection}
-              onChange={setReflection}
+              onChange={(val) => {
+                setReflection(val);
+                store.saveReflection(currentDateStr, val);
+              }}
               isModal={true}
               onClose={() => setShowReflectionModal(false)}
             />
