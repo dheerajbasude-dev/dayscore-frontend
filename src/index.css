@@ -3120,6 +3120,7 @@ body {
   .date-nav-card {
     padding: 6px 8px !important;
     gap: 6px !important;
+    font-size: smaller !important;
     margin-bottom: 12px !important;
     flex-direction: column !important;
     align-items: stretch !important;
@@ -3141,7 +3142,7 @@ body {
     gap: 2px !important;
     white-space: nowrap !important;
     flex-shrink: 0 !important;
-    border-radius: 6px !important;
+    border-radius: 20px !important;
   }
 
   .date-picker-wrapper {
@@ -3154,7 +3155,7 @@ body {
   }
 
   .date-picker-input {
-    font-size: 0.72rem !important;
+    font-size: 0.6rem !important;
     width: 100% !important;
     text-align: center !important;
     padding: 0 !important;
@@ -3172,7 +3173,7 @@ body {
     padding: 4px 6px !important;
     height: 26px !important;
     font-size: 0.74rem !important;
-    border-radius: 4px !important;
+    border-radius: 20px !important;
   }
 }
 
