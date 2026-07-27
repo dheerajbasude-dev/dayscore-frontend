@@ -498,16 +498,10 @@ export default function TodayView() {
 
   const handleClaimTaskReward = async (taskOrId) => {
     const isObject = typeof taskOrId === 'object' && taskOrId !== null;
-    const target = isObject ? taskOrId : tasks.find(t => t.id === taskOrId || t._id === taskOrId);
-    const targetId = isObject ? (taskOrId.id || taskOrId._id) : (target?.id || target?._id || taskOrId);
-    const taskDate = (isObject && (taskOrId.date || taskOrId.dateLabel)) ? (taskOrId.date || taskOrId.dateLabel) : currentDateStr;
+    const targetId = isObject ? (taskOrId.id || taskOrId._id) : taskOrId;
+    const targetDate = isObject ? (taskOrId.date || taskOrId.dateLabel || currentDateStr) : currentDateStr;
 
-    if (!targetId) return;
-
-    const isAlreadyClaimed = target?.rewardClaimed === true || target?.rewardClaimed === 1 || target?.reward_claimed === 1 || target?.reward_claimed === '1';
-    if (isAlreadyClaimed) return;
-
-    await store.updateTask(taskDate, targetId, {
+    await store.updateTask(targetDate, targetId, {
       rewardClaimed: true,
       reward_claimed: 1,
       rewardAcknowledged: true,
@@ -516,35 +510,28 @@ export default function TodayView() {
       penalty_accepted: 0,
       rewardClaimedAt: new Date().toISOString()
     })
-
-    setShowConfetti(true)
-    setTimeout(() => setShowConfetti(false), 3000)
-
     await store.fetchAllTasksApi()
     setTasks(store.getTasks(currentDateStr))
     setArchives(store.getAllArchives())
     setTodaysReward(null)
+
+    // Trigger celebratory confetti burst!
+    setShowConfetti(true)
+    setTimeout(() => setShowConfetti(false), 3500)
   }
 
   const handleAcceptTaskPenalty = async (taskOrId) => {
     const isObject = typeof taskOrId === 'object' && taskOrId !== null;
-    const target = isObject ? taskOrId : tasks.find(t => t.id === taskOrId || t._id === taskOrId);
-    const targetId = isObject ? (taskOrId.id || taskOrId._id) : (target?.id || target?._id || taskOrId);
-    const taskDate = (isObject && (taskOrId.date || taskOrId.dateLabel)) ? (taskOrId.date || taskOrId.dateLabel) : currentDateStr;
+    const targetId = isObject ? (taskOrId.id || taskOrId._id) : taskOrId;
+    const targetDate = isObject ? (taskOrId.date || taskOrId.dateLabel || currentDateStr) : currentDateStr;
 
-    if (!targetId) return;
-
-    const isAlreadyAccepted = target?.penaltyAccepted === true || target?.penaltyAccepted === 1 || target?.penalty_accepted === 1 || target?.penalty_accepted === '1';
-    if (isAlreadyAccepted) return;
-
-    await store.updateTask(taskDate, targetId, {
+    await store.updateTask(targetDate, targetId, {
       penaltyAccepted: true,
       penalty_accepted: 1,
       rewardClaimed: false,
       reward_claimed: 0,
       penaltyAcceptedAt: new Date().toISOString()
     })
-
     await store.fetchAllTasksApi()
     setTasks(store.getTasks(currentDateStr))
     setArchives(store.getAllArchives())
