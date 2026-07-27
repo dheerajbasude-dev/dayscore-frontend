@@ -47,15 +47,13 @@ export default function RatingSliderModal({ task, onConfirm, onCancel }) {
   const getRatingColor = (val) => {
     const currentVal = val !== undefined ? val : activeRating;
     if (isOverdue) {
-      const ratio = currentVal / maxRating;
-      if (ratio <= 0.33) return 'var(--accent-danger)';
-      if (ratio <= 0.66) return 'var(--accent-warning)';
-      return 'var(--accent-warning)';
+      if (currentVal <= 1) return '#f87171';
+      if (currentVal <= 2) return '#60a5fa';
+      return '#60a5fa';
     }
-    const ratio = currentVal / maxRating;
-    if (ratio <= 0.3) return 'var(--accent-danger)';
-    if (ratio <= 0.6) return 'var(--accent-warning)';
-    return 'var(--accent-success)';
+    if (currentVal <= 4) return '#f87171'; // Red (up to 4 stars)
+    if (currentVal <= 8) return '#60a5fa'; // Blue (>4 and <=8 stars)
+    return '#34d399'; // Green (remaining: >8 stars)
   };
 
   const getEmoji = (val) => {
