@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Trash2, Download, Upload, AlertTriangle, Moon, Sun, Bell, Plus, X } from 'lucide-react'
+import { Trash2, Download, Upload, AlertTriangle, Moon, Sun, Bell, Plus, X, Pencil } from 'lucide-react'
 import { format, addHours } from 'date-fns'
 import * as store from '../store/store'
 import { useTheme } from '../hooks/useTheme'
@@ -13,6 +13,7 @@ export default function SettingsView() {
   const [templates, setTemplates] = useState(() => store.getTemplates())
   const [loading, setLoading] = useState(() => !store.isSettingsCached())
   const [showAddTemplate, setShowAddTemplate] = useState(false)
+  const [editingTemplate, setEditingTemplate] = useState(null)
   const fileInputRef = useRef(null)
 
   const [tTitle, setTTitle] = useState('')
@@ -29,18 +30,44 @@ export default function SettingsView() {
   const currentHour = now.getHours()
   const currentMinute = now.getMinutes()
 
-  useEffect(() => {
-    if (showAddTemplate) {
-      const initialDate = format(new Date(), 'yyyy-MM-dd')
-      const initialDue = addHours(new Date(), 2)
-      setTDate(initialDate)
-      setTHour(initialDue.getHours())
-      setTMinute(initialDue.getMinutes())
-      setTTitle('')
-      setTCategory('Work')
-      setTPriority('Med')
+  const handleOpenAddTemplate = () => {
+    setEditingTemplate(null)
+    const initialDate = format(new Date(), 'yyyy-MM-dd')
+    const initialDue = addHours(new Date(), 2)
+    setTDate(initialDate)
+    setTHour(initialDue.getHours())
+    setTMinute(initialDue.getMinutes())
+    setTTitle('')
+    setTCategory('Work')
+    setTPriority('Med')
+    setShowAddTemplate(true)
+  }
+
+  const handleEditTemplate = (t) => {
+    setEditingTemplate(t)
+    setTTitle(t.title || '')
+    setTCategory(t.category || 'Work')
+    setTPriority(t.priority || 'Med')
+
+    const todayStr = format(new Date(), 'yyyy-MM-dd')
+    setTDate(t.defaultDate && t.defaultDate >= todayStr ? t.defaultDate : todayStr)
+
+    if (t.defaultHour !== undefined && t.defaultHour !== null) {
+      setTHour(t.defaultHour)
+    } else if (t.relativeTime) {
+      const parts = t.relativeTime.split(':').map(Number)
+      if (!isNaN(parts[0])) setTHour(parts[0])
     }
-  }, [showAddTemplate])
+
+    if (t.defaultMinute !== undefined && t.defaultMinute !== null) {
+      setTMinute(t.defaultMinute)
+    } else if (t.relativeTime) {
+      const parts = t.relativeTime.split(':').map(Number)
+      if (parts.length === 2 && !isNaN(parts[1])) setTMinute(parts[1])
+    }
+
+    setShowAddTemplate(true)
+  }
 
   // Clamp hour/minute if today is selected and selected time is in the past
   useEffect(() => {
@@ -117,7 +144,7 @@ export default function SettingsView() {
     }
   }
 
-  const handleAddTemplate = (e) => {
+  const handleSaveTemplate = (e) => {
     e.preventDefault()
     if (!tTitle.trim()) return
 
@@ -136,23 +163,35 @@ export default function SettingsView() {
     const pad = (num) => String(num).padStart(2, '0')
     const relativeTime = `${pad(tHour)}:${pad(tMinute)}`
 
-    const newTemplate = {
-      id: Date.now().toString(),
-      title: tTitle.trim(),
-      category: tCategory,
-      priority: tPriority,
-      defaultDate: tDate,
-      defaultHour: tHour,
-      defaultMinute: tMinute,
-      relativeTime
+    let updated;
+    if (editingTemplate) {
+      updated = templates.map(t => t.id === editingTemplate.id ? {
+        ...t,
+        title: tTitle.trim(),
+        category: tCategory,
+        priority: tPriority,
+        defaultDate: tDate,
+        defaultHour: tHour,
+        defaultMinute: tMinute,
+        relativeTime
+      } : t)
+    } else {
+      const newTemplate = {
+        id: Date.now().toString(),
+        title: tTitle.trim(),
+        category: tCategory,
+        priority: tPriority,
+        defaultDate: tDate,
+        defaultHour: tHour,
+        defaultMinute: tMinute,
+        relativeTime
+      }
+      updated = [...templates, newTemplate]
     }
 
-    const updated = [...templates, newTemplate]
     store.saveTemplates(updated)
     setTemplates(updated)
-    setTTitle('')
-    setTCategory('Work')
-    setTPriority('Med')
+    setEditingTemplate(null)
     setShowAddTemplate(false)
   }
 
@@ -273,7 +312,7 @@ export default function SettingsView() {
       <div className="card-glass settings-card">
         <div className="settings-card-header">
           <h2 className="settings-section-title">Task Templates</h2>
-          <button onClick={() => setShowAddTemplate(true)} className="btn btn-primary btn-sm">
+          <button onClick={handleOpenAddTemplate} className="btn btn-primary btn-sm">
             <Plus size={16} /> Add Template
           </button>
         </div>
@@ -292,9 +331,14 @@ export default function SettingsView() {
                     {t.relativeTime && <span className="settings-template-time">⏰ {t.relativeTime}</span>}
                   </div>
                 </div>
-                <button onClick={() => handleDeleteTemplate(t.id)} className="btn-icon settings-delete-btn" title="Delete template">
-                  <Trash2 size={16} />
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <button onClick={() => handleEditTemplate(t)} className="btn-icon settings-edit-btn" title="Edit template" style={{ color: 'var(--accent-primary)' }}>
+                    <Pencil size={15} />
+                  </button>
+                  <button onClick={() => handleDeleteTemplate(t.id)} className="btn-icon settings-delete-btn" title="Delete template" style={{ color: 'var(--accent-danger)' }}>
+                    <Trash2 size={15} />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -341,10 +385,10 @@ export default function SettingsView() {
         <div className="modal-overlay" onClick={() => setShowAddTemplate(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '480px' }}>
             <div className="modal-header">
-              <h2 className="modal-title">New Template</h2>
+              <h2 className="modal-title">{editingTemplate ? 'Edit Template' : 'New Template'}</h2>
               <button className="btn-icon" onClick={() => setShowAddTemplate(false)}><X size={18} /></button>
             </div>
-            <form onSubmit={handleAddTemplate} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <form onSubmit={handleSaveTemplate} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div className="form-group">
                 <label className="form-label">Title</label>
                 <input required type="text" className="input" value={tTitle} onChange={e => setTTitle(e.target.value)} placeholder="Task title" autoFocus />
@@ -449,7 +493,7 @@ export default function SettingsView() {
 
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowAddTemplate(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">Save</button>
+                <button type="submit" className="btn btn-primary">{editingTemplate ? 'Update' : 'Save'}</button>
               </div>
             </form>
           </div>
