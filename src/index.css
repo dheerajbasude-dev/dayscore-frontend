@@ -3945,3 +3945,8 @@ body {
 .animate-spin {
   animation: spin 1s linear infinite;
 }
+
+.template-select-item:hover {
+  background: var(--bg-tertiary) !important;
+  border-color: var(--border-glass-hover) !important;
+}

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, ChevronDown, Zap, Check } from 'lucide-react';
 import { format, addHours } from 'date-fns';
 
 export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates = [] }) {
@@ -11,6 +11,10 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
   const [selectedDate, setSelectedDate] = useState(todayDateStr);
   const [selectedHour, setSelectedHour] = useState(() => addHours(new Date(), 2).getHours());
   const [selectedMinute, setSelectedMinute] = useState(() => addHours(new Date(), 2).getMinutes());
+
+  const [selectedTemplateId, setSelectedTemplateId] = useState('');
+  const [isTemplateMenuOpen, setIsTemplateMenuOpen] = useState(false);
+  const templateMenuRef = useRef(null);
 
   const now = new Date();
   const isSelectedToday = selectedDate === todayDateStr;
@@ -27,8 +31,21 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
       setTitle('');
       setCategory('Work');
       setPriority('Med');
+      setSelectedTemplateId('');
+      setIsTemplateMenuOpen(false);
     }
   }, [isOpen]);
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (templateMenuRef.current && !templateMenuRef.current.contains(e.target)) {
+        setIsTemplateMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Clamp hour/minute if today is selected and selected time is in the past
   useEffect(() => {
@@ -70,47 +87,47 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
     onClose();
   };
 
-  const handleTemplateChange = (e) => {
-    const tpl = templates.find(t => t.id === e.target.value);
-    if (tpl) {
-      setTitle(tpl.title);
-      setCategory(tpl.category);
-      setPriority(tpl.priority);
+  const applyTemplate = (tpl) => {
+    if (!tpl) return;
+    setSelectedTemplateId(tpl.id);
+    setTitle(tpl.title);
+    setCategory(tpl.category);
+    setPriority(tpl.priority);
 
-      // Always set due date to current active date (today when used today, tomorrow when used tomorrow)
-      const currentToday = format(new Date(), 'yyyy-MM-dd');
-      setSelectedDate(currentToday);
+    // Always set due date to current active date (today when used today, tomorrow when used tomorrow)
+    const currentToday = format(new Date(), 'yyyy-MM-dd');
+    setSelectedDate(currentToday);
 
-      let targetH = selectedHour;
-      let targetM = selectedMinute;
+    let targetH = selectedHour;
+    let targetM = selectedMinute;
 
-      if (tpl.defaultHour !== undefined && tpl.defaultHour !== null) {
-        targetH = Number(tpl.defaultHour);
-      } else if (tpl.relativeTime) {
-        const parts = tpl.relativeTime.split(':').map(Number);
-        if (parts.length >= 1 && !isNaN(parts[0])) targetH = parts[0];
-      }
-
-      if (tpl.defaultMinute !== undefined && tpl.defaultMinute !== null) {
-        targetM = Number(tpl.defaultMinute);
-      } else if (tpl.relativeTime) {
-        const parts = tpl.relativeTime.split(':').map(Number);
-        if (parts.length === 2 && !isNaN(parts[1])) targetM = parts[1];
-      }
-
-      // Auto-clamp if time has passed for today
-      const nowObj = new Date();
-      const curH = nowObj.getHours();
-      const curM = nowObj.getMinutes();
-
-      if (targetH < curH || (targetH === curH && targetM < curM)) {
-        targetH = curH;
-        targetM = Math.min(curM + 5, 59);
-      }
-
-      setSelectedHour(targetH);
-      setSelectedMinute(targetM);
+    if (tpl.defaultHour !== undefined && tpl.defaultHour !== null) {
+      targetH = Number(tpl.defaultHour);
+    } else if (tpl.relativeTime) {
+      const parts = tpl.relativeTime.split(':').map(Number);
+      if (parts.length >= 1 && !isNaN(parts[0])) targetH = parts[0];
     }
+
+    if (tpl.defaultMinute !== undefined && tpl.defaultMinute !== null) {
+      targetM = Number(tpl.defaultMinute);
+    } else if (tpl.relativeTime) {
+      const parts = tpl.relativeTime.split(':').map(Number);
+      if (parts.length === 2 && !isNaN(parts[1])) targetM = parts[1];
+    }
+
+    // Auto-clamp if time has passed for today
+    const nowObj = new Date();
+    const curH = nowObj.getHours();
+    const curM = nowObj.getMinutes();
+
+    if (targetH < curH || (targetH === curH && targetM < curM)) {
+      targetH = curH;
+      targetM = Math.min(curM + 5, 59);
+    }
+
+    setSelectedHour(targetH);
+    setSelectedMinute(targetM);
+    setIsTemplateMenuOpen(false);
   };
 
   const setPresetTime = (minutesToAdd) => {
@@ -147,14 +164,120 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {templates.length > 0 && (
-            <div className="form-group">
-              <label className="form-label">Quick Template</label>
-              <select className="select" onChange={handleTemplateChange} defaultValue="">
-                <option value="" disabled>Select a template...</option>
-                {templates.map(t => (
-                  <option key={t.id} value={t.id}>{t.title}</option>
-                ))}
-              </select>
+            <div className="form-group" ref={templateMenuRef} style={{ position: 'relative' }}>
+              <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Zap size={14} color="var(--accent-primary)" /> Quick Template
+                </span>
+                {selectedTemplateId && (
+                  <span 
+                    onClick={() => setSelectedTemplateId('')} 
+                    style={{ fontSize: '0.75rem', color: 'var(--text-muted)', cursor: 'pointer', textDecoration: 'underline' }}
+                  >
+                    Clear selection
+                  </span>
+                )}
+              </label>
+
+              {/* Custom Selector Trigger */}
+              <div 
+                className="template-select-trigger"
+                onClick={() => setIsTemplateMenuOpen(!isTemplateMenuOpen)}
+                style={{
+                  background: 'var(--bg-tertiary)',
+                  border: isTemplateMenuOpen ? '1px solid var(--accent-primary)' : '1px solid var(--border-glass)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '10px 14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  boxShadow: isTemplateMenuOpen ? '0 0 12px rgba(99, 102, 241, 0.3)' : 'none'
+                }}
+              >
+                {(() => {
+                  const activeTpl = templates.find(t => t.id === selectedTemplateId);
+                  if (activeTpl) {
+                    return (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                        <span style={{ fontWeight: '700', fontSize: '0.9rem', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {activeTpl.title}
+                        </span>
+                        <span className="badge badge-cat" style={{ fontSize: '0.7rem', padding: '1px 6px' }}>{activeTpl.category}</span>
+                      </div>
+                    );
+                  }
+                  return (
+                    <span style={{ fontSize: '0.88rem', color: 'var(--text-muted)' }}>
+                      Select a template to auto-fill details...
+                    </span>
+                  );
+                })()}
+                <ChevronDown size={16} color="var(--text-muted)" style={{ transform: isTemplateMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+              </div>
+
+              {/* Custom Floating Glass Menu */}
+              {isTemplateMenuOpen && (
+                <div 
+                  className="template-select-menu"
+                  style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 6px)',
+                    left: 0,
+                    right: 0,
+                    zIndex: 100,
+                    background: 'var(--bg-secondary)',
+                    border: '1px solid var(--border-glass-hover)',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '6px',
+                    maxHeight: '220px',
+                    overflowY: 'auto',
+                    boxShadow: '0 12px 32px rgba(0, 0, 0, 0.45)',
+                    backdropFilter: 'blur(20px)',
+                    WebkitBackdropFilter: 'blur(20px)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px'
+                  }}
+                >
+                  {templates.map(t => {
+                    const isSelected = t.id === selectedTemplateId;
+                    return (
+                      <div
+                        key={t.id}
+                        onClick={() => applyTemplate(t)}
+                        style={{
+                          padding: '8px 12px',
+                          borderRadius: '6px',
+                          background: isSelected ? 'rgba(99, 102, 241, 0.2)' : 'transparent',
+                          border: isSelected ? '1px solid rgba(99, 102, 241, 0.4)' : '1px solid transparent',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                        className="template-select-item"
+                      >
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', minWidth: 0, flex: 1 }}>
+                          <span style={{ fontWeight: '700', fontSize: '0.88rem', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {t.title}
+                          </span>
+                          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                            <span className="badge badge-cat" style={{ fontSize: '0.68rem', padding: '1px 5px' }}>{t.category}</span>
+                            <span className="badge badge-pri" style={{ fontSize: '0.68rem', padding: '1px 5px' }}>{t.priority}</span>
+                            {t.relativeTime && (
+                              <span style={{ fontSize: '0.68rem', color: '#fbbf24', fontWeight: '700' }}>⏰ {t.relativeTime}</span>
+                            )}
+                          </div>
+                        </div>
+                        {isSelected && <Check size={16} color="var(--accent-primary)" style={{ marginLeft: '8px', flexShrink: 0 }} />}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
           
