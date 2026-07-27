@@ -338,10 +338,15 @@ export default function SettingsView() {
               </div>
             ) : (
               <div className="settings-template-grid">
-                {templates.map(t => (
+                {templates.map((t, idx) => (
                   <div key={t.id} className="settings-template-card">
                     <div className="settings-template-card-main">
-                      <div className="settings-template-title">{t.title}</div>
+                      <div className="settings-template-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '0.72rem', fontWeight: '800', color: 'var(--accent-primary)', background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '1px 5px', flexShrink: 0 }}>
+                          #{idx + 1}
+                        </span>
+                        <span>{t.title}</span>
+                      </div>
                       <div className="settings-template-badges">
                         <span className="badge badge-cat">{t.category}</span>
                         <span className="badge badge-pri">{t.priority}</span>

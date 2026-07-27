@@ -187,7 +187,7 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
                   background: 'var(--bg-tertiary)',
                   border: isTemplateMenuOpen ? '1px solid var(--accent-primary)' : '1px solid var(--border-glass)',
                   borderRadius: 'var(--radius-md)',
-                  padding: '10px 14px',
+                  padding: '8px 12px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
@@ -197,24 +197,28 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
                 }}
               >
                 {(() => {
-                  const activeTpl = templates.find(t => t.id === selectedTemplateId);
+                  const activeIdx = templates.findIndex(t => t.id === selectedTemplateId);
+                  const activeTpl = activeIdx !== -1 ? templates[activeIdx] : null;
                   if (activeTpl) {
                     return (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
-                        <span style={{ fontWeight: '700', fontSize: '0.9rem', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <span style={{ fontSize: '0.72rem', fontWeight: '800', color: 'var(--accent-primary)', background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '1px 5px', flexShrink: 0 }}>
+                          #{activeIdx + 1}
+                        </span>
+                        <span style={{ fontWeight: '700', fontSize: '0.88rem', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {activeTpl.title}
                         </span>
-                        <span className="badge badge-cat" style={{ fontSize: '0.7rem', padding: '1px 6px' }}>{activeTpl.category}</span>
+                        <span className="badge badge-cat" style={{ fontSize: '0.68rem', padding: '1px 5px' }}>{activeTpl.category}</span>
                       </div>
                     );
                   }
                   return (
-                    <span style={{ fontSize: '0.88rem', color: 'var(--text-muted)' }}>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                       Select a template to auto-fill details...
                     </span>
                   );
                 })()}
-                <ChevronDown size={16} color="var(--text-muted)" style={{ transform: isTemplateMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                <ChevronDown size={16} color="var(--text-muted)" style={{ transform: isTemplateMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }} />
               </div>
 
               {/* Custom Floating Glass Menu */}
@@ -223,56 +227,61 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
                   className="template-select-menu"
                   style={{
                     position: 'absolute',
-                    top: 'calc(100% + 6px)',
+                    top: 'calc(100% + 4px)',
                     left: 0,
                     right: 0,
                     zIndex: 100,
                     background: 'var(--bg-secondary)',
                     border: '1px solid var(--border-glass-hover)',
                     borderRadius: 'var(--radius-md)',
-                    padding: '6px',
-                    maxHeight: '220px',
+                    padding: '4px',
+                    maxHeight: '200px',
                     overflowY: 'auto',
                     boxShadow: '0 12px 32px rgba(0, 0, 0, 0.45)',
                     backdropFilter: 'blur(20px)',
                     WebkitBackdropFilter: 'blur(20px)',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '4px'
+                    gap: '3px'
                   }}
                 >
-                  {templates.map(t => {
+                  {templates.map((t, idx) => {
                     const isSelected = t.id === selectedTemplateId;
                     return (
                       <div
                         key={t.id}
                         onClick={() => applyTemplate(t)}
                         style={{
-                          padding: '8px 12px',
+                          padding: '6px 10px',
                           borderRadius: '6px',
                           background: isSelected ? 'rgba(99, 102, 241, 0.2)' : 'transparent',
                           border: isSelected ? '1px solid rgba(99, 102, 241, 0.4)' : '1px solid transparent',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'space-between',
+                          gap: '8px',
                           cursor: 'pointer',
                           transition: 'all 0.15s ease'
                         }}
                         className="template-select-item"
                       >
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', minWidth: 0, flex: 1 }}>
-                          <span style={{ fontWeight: '700', fontSize: '0.88rem', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+                          <span style={{ fontSize: '0.72rem', fontWeight: '800', color: 'var(--accent-primary)', background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '1px 5px', flexShrink: 0 }}>
+                            #{idx + 1}
+                          </span>
+                          <span style={{ fontWeight: '700', fontSize: '0.85rem', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {t.title}
                           </span>
-                          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                            <span className="badge badge-cat" style={{ fontSize: '0.68rem', padding: '1px 5px' }}>{t.category}</span>
-                            <span className="badge badge-pri" style={{ fontSize: '0.68rem', padding: '1px 5px' }}>{t.priority}</span>
-                            {t.relativeTime && (
-                              <span style={{ fontSize: '0.68rem', color: '#fbbf24', fontWeight: '700' }}>⏰ {t.relativeTime}</span>
-                            )}
-                          </div>
                         </div>
-                        {isSelected && <Check size={16} color="var(--accent-primary)" style={{ marginLeft: '8px', flexShrink: 0 }} />}
+
+                        <div style={{ display: 'flex', gap: '5px', alignItems: 'center', flexShrink: 0 }}>
+                          <span className="badge badge-cat" style={{ fontSize: '0.65rem', padding: '1px 5px' }}>{t.category}</span>
+                          <span className="badge badge-pri" style={{ fontSize: '0.65rem', padding: '1px 5px' }}>{t.priority}</span>
+                          {t.relativeTime && (
+                            <span style={{ fontSize: '0.65rem', color: '#fbbf24', fontWeight: '700' }}>⏰ {t.relativeTime}</span>
+                          )}
+                          {isSelected && <Check size={14} color="var(--accent-primary)" style={{ marginLeft: '4px' }} />}
+                        </div>
                       </div>
                     );
                   })}
