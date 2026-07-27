@@ -83,21 +83,22 @@ export default function TodayView() {
   useEffect(() => {
     let isMounted = true;
     const loadTasks = async () => {
-      // Instant cache load so switching tabs has ZERO delay and no re-triggering of loading spinners!
-      const isCached = store.isTasksCached(currentDateStr);
+      // Instant cache load
       const cached = store.getTasks(currentDateStr);
-      
-      if (isCached) {
+      if (cached && cached.length > 0) {
         setTasks(cached);
         setLoading(false);
       } else {
         setLoading(true);
       }
 
-      const todayTasks = await store.fetchTasksApi(currentDateStr)
+      // Fetch ALL user tasks directly from MongoDB Atlas
+      await store.fetchAllTasksApi();
       if (!isMounted) return;
-      setTasks(todayTasks)
-      setLoading(false)
+
+      const freshToday = store.getTasks(currentDateStr);
+      setTasks(freshToday);
+      setLoading(false);
 
       const isTaskRewardUnacknowledged = (t) => {
         if (!t.reward) return false;
@@ -105,18 +106,17 @@ export default function TodayView() {
         const isAck = t.rewardAcknowledged === true || t.rewardAcknowledged === 1 || t.reward_acknowledged === 1 || t.reward_acknowledged === '1';
         return !isClaimed && !isAck;
       };
-      const unacknowledgedTask = todayTasks.find(isTaskRewardUnacknowledged);
+      const unacknowledgedTask = freshToday.find(isTaskRewardUnacknowledged);
       setTodaysReward(unacknowledgedTask ? unacknowledgedTask.reward : null);
       
-      const yesterdayStr = format(subDays(parseISO(currentDateStr), 1), 'yyyy-MM-dd')
-      const yesterdayTasks = await store.fetchTasksApi(yesterdayStr)
-      if (!isMounted) return;
-      const missed = yesterdayTasks.filter(t => t.status !== 'done' && t.status !== 'missed')
-      setCarryOverTasks(missed)
-      setLoading(false)
+      const yesterdayStr = format(subDays(parseISO(currentDateStr), 1), 'yyyy-MM-dd');
+      const yesterdayTasks = store.getTasks(yesterdayStr);
+      const missed = yesterdayTasks.filter(t => t.status !== 'done' && t.status !== 'missed');
+      setCarryOverTasks(missed);
+      setLoading(false);
     }
 
-    loadTasks()
+    loadTasks();
     return () => { isMounted = false; }
   }, [currentDateStr, user])
 

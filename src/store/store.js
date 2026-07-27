@@ -177,7 +177,8 @@ export async function addTask(dateStr, task) {
         })
       });
       if (res.ok) {
-        return await fetchTasksApi(dateStr);
+        await fetchAllTasksApi();
+        return getTasks(dateStr);
       }
     } catch (err) {
       console.error('Add task API error:', err);
@@ -238,7 +239,8 @@ export async function updateTask(dateStr, taskId, updates) {
         body: JSON.stringify(cleanUpdates)
       });
       if (res.ok) {
-        return await fetchTasksApi(dateStr);
+        await fetchAllTasksApi();
+        return getTasks(dateStr);
       }
     } catch (err) {
       console.error('Update task API error:', err);
@@ -261,7 +263,8 @@ export async function deleteTask(dateStr, taskId) {
         method: 'DELETE'
       });
       if (res.ok) {
-        return await fetchTasksApi(dateStr);
+        await fetchAllTasksApi();
+        return getTasks(dateStr);
       }
     } catch (err) {
       console.error('Delete task server error:', err);
