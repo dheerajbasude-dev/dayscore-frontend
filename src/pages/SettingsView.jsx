@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Trash2, Download, Upload, AlertTriangle, Moon, Sun, Bell, Plus, X, Pencil } from 'lucide-react'
+import { Trash2, Download, Upload, AlertTriangle, Moon, Sun, Bell, Plus, X, Pencil, Settings as SettingsIcon } from 'lucide-react'
 import { format, addHours } from 'date-fns'
 import * as store from '../store/store'
 import { useTheme } from '../hooks/useTheme'
@@ -235,7 +235,15 @@ export default function SettingsView() {
   return (
     <div className="settings-view">
 
-      <h1 className="settings-title">⚙️ Settings</h1>
+      <div className="settings-header-banner">
+        <div className="settings-header-icon-wrapper">
+          <SettingsIcon size={24} />
+        </div>
+        <div>
+          <h1 className="settings-page-title">Settings & Preferences</h1>
+          <p className="settings-page-subtitle">Configure app theme, notification lead times, templates, and data backups</p>
+        </div>
+      </div>
 
       {loading ? (
         <div className="settings-loading-skeleton" style={{ padding: '8px 0' }}>
@@ -245,138 +253,155 @@ export default function SettingsView() {
         </div>
       ) : (
         <>
-          {/* Appearance */}
+          {/* Appearance & Notifications */}
           <div className="card-glass settings-card">
-            <h2 className="settings-section-title">Appearance</h2>
-        
-        <div className="settings-row settings-row--bordered">
-          <div className="settings-row-left">
-            {theme === 'dark' ? <Moon size={20} color="var(--accent-primary)" /> : <Sun size={20} color="var(--accent-primary)" />}
-            <span className="settings-row-label">Dark Mode</span>
-          </div>
-          <Toggle active={theme === 'dark'} onClick={toggleTheme} />
-        </div>
+            <h2 className="settings-section-title">APPEARANCE & NOTIFICATIONS</h2>
 
-        <div className="settings-row settings-row--top-padded">
-          <div className="settings-row-left">
-            <Bell size={20} color={settings.notifications ? 'var(--accent-primary)' : 'var(--text-muted)'} />
-            <div>
-              <div className="settings-row-label">Reminders</div>
-              <div className="settings-row-sublabel">
-                {settings.notifications 
-                  ? (settings.reminderLeadTime === 0 ? 'Notifies at exact due time' : `Notifies ${settings.reminderLeadTime ?? 30} min before due time`)
-                  : 'Desktop notifications disabled'}
-              </div>
-            </div>
-          </div>
-          <Toggle active={settings.notifications} onClick={handleToggleNotifications} />
-        </div>
-
-        {/* Lead time selection */}
-        {settings.notifications && (
-          <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border-glass)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <label className="form-label" style={{ fontSize: '0.85rem' }}>Notification Trigger Time</label>
-            <div className="segmented">
-              {[
-                { label: 'At Due Time', value: 0 },
-                { label: '15 Min Before', value: 15 },
-                { label: '30 Min Before', value: 30 },
-                { label: '1 Hour Before', value: 60 },
-              ].map(opt => (
-                <div
-                  key={opt.value}
-                  className={`segmented-option ${(settings.reminderLeadTime ?? 30) === opt.value ? 'active' : ''}`}
-                  onClick={() => handleReminderChange(opt.value)}
-                  style={{ fontSize: '0.78rem', padding: '5px 8px' }}
-                >
-                  {opt.label}
+            <div className="settings-row">
+              <div className="settings-row-left">
+                <div className="settings-row-icon">
+                  {theme === 'dark' ? <Moon size={18} color="var(--accent-primary)" /> : <Sun size={18} color="var(--accent-primary)" />}
                 </div>
-              ))}
+                <div>
+                  <div className="settings-row-label">Dark Theme Mode</div>
+                  <div className="settings-row-sublabel">Toggle between sleek dark and vibrant light themes</div>
+                </div>
+              </div>
+              <Toggle active={theme === 'dark'} onClick={toggleTheme} />
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '6px' }}>
-              <button 
-                type="button" 
-                className="btn btn-secondary btn-sm" 
-                onClick={handleTestNotification}
-                style={{ fontSize: '0.75rem', gap: '4px' }}
-              >
-                🔔 Send Test Notification
+            <div className="settings-row settings-row--bordered">
+              <div className="settings-row-left">
+                <div className="settings-row-icon">
+                  <Bell size={18} color={settings.notifications ? 'var(--accent-primary)' : 'var(--text-muted)'} />
+                </div>
+                <div>
+                  <div className="settings-row-label">Desktop Task Reminders</div>
+                  <div className="settings-row-sublabel">
+                    {settings.notifications 
+                      ? (settings.reminderLeadTime === 0 ? 'Notifies at exact due time' : `Notifies ${settings.reminderLeadTime ?? 30} min before due time`)
+                      : 'Desktop notifications disabled'}
+                  </div>
+                </div>
+              </div>
+              <Toggle active={settings.notifications} onClick={handleToggleNotifications} />
+            </div>
+
+            {/* Lead time selection */}
+            {settings.notifications && (
+              <div className="settings-notification-panel">
+                <label className="form-label" style={{ fontSize: '0.82rem', marginBottom: '8px' }}>Notification Lead Time</label>
+                <div className="settings-segmented-grid">
+                  {[
+                    { label: 'At Due Time', value: 0 },
+                    { label: '15 Min Before', value: 15 },
+                    { label: '30 Min Before', value: 30 },
+                    { label: '1 Hour Before', value: 60 },
+                  ].map(opt => (
+                    <div
+                      key={opt.value}
+                      className={`segmented-option ${(settings.reminderLeadTime ?? 30) === opt.value ? 'active' : ''}`}
+                      onClick={() => handleReminderChange(opt.value)}
+                    >
+                      {opt.label}
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
+                  <button 
+                    type="button" 
+                    className="btn btn-secondary btn-sm" 
+                    onClick={handleTestNotification}
+                    style={{ fontSize: '0.78rem', gap: '6px', padding: '6px 12px' }}
+                  >
+                    🔔 Send Test Notification
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Task Templates */}
+          <div className="card-glass settings-card">
+            <div className="settings-card-header">
+              <div>
+                <h2 className="settings-section-title">TASK TEMPLATES</h2>
+                <p className="settings-card-subtitle">Quickly launch reusable routines and structured tasks</p>
+              </div>
+              <button onClick={handleOpenAddTemplate} className="btn btn-primary btn-sm" style={{ gap: '6px' }}>
+                <Plus size={16} /> Add Template
+              </button>
+            </div>
+
+            {templates.length === 0 ? (
+              <div className="settings-empty-card">
+                <p className="settings-empty-note">No templates created yet. Click "+ Add Template" to create a quick reusable task!</p>
+              </div>
+            ) : (
+              <div className="settings-template-grid">
+                {templates.map(t => (
+                  <div key={t.id} className="settings-template-card">
+                    <div className="settings-template-card-main">
+                      <div className="settings-template-title">{t.title}</div>
+                      <div className="settings-template-badges">
+                        <span className="badge badge-cat">{t.category}</span>
+                        <span className="badge badge-pri">{t.priority}</span>
+                        {t.relativeTime && <span className="settings-template-time">⏰ {t.relativeTime}</span>}
+                      </div>
+                    </div>
+                    <div className="settings-template-actions">
+                      <button onClick={() => handleEditTemplate(t)} className="btn-icon settings-action-btn edit" title="Edit template">
+                        <Pencil size={15} />
+                      </button>
+                      <button onClick={() => handleDeleteTemplate(t.id)} className="btn-icon settings-action-btn delete" title="Delete template">
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Data Management */}
+          <div className="card-glass settings-card">
+            <h2 className="settings-section-title">DATA MANAGEMENT</h2>
+
+            <div className="settings-row settings-row--bordered">
+              <div>
+                <div className="settings-row-label">Export Workspace Backup</div>
+                <div className="settings-row-sublabel">Download a complete JSON snapshot of all tasks, scores & streak history</div>
+              </div>
+              <button onClick={handleExport} className="btn btn-secondary" style={{ gap: '6px' }}>
+                <Download size={16} /> Export JSON
+              </button>
+            </div>
+
+            <div className="settings-row settings-row--bordered">
+              <div>
+                <div className="settings-row-label">Restore from Backup</div>
+                <div className="settings-row-sublabel">Import and restore tasks from a previously saved JSON backup file</div>
+              </div>
+              <button onClick={() => fileInputRef.current.click()} className="btn btn-secondary" style={{ gap: '6px' }}>
+                <Upload size={16} /> Import JSON
+              </button>
+              <input type="file" ref={fileInputRef} onChange={handleImport} accept=".json" style={{ display: 'none' }} />
+            </div>
+
+            <div className="settings-danger-card">
+              <div className="settings-danger-header">
+                <AlertTriangle size={20} className="settings-danger-icon" />
+                <div>
+                  <div className="settings-danger-title">Danger Zone</div>
+                  <div className="settings-danger-sub">Permanently delete all local tasks, archives, streaks, and custom templates. This action cannot be undone.</div>
+                </div>
+              </div>
+              <button onClick={handleReset} className="btn settings-reset-btn">
+                <Trash2 size={15} /> Reset All Data
               </button>
             </div>
           </div>
-        )}
-      </div>
-
-      {/* Task Templates */}
-      <div className="card-glass settings-card">
-        <div className="settings-card-header">
-          <h2 className="settings-section-title">Task Templates</h2>
-          <button onClick={handleOpenAddTemplate} className="btn btn-primary btn-sm">
-            <Plus size={16} /> Add Template
-          </button>
-        </div>
-
-        {templates.length === 0 ? (
-          <p className="settings-empty-note">No templates saved yet.</p>
-        ) : (
-          <div className="settings-template-list">
-            {templates.map(t => (
-              <div key={t.id} className="settings-template-item">
-                <div>
-                  <span className="settings-template-title">{t.title}</span>
-                  <div className="settings-template-meta">
-                    <span className="badge badge-cat">{t.category}</span>
-                    <span className="badge badge-pri">{t.priority}</span>
-                    {t.relativeTime && <span className="settings-template-time">⏰ {t.relativeTime}</span>}
-                  </div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <button onClick={() => handleEditTemplate(t)} className="btn-icon settings-edit-btn" title="Edit template" style={{ color: 'var(--accent-primary)' }}>
-                    <Pencil size={15} />
-                  </button>
-                  <button onClick={() => handleDeleteTemplate(t.id)} className="btn-icon settings-delete-btn" title="Delete template" style={{ color: 'var(--accent-danger)' }}>
-                    <Trash2 size={15} />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Data Management */}
-      <div className="card-glass settings-card">
-        <h2 className="settings-section-title">Data Management</h2>
-
-        <div className="settings-row settings-row--bordered">
-          <div>
-            <div className="settings-row-label">Export Data</div>
-            <div className="settings-row-sublabel">Download JSON backup of all tasks & history</div>
-          </div>
-          <button onClick={handleExport} className="btn btn-secondary">
-            <Download size={16} /> Export
-          </button>
-        </div>
-
-        <div className="settings-row settings-row--bordered settings-row--top-padded">
-          <div>
-            <div className="settings-row-label">Import Data</div>
-            <div className="settings-row-sublabel">Restore tasks from a JSON backup file</div>
-          </div>
-          <button onClick={() => fileInputRef.current.click()} className="btn btn-secondary">
-            <Upload size={16} /> Import
-          </button>
-          <input type="file" ref={fileInputRef} onChange={handleImport} accept=".json" style={{ display: 'none' }} />
-        </div>
-
-        <div className="settings-reset-section">
-          <button onClick={handleReset} className="btn settings-reset-btn">
-            <AlertTriangle size={16} /> Reset All Data
-          </button>
-          <p className="settings-reset-note">This cannot be undone.</p>
-        </div>
-      </div>
         </>
       )}
 
