@@ -452,48 +452,63 @@ export default function TodayView() {
 
 
 
+  const [ackPunishmentLoading, setAckPunishmentLoading] = useState(false)
+  const [ackRewardLoading, setAckRewardLoading] = useState(false)
+
   const handleAcknowledgePunishment = async () => {
-    // Case 2: Update penalty_acknowledged: 1 when clicking on "I Acknowledge" top banner button; DO NOT store in claimlogs.
-    store.acknowledgePunishment()
-    setActivePunishment(null)
+    if (ackPunishmentLoading) return;
+    setAckPunishmentLoading(true);
+    try {
+      // Case 2: Update penalty_acknowledged: 1 when clicking on "I Acknowledge" top banner button; DO NOT store in claimlogs.
+      store.acknowledgePunishment()
+      setActivePunishment(null)
 
-    const unackTasks = tasks.filter(t => {
-      const isAck = t.penaltyAcknowledged === true || t.penaltyAcknowledged === 1 || t.penalty_acknowledged === 1 || t.penalty_acknowledged === '1';
-      return !isAck;
-    });
-
-    for (const t of unackTasks) {
-      const targetId = t.id || t._id;
-      await store.updateTask(currentDateStr, targetId, {
-        penaltyAcknowledged: true,
-        penalty_acknowledged: 1
+      const unackTasks = tasks.filter(t => {
+        const isAck = t.penaltyAcknowledged === true || t.penaltyAcknowledged === 1 || t.penalty_acknowledged === 1 || t.penalty_acknowledged === '1';
+        return !isAck;
       });
-    }
 
-    const freshTasks = await store.fetchTasksApi(currentDateStr);
-    setTasks(freshTasks);
+      for (const t of unackTasks) {
+        const targetId = t.id || t._id;
+        await store.updateTask(currentDateStr, targetId, {
+          penaltyAcknowledged: true,
+          penalty_acknowledged: 1
+        });
+      }
+
+      const freshTasks = await store.fetchTasksApi(currentDateStr);
+      setTasks(freshTasks);
+    } finally {
+      setAckPunishmentLoading(false);
+    }
   }
 
   const handleAcknowledgeReward = async () => {
-    setTodaysReward(null)
+    if (ackRewardLoading) return;
+    setAckRewardLoading(true);
+    try {
+      setTodaysReward(null)
 
-    // Mark unacknowledged task rewards for today as acknowledged in MongoDB Atlas
-    const unackTasks = tasks.filter(t => {
-      if (!t.reward) return false;
-      const isAck = t.rewardAcknowledged === true || t.rewardAcknowledged === 1 || t.reward_acknowledged === 1 || t.reward_acknowledged === '1';
-      return !isAck;
-    });
-
-    for (const t of unackTasks) {
-      const targetId = t.id || t._id;
-      await store.updateTask(currentDateStr, targetId, {
-        rewardAcknowledged: true,
-        reward_acknowledged: 1
+      // Mark unacknowledged task rewards for today as acknowledged in MongoDB Atlas
+      const unackTasks = tasks.filter(t => {
+        if (!t.reward) return false;
+        const isAck = t.rewardAcknowledged === true || t.rewardAcknowledged === 1 || t.reward_acknowledged === 1 || t.reward_acknowledged === '1';
+        return !isAck;
       });
-    }
 
-    const freshTasks = await store.fetchTasksApi(currentDateStr);
-    setTasks(freshTasks);
+      for (const t of unackTasks) {
+        const targetId = t.id || t._id;
+        await store.updateTask(currentDateStr, targetId, {
+          rewardAcknowledged: true,
+          reward_acknowledged: 1
+        });
+      }
+
+      const freshTasks = await store.fetchTasksApi(currentDateStr);
+      setTasks(freshTasks);
+    } finally {
+      setAckRewardLoading(false);
+    }
   }
 
   const handleClaimTaskReward = async (taskOrId) => {
@@ -774,8 +789,14 @@ export default function TodayView() {
                   <span className="penalty-banner-text">Your Penalty: <strong>{punishmentText}</strong></span>
                 </div>
               </div>
-              <button className="btn btn-danger btn-sm" onClick={handleAcknowledgePunishment}>
-                I Acknowledge
+              <button className="btn btn-danger btn-sm" onClick={handleAcknowledgePunishment} disabled={ackPunishmentLoading} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                {ackPunishmentLoading ? (
+                  <>
+                    <Loader2 size={14} className="btn-spinner" /> Saving...
+                  </>
+                ) : (
+                  'I Acknowledge'
+                )}
               </button>
             </div>
           ) : (
@@ -788,8 +809,14 @@ export default function TodayView() {
                     <span className="reward-banner-text">Your Reward: <strong>{todaysReward}</strong></span>
                   </div>
                 </div>
-                <button className="btn btn-success btn-sm" onClick={handleAcknowledgeReward}>
-                  I Accept
+                <button className="btn btn-success btn-sm" onClick={handleAcknowledgeReward} disabled={ackRewardLoading} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  {ackRewardLoading ? (
+                    <>
+                      <Loader2 size={14} className="btn-spinner" /> Saving...
+                    </>
+                  ) : (
+                    'I Accept'
+                  )}
                 </button>
               </div>
             )

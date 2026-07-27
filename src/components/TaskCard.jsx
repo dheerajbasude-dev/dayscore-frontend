@@ -1,10 +1,34 @@
-import React from 'react';
-import { X } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Loader2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useTimer } from '../hooks/useTimer';
 
 export default function TaskCard({ task, onStatusChange, onDelete, onRequestComplete, onClaimReward, onAcceptPenalty }) {
   const { timeLeft, urgencyClass, isOverdue } = useTimer(task.dueDateTime);
+  const [claiming, setClaiming] = useState(false);
+  const [accepting, setAccepting] = useState(false);
+
+  const handleClaim = async (e) => {
+    e.stopPropagation();
+    if (claiming || !onClaimReward) return;
+    setClaiming(true);
+    try {
+      await onClaimReward(task);
+    } finally {
+      setClaiming(false);
+    }
+  };
+
+  const handleAccept = async (e) => {
+    e.stopPropagation();
+    if (accepting || !onAcceptPenalty) return;
+    setAccepting(true);
+    try {
+      await onAcceptPenalty(task);
+    } finally {
+      setAccepting(false);
+    }
+  };
 
   const cycleStatus = () => {
     if (task.status === 'pending' || task.status === 'inprogress' || task.status === 'missed') {
@@ -108,10 +132,18 @@ export default function TaskCard({ task, onStatusChange, onDelete, onRequestComp
                   ) : (
                     onClaimReward && (
                       <button 
-                        className="badge-action-btn badge-action-success"
-                        onClick={(e) => { e.stopPropagation(); onClaimReward(task); }}
+                        className={`badge-action-btn badge-action-success ${claiming ? 'btn-loading' : ''}`}
+                        onClick={handleClaim}
+                        disabled={claiming}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                       >
-                        Claim
+                        {claiming ? (
+                          <>
+                            <Loader2 size={12} className="btn-spinner" /> Saving...
+                          </>
+                        ) : (
+                          'Claim'
+                        )}
                       </button>
                     )
                   )}
@@ -129,10 +161,18 @@ export default function TaskCard({ task, onStatusChange, onDelete, onRequestComp
                   ) : (
                     onAcceptPenalty && (
                       <button 
-                        className="badge-action-btn badge-action-danger"
-                        onClick={(e) => { e.stopPropagation(); onAcceptPenalty(task); }}
+                        className={`badge-action-btn badge-action-danger ${accepting ? 'btn-loading' : ''}`}
+                        onClick={handleAccept}
+                        disabled={accepting}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                       >
-                        Acknowledge
+                        {accepting ? (
+                          <>
+                            <Loader2 size={12} className="btn-spinner" /> Saving...
+                          </>
+                        ) : (
+                          'Acknowledge'
+                        )}
                       </button>
                     )
                   )}
