@@ -67,12 +67,20 @@ export function getRollingAverage(archives = [], days = 0, todayTasks = []) {
   const todayStr = format(new Date(), 'yyyy-MM-dd');
   
   const archiveMap = new Map();
-  validArchives.forEach(a => archiveMap.set(a.date, Number(a.score) || 0));
+  validArchives.forEach(a => {
+    const cleanDate = a.date.includes('T') ? a.date.split('T')[0] : a.date.trim().substring(0, 10);
+    let scoreVal = Number(a.score) || 0;
+    if (!scoreVal && Array.isArray(a.tasks) && a.tasks.length > 0) {
+      scoreVal = calculateDailyScore(a.tasks).score;
+    }
+    archiveMap.set(cleanDate, scoreVal);
+  });
 
-  const hasDoneToday = Array.isArray(todayTasks) && todayTasks.some(t => t.status === 'done');
-  if (hasDoneToday) {
+  if (Array.isArray(todayTasks) && todayTasks.length > 0) {
     const todayResult = calculateDailyScore(todayTasks);
-    archiveMap.set(todayStr, todayResult.score);
+    if (todayResult.score > 0) {
+      archiveMap.set(todayStr, todayResult.score);
+    }
   }
 
   if (archiveMap.size === 0) return 0;
@@ -84,6 +92,7 @@ export function getRollingAverage(archives = [], days = 0, todayTasks = []) {
   let count = 0;
 
   for (const [dateStr, score] of archiveMap.entries()) {
+    if (!score || score <= 0) continue;
     try {
       const archiveDate = parseISO(dateStr);
       if (isNaN(archiveDate.getTime())) continue;

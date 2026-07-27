@@ -63,7 +63,20 @@ export default function AnalyticsView() {
   const mergedArchives = useMemo(() => {
     const todayStr = format(new Date(), 'yyyy-MM-dd')
     const map = new Map()
-    archives.forEach(a => map.set(a.date, a))
+    archives.forEach(a => {
+      if (a && a.date) {
+        const cleanDate = a.date.includes('T') ? a.date.split('T')[0] : a.date.trim().substring(0, 10);
+        const scoreVal = (a.score !== undefined && a.score !== null && a.score > 0)
+          ? Number(a.score)
+          : (Array.isArray(a.tasks) && a.tasks.length > 0 ? scoring.calculateDailyScore(a.tasks).score : 0);
+
+        map.set(cleanDate, {
+          ...a,
+          date: cleanDate,
+          score: scoreVal
+        });
+      }
+    })
 
     if (todayTasks.length > 0) {
       const todayResult = scoring.calculateDailyScore(todayTasks)
