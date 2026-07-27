@@ -4,7 +4,8 @@ export default function ScoreRing({
   score = 0, 
   streak = { current: 0, isActive: false }, 
   averages = { week: 0, month: 0, allTime: 0 },
-  details = {}
+  details = {},
+  label = 'Daily Score'
 }) {
   const radius = 80;
   const strokeWidth = 12;
@@ -56,7 +57,7 @@ export default function ScoreRing({
             {safeScore.toFixed(1)}
             <span className="score-value-max">/10</span>
           </div>
-          <div className="score-label">Daily Score</div>
+          <div className="score-label">{label}</div>
           {streak.current > 0 ? (
             <div className="streak-badge streak-badge-active">
               🔥 {streak.current} {streak.current === 1 ? 'Day' : 'Days'} Streak

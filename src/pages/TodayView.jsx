@@ -530,6 +530,20 @@ export default function TodayView() {
     ? (typeof activePunishment === 'string' ? activePunishment : activePunishment.text)
     : null
 
+  const displayScore = useMemo(() => {
+    if (viewMode === 'all') {
+      const completed = allTasksAcrossDates.filter(t => t.status === 'done');
+      if (completed.length > 0) {
+        const total = completed.reduce((acc, t) => acc + (t.rating != null ? Number(t.rating) : 10), 0);
+        return Number((total / completed.length).toFixed(1));
+      }
+      return averages.allTime || 0;
+    }
+    return scoreResult.score;
+  }, [viewMode, allTasksAcrossDates, averages.allTime, scoreResult.score]);
+
+  const displayLabel = viewMode === 'all' ? 'Total Avg Score' : 'Daily Score';
+
   return (
     <div className="today-view">
 
@@ -542,7 +556,7 @@ export default function TodayView() {
             <div key={task.id} className="carryover-item">
               <span className="carryover-task-name">{task.title}</span>
               <div className="carryover-actions">
-                <button className="btn btn-secondary btn-sm" onClick={() => handleDismissCarryOver(task.id)}>Dismiss</button>
+                <button className="btn btn-secondary btn-sm" onClick={() => handleDismissCarryOver(task)}>Dismiss</button>
                 <button className="btn btn-primary btn-sm" onClick={() => handleCarryOver(task)}>Carry Over</button>
               </div>
             </div>
@@ -656,7 +670,8 @@ export default function TodayView() {
           </div>
 
           <ScoreRing 
-            score={scoreResult.score} 
+            score={displayScore} 
+            label={displayLabel}
             streak={streak} 
             averages={averages} 
             details={scoreResult} 
