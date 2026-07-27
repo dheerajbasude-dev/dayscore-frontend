@@ -556,6 +556,94 @@ export function saveTemplates(templates) {
   localStorage.setItem(`dayscore_${uid}_templates`, JSON.stringify(templates));
 }
 
+export async function fetchTemplatesApi() {
+  const token = getToken();
+  if (!token) return getTemplates();
+
+  try {
+    const res = await authFetch('/api/templates');
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data.templates)) {
+        saveTemplates(data.templates);
+        return data.templates;
+      }
+    }
+  } catch (e) {
+    console.warn('Fetch templates API error:', e);
+  }
+  return getTemplates();
+}
+
+export async function saveTemplateApi(templateData) {
+  const token = getToken();
+  if (!token) {
+    const current = getTemplates();
+    let updated;
+    if (templateData.id) {
+      updated = current.map(t => t.id === templateData.id ? { ...t, ...templateData } : t);
+    } else {
+      const newT = { ...templateData, id: Date.now().toString() };
+      updated = [...current, newT];
+    }
+    saveTemplates(updated);
+    return updated;
+  }
+
+  try {
+    const isEdit = Boolean(templateData.id);
+    const url = isEdit ? `/api/templates/${templateData.id}` : '/api/templates';
+    const method = isEdit ? 'PUT' : 'POST';
+
+    const res = await authFetch(url, {
+      method,
+      body: JSON.stringify(templateData)
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      const saved = data.template;
+      const current = getTemplates();
+      let updated;
+      if (isEdit) {
+        updated = current.map(t => t.id === saved.id ? saved : t);
+      } else {
+        updated = [saved, ...current.filter(t => t.id !== saved.id)];
+      }
+      saveTemplates(updated);
+      return updated;
+    }
+  } catch (e) {
+    console.error('Save template API error:', e);
+  }
+
+  const current = getTemplates();
+  let updated;
+  if (templateData.id) {
+    updated = current.map(t => t.id === templateData.id ? { ...t, ...templateData } : t);
+  } else {
+    const newT = { ...templateData, id: Date.now().toString() };
+    updated = [...current, newT];
+  }
+  saveTemplates(updated);
+  return updated;
+}
+
+export async function deleteTemplateApi(id) {
+  const current = getTemplates().filter(t => t.id !== id);
+  saveTemplates(current);
+
+  const token = getToken();
+  if (token) {
+    try {
+      await authFetch(`/api/templates/${id}`, { method: 'DELETE' });
+    } catch (e) {
+      console.error('Delete template API error:', e);
+    }
+  }
+  return current;
+}
+
 export function isSettingsCached() {
   const uid = getUserId();
   return localStorage.getItem(`dayscore_${uid}_settings`) !== null;

@@ -109,9 +109,10 @@ export default function SettingsView() {
       }
 
       const userSettings = await store.fetchSettingsApi()
+      const userTemplates = await store.fetchTemplatesApi()
       if (!isMounted) return;
       setSettings(userSettings)
-      setTemplates(store.getTemplates())
+      setTemplates(userTemplates || store.getTemplates())
       setLoading(false)
     }
 
@@ -144,7 +145,7 @@ export default function SettingsView() {
     }
   }
 
-  const handleSaveTemplate = (e) => {
+  const handleSaveTemplate = async (e) => {
     e.preventDefault()
     if (!tTitle.trim()) return
 
@@ -163,41 +164,25 @@ export default function SettingsView() {
     const pad = (num) => String(num).padStart(2, '0')
     const relativeTime = `${pad(tHour)}:${pad(tMinute)}`
 
-    let updated;
-    if (editingTemplate) {
-      updated = templates.map(t => t.id === editingTemplate.id ? {
-        ...t,
-        title: tTitle.trim(),
-        category: tCategory,
-        priority: tPriority,
-        defaultDate: tDate,
-        defaultHour: tHour,
-        defaultMinute: tMinute,
-        relativeTime
-      } : t)
-    } else {
-      const newTemplate = {
-        id: Date.now().toString(),
-        title: tTitle.trim(),
-        category: tCategory,
-        priority: tPriority,
-        defaultDate: tDate,
-        defaultHour: tHour,
-        defaultMinute: tMinute,
-        relativeTime
-      }
-      updated = [...templates, newTemplate]
+    const templatePayload = {
+      id: editingTemplate ? editingTemplate.id : undefined,
+      title: tTitle.trim(),
+      category: tCategory,
+      priority: tPriority,
+      defaultDate: tDate,
+      defaultHour: tHour,
+      defaultMinute: tMinute,
+      relativeTime
     }
 
-    store.saveTemplates(updated)
+    const updated = await store.saveTemplateApi(templatePayload)
     setTemplates(updated)
     setEditingTemplate(null)
     setShowAddTemplate(false)
   }
 
-  const handleDeleteTemplate = (id) => {
-    const updated = templates.filter(t => t.id !== id)
-    store.saveTemplates(updated)
+  const handleDeleteTemplate = async (id) => {
+    const updated = await store.deleteTemplateApi(id)
     setTemplates(updated)
   }
 
