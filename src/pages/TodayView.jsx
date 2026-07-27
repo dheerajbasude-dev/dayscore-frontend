@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react'
-import { format, subDays, parseISO } from 'date-fns'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { format, subDays, addDays, parseISO } from 'date-fns'
 import ScoreRing from '../components/ScoreRing'
 import TaskCard from '../components/TaskCard'
 import AddTaskModal from '../components/AddTaskModal'
@@ -8,7 +8,7 @@ import ReflectionBox from '../components/ReflectionBox'
 import ConfettiCelebration from '../components/ConfettiCelebration'
 import PenaltyCelebration from '../components/PenaltyCelebration'
 import AuthModal from '../components/AuthModal'
-import { Plus, AlertTriangle, Gift, PenLine } from 'lucide-react'
+import { Plus, AlertTriangle, Gift, PenLine, ChevronLeft, ChevronRight, Calendar, Layers } from 'lucide-react'
 import * as store from '../store/store'
 import * as scoring from '../store/scoring'
 import { useDayRollover } from '../hooks/useDayRollover'
@@ -17,7 +17,10 @@ import { useAuth } from '../context/AuthContext'
 
 export default function TodayView() {
   const { user } = useAuth()
-  const [currentDateStr, setCurrentDateStr] = useState(() => format(new Date(), 'yyyy-MM-dd'))
+  const todayStr = useMemo(() => format(new Date(), 'yyyy-MM-dd'), [])
+  const [currentDateStr, setCurrentDateStr] = useState(todayStr)
+  const [viewMode, setViewMode] = useState('date') // 'date' | 'all'
+
   const [tasks, setTasks] = useState([])
   const [reflection, setReflection] = useState('')
   const [showAddModal, setShowAddModal] = useState(false)
@@ -46,6 +49,49 @@ export default function TodayView() {
   const [todaysReward, setTodaysReward] = useState(null)
   const [settings, setSettings] = useState({ notifications: false })
   const [loading, setLoading] = useState(true)
+
+  const handlePrevDay = () => {
+    try {
+      const prev = format(subDays(parseISO(currentDateStr), 1), 'yyyy-MM-dd')
+      setCurrentDateStr(prev)
+    } catch {
+      setCurrentDateStr(todayStr)
+    }
+  }
+
+  const handleNextDay = () => {
+    try {
+      const next = format(addDays(parseISO(currentDateStr), 1), 'yyyy-MM-dd')
+      setCurrentDateStr(next)
+    } catch {
+      setCurrentDateStr(todayStr)
+    }
+  }
+
+  const handleToday = () => {
+    setCurrentDateStr(todayStr)
+  }
+
+  // Compute all tasks across all dates from archives
+  const allTasksAcrossDates = useMemo(() => {
+    const list = []
+    const seenIds = new Set()
+    const allArcs = archives.length > 0 ? archives : store.getAllArchives()
+    allArcs.forEach(arc => {
+      if (Array.isArray(arc.tasks)) {
+        arc.tasks.forEach(t => {
+          const id = t.id || t._id
+          if (id && !seenIds.has(id)) {
+            seenIds.add(id)
+            list.push({ ...t, dateLabel: arc.date })
+          } else if (!id) {
+            list.push({ ...t, dateLabel: arc.date })
+          }
+        })
+      }
+    })
+    return list
+  }, [archives])
 
   // Initialize data per user & date
   useEffect(() => {
@@ -98,6 +144,7 @@ export default function TodayView() {
 
       const freshToday = store.getTasks(currentDateStr);
       setTasks(freshToday);
+      setArchives(store.getAllArchives());
       setLoading(false);
 
       const isTaskRewardUnacknowledged = (t) => {
@@ -109,10 +156,24 @@ export default function TodayView() {
       const unacknowledgedTask = freshToday.find(isTaskRewardUnacknowledged);
       setTodaysReward(unacknowledgedTask ? unacknowledgedTask.reward : null);
       
-      const yesterdayStr = format(subDays(parseISO(currentDateStr), 1), 'yyyy-MM-dd');
-      const yesterdayTasks = store.getTasks(yesterdayStr);
-      const missed = yesterdayTasks.filter(t => t.status !== 'done' && t.status !== 'missed');
-      setCarryOverTasks(missed);
+      // Check ALL past dates for uncompleted tasks
+      const allArcs = store.getAllArchives();
+      const pastMissed = [];
+      const seenIds = new Set();
+      allArcs.forEach(arc => {
+        if (arc.date && arc.date < currentDateStr && Array.isArray(arc.tasks)) {
+          arc.tasks.forEach(t => {
+            if (t.status !== 'done' && t.status !== 'missed') {
+              const id = t.id || t._id;
+              if (id && !seenIds.has(id)) {
+                seenIds.add(id);
+                pastMissed.push({ ...t, sourceDate: arc.date });
+              }
+            }
+          });
+        }
+      });
+      setCarryOverTasks(pastMissed);
       setLoading(false);
     }
 
@@ -124,10 +185,6 @@ export default function TodayView() {
   useEffect(() => {
     const result = scoring.calculateDailyScore(tasks)
     setScoreResult(result)
-
-    if (tasks.length > 0 && tasks.some(t => t.status === 'done')) {
-      // Archives calculated dynamically on the fly
-    }
 
     const updatedArchives = store.getAllArchives()
     setArchives(updatedArchives)
@@ -514,6 +571,66 @@ export default function TodayView() {
         </div>
       ) : (
         <>
+          {/* Date Navigation & View Mode Header */}
+          <div className="card-glass date-nav-card" style={{ padding: '12px 18px', marginBottom: '20px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <button 
+                className="btn btn-secondary btn-sm" 
+                onClick={handlePrevDay} 
+                title="Previous Day"
+                style={{ padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+              >
+                <ChevronLeft size={16} /> Yesterday
+              </button>
+
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'var(--bg-glass-light)', padding: '4px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-glass)' }}>
+                <Calendar size={16} style={{ color: 'var(--accent-primary)' }} />
+                <input 
+                  type="date" 
+                  value={currentDateStr}
+                  onChange={(e) => e.target.value && setCurrentDateStr(e.target.value)}
+                  style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer', fontFamily: 'inherit' }}
+                />
+              </div>
+
+              <button 
+                className="btn btn-secondary btn-sm" 
+                onClick={handleNextDay} 
+                title="Next Day"
+                style={{ padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+              >
+                Next <ChevronRight size={16} />
+              </button>
+
+              {currentDateStr !== todayStr && (
+                <button 
+                  className="btn btn-primary btn-sm" 
+                  onClick={handleToday}
+                  style={{ padding: '6px 12px' }}
+                >
+                  Today
+                </button>
+              )}
+            </div>
+
+            <div className="view-mode-toggle" style={{ display: 'flex', gap: '4px', background: 'var(--bg-glass-light)', padding: '3px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-glass)' }}>
+              <button
+                className={`btn btn-sm ${viewMode === 'date' ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => setViewMode('date')}
+                style={{ padding: '6px 12px', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              >
+                <Calendar size={14} /> Date View ({tasks.length})
+              </button>
+              <button
+                className={`btn btn-sm ${viewMode === 'all' ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => setViewMode('all')}
+                style={{ padding: '6px 12px', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              >
+                <Layers size={14} /> All Tasks ({allTasksAcrossDates.length})
+              </button>
+            </div>
+          </div>
+
           <ScoreRing 
             score={scoreResult.score} 
             streak={streak} 
@@ -556,10 +673,12 @@ export default function TodayView() {
           </div>
 
           <div className="tasks-section">
-            {sortedTasks.length === 0 ? (
+            {(viewMode === 'all' ? allTasksAcrossDates : sortedTasks).length === 0 ? (
               <div className="card-glass empty-state">
                 <div className="empty-icon">📝</div>
-                <p className="empty-text">No tasks added for today yet!</p>
+                <p className="empty-text">
+                  {viewMode === 'all' ? 'No tasks found in MongoDB Atlas!' : `No tasks added for ${currentDateStr} yet!`}
+                </p>
                 <button 
                   className="btn btn-primary"
                   onClick={handleOpenAddModal}
@@ -569,12 +688,12 @@ export default function TodayView() {
               </div>
             ) : (
               <div className="task-group-list">
-                {sortedTasks.map(task => (
+                {(viewMode === 'all' ? allTasksAcrossDates : sortedTasks).map(task => (
                   <TaskCard 
-                    key={task.id} 
+                    key={task.id || task._id} 
                     task={task} 
-                    onStatusChange={handleStatusChange} 
-                    onDelete={handleDeleteTask}
+                    onStatusChange={(taskId, newStatus) => handleStatusChange(taskId, newStatus)} 
+                    onDelete={(taskId) => handleDeleteTask(taskId)}
                     onRequestComplete={handleRequestComplete}
                     onClaimReward={handleClaimTaskReward}
                     onAcceptPenalty={handleAcceptTaskPenalty}
