@@ -28,7 +28,12 @@ export default function TodayView() {
   const [showReflectionModal, setShowReflectionModal] = useState(false)
   const [showConfetti, setShowConfetti] = useState(false)
   
+  const isToday = currentDateStr === todayStr
+
   const handleOpenAddModal = () => {
+    if (!isToday) {
+      return
+    }
     if (!user) {
       setShowAuthModal(true)
     } else {
@@ -718,12 +723,14 @@ export default function TodayView() {
                 <p className="empty-text">
                   {viewMode === 'all' ? 'No tasks found in MongoDB Atlas!' : `No tasks added for ${currentDateStr} yet!`}
                 </p>
-                <button 
-                  className="btn btn-primary"
-                  onClick={handleOpenAddModal}
-                >
-                  <Plus size={18} /> Add Your First Task
-                </button>
+                {isToday && (
+                  <button 
+                    className="btn btn-primary"
+                    onClick={handleOpenAddModal}
+                  >
+                    <Plus size={18} /> Add Your First Task
+                  </button>
+                )}
               </div>
             ) : (
               <div className="task-group-list">
@@ -744,13 +751,15 @@ export default function TodayView() {
         </>
       )}
 
-      <button 
-        className="fab"
-        onClick={handleOpenAddModal}
-        aria-label="Add Task"
-      >
-        <Plus size={28} />
-      </button>
+      {isToday && (
+        <button 
+          className="fab"
+          onClick={handleOpenAddModal}
+          aria-label="Add Task"
+        >
+          <Plus size={28} />
+        </button>
+      )}
 
       {showAddModal && (
         <AddTaskModal 
