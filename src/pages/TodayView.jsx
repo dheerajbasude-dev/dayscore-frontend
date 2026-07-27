@@ -1069,14 +1069,14 @@ export default function TodayView() {
 
           {/* Filter, Sort & Search Control Bar */}
           <div className="card-glass task-controls-card">
-            {/* Search Input Row & Advanced Filter Button */}
+            {/* Search Input Row, Inline Sort & Advanced Filter Button */}
             <div className="task-search-row">
               <div className="task-search-input-wrapper">
                 <Search size={16} className="search-icon" />
                 <input
                   type="text"
                   className="task-search-input"
-                  placeholder="Search task title (matching titles appear first)..."
+                  placeholder="Search tasks by title..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                 />
@@ -1087,71 +1087,35 @@ export default function TodayView() {
                 )}
               </div>
 
+              {/* Inline Sort Selection */}
+              <select
+                className="task-sort-inline-select"
+                value={sortOption}
+                onChange={e => setSortOption(e.target.value)}
+                title="Sort Tasks"
+              >
+                <option value="default">⏰ Sort: Near Due (Default)</option>
+                <option value="urgency">⏰ Sort: Due Time Urgency</option>
+                <option value="rating_desc">★ Sort: Highest Rating</option>
+                <option value="rating_asc">★ Sort: Lowest Rating</option>
+                <option value="title_asc">🔤 Sort: Title (A-Z)</option>
+                <option value="category">📁 Sort: Category</option>
+                <option value="created_desc">🆕 Sort: Newly Created</option>
+              </select>
+
               <button
                 type="button"
                 className={`btn btn-secondary btn-sm ${activeFilterCount > 0 ? 'active' : ''}`}
                 onClick={() => setShowFilterModal(true)}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', padding: '9px 14px' }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', padding: '8px 14px' }}
               >
                 <SlidersHorizontal size={15} />
-                <span>Filter & Sort</span>
+                <span>Filters</span>
                 {activeFilterCount > 0 && (
                   <span className="badge badge-pri" style={{ fontSize: '0.68rem', padding: '1px 6px', borderRadius: '10px' }}>
                     {activeFilterCount}
                   </span>
                 )}
-              </button>
-            </div>
-
-            {/* Quick Presets Chips Bar (Horizontal Scrollable) */}
-            <div className="quick-filter-chips">
-              <button
-                className={`chip-btn ${activeFilterCount === 0 ? 'active' : ''}`}
-                onClick={resetAllFilters}
-              >
-                All Tasks
-              </button>
-              <button
-                className={`chip-btn ${sortOption === 'default' && activeFilterCount > 0 ? 'active' : ''}`}
-                onClick={() => setSortOption('default')}
-              >
-                ⏰ Near Due (Default)
-              </button>
-              <button
-                className={`chip-btn ${filterStatus === 'pending' ? 'active' : ''}`}
-                onClick={() => setFilterStatus(filterStatus === 'pending' ? 'all' : 'pending')}
-              >
-                ⏳ Pending
-              </button>
-              <button
-                className={`chip-btn ${filterStatus === 'unclaimedReward' ? 'active' : ''}`}
-                onClick={() => setFilterStatus(filterStatus === 'unclaimedReward' ? 'all' : 'unclaimedReward')}
-              >
-                🎁 Unclaimed Rewards
-              </button>
-              <button
-                className={`chip-btn ${filterStatus === 'unackPenalty' ? 'active' : ''}`}
-                onClick={() => setFilterStatus(filterStatus === 'unackPenalty' ? 'all' : 'unackPenalty')}
-              >
-                ⚠️ Unacknowledged Penalties
-              </button>
-              <button
-                className={`chip-btn ${filterRatingRange === 'red' ? 'active' : ''}`}
-                onClick={() => setFilterRatingRange(filterRatingRange === 'red' ? 'all' : 'red')}
-              >
-                🔴 Rating ≤ 4 (Red)
-              </button>
-              <button
-                className={`chip-btn ${filterRatingRange === 'blue' ? 'active' : ''}`}
-                onClick={() => setFilterRatingRange(filterRatingRange === 'blue' ? 'all' : 'blue')}
-              >
-                🔵 Rating 4.1–8.5 (Blue)
-              </button>
-              <button
-                className={`chip-btn ${filterRatingRange === 'green' ? 'active' : ''}`}
-                onClick={() => setFilterRatingRange(filterRatingRange === 'green' ? 'all' : 'green')}
-              >
-                🟢 Rating &gt; 8.5 (Green)
               </button>
             </div>
 

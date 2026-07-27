@@ -3997,11 +3997,13 @@ body {
   display: flex;
   gap: 10px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .task-search-input-wrapper {
   position: relative;
-  flex: 1;
+  flex: 1 1 200px;
+  min-width: 180px;
   display: flex;
   align-items: center;
 }
@@ -4049,50 +4051,23 @@ body {
   background: rgba(255, 255, 255, 0.1);
 }
 
-.quick-filter-chips {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 4px;
-  scrollbar-width: thin;
-}
-
-.quick-filter-chips::-webkit-scrollbar {
-  height: 4px;
-}
-
-.quick-filter-chips::-webkit-scrollbar-thumb {
-  background: var(--border-glass);
-  border-radius: 4px;
-}
-
-.chip-btn {
-  white-space: nowrap;
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 0.78rem;
-  font-weight: 600;
+.task-sort-inline-select {
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
   background: var(--bg-tertiary);
   border: 1px solid var(--border-glass);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  flex-shrink: 0;
-}
-
-.chip-btn:hover {
-  border-color: var(--border-glass-hover);
   color: var(--text-primary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+  min-width: 140px;
 }
 
-.chip-btn.active {
-  background: rgba(99, 102, 241, 0.2);
-  border-color: var(--accent-primary);
-  color: var(--accent-primary);
-  box-shadow: 0 0 10px rgba(99, 102, 241, 0.2);
+.task-sort-inline-select:focus,
+.task-sort-inline-select:hover {
+  border-color: var(--border-glass-hover);
 }
 
 .active-filter-bar {
@@ -4101,7 +4076,7 @@ body {
   justify-content: space-between;
   gap: 10px;
   flex-wrap: wrap;
-  padding-top: 4px;
+  padding-top: 8px;
   font-size: 0.8rem;
   border-top: 1px dashed var(--border-glass);
 }
@@ -4117,8 +4092,8 @@ body {
   background: rgba(99, 102, 241, 0.15);
   border: 1px solid rgba(99, 102, 241, 0.3);
   color: var(--accent-primary);
-  padding: 2px 8px;
-  border-radius: 12px;
+  padding: 3px 10px;
+  border-radius: 14px;
   font-size: 0.75rem;
   font-weight: 600;
   display: inline-flex;
