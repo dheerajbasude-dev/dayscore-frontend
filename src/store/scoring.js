@@ -62,7 +62,38 @@ export function calculateDailyScore(tasks) {
   };
 }
 
+export function calculateOverallAverageTaskScore(archives = [], todayTasks = []) {
+  const allTasksMap = new Map();
+
+  (archives || []).forEach(a => {
+    if (a && Array.isArray(a.tasks)) {
+      a.tasks.forEach(t => {
+        const id = t.id || t._id;
+        if (id) allTasksMap.set(id, t);
+      });
+    }
+  });
+
+  (todayTasks || []).forEach(t => {
+    const id = t.id || t._id;
+    if (id) allTasksMap.set(id, t);
+  });
+
+  const allCompleted = Array.from(allTasksMap.values()).filter(t => t.status === 'done');
+  if (allCompleted.length === 0) return 0;
+
+  const totalPoints = allCompleted.reduce((sum, t) => {
+    return sum + (t.rating != null ? Number(t.rating) : 10);
+  }, 0);
+
+  return Number((totalPoints / allCompleted.length).toFixed(1));
+}
+
 export function getRollingAverage(archives = [], days = 0, todayTasks = []) {
+  if (days === 0) {
+    return calculateOverallAverageTaskScore(archives, todayTasks);
+  }
+
   const validArchives = (archives || []).filter(a => a && a.date && typeof a.date === 'string');
   const todayStr = format(new Date(), 'yyyy-MM-dd');
   
@@ -86,7 +117,7 @@ export function getRollingAverage(archives = [], days = 0, todayTasks = []) {
   if (archiveMap.size === 0) return 0;
 
   const today = startOfDay(new Date());
-  const cutoffDate = days > 0 ? subDays(today, days) : new Date(0);
+  const cutoffDate = subDays(today, days);
 
   let totalScore = 0;
   let count = 0;
@@ -96,7 +127,7 @@ export function getRollingAverage(archives = [], days = 0, todayTasks = []) {
     try {
       const archiveDate = parseISO(dateStr);
       if (isNaN(archiveDate.getTime())) continue;
-      if (days === 0 || isAfter(archiveDate, cutoffDate) || archiveDate.getTime() === cutoffDate.getTime()) {
+      if (isAfter(archiveDate, cutoffDate) || archiveDate.getTime() === cutoffDate.getTime()) {
         totalScore += score;
         count++;
       }

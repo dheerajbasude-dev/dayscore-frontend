@@ -540,15 +540,10 @@ export default function TodayView() {
 
   const displayScore = useMemo(() => {
     if (viewMode === 'all') {
-      const completed = allTasksAcrossDates.filter(t => t.status === 'done');
-      if (completed.length > 0) {
-        const total = completed.reduce((acc, t) => acc + (t.rating != null ? Number(t.rating) : 10), 0);
-        return Number((total / completed.length).toFixed(1));
-      }
-      return averages.allTime || 0;
+      return scoring.calculateOverallAverageTaskScore(archives, tasks);
     }
     return scoreResult.score;
-  }, [viewMode, allTasksAcrossDates, averages.allTime, scoreResult.score]);
+  }, [viewMode, archives, tasks, scoreResult.score]);
 
   const displayLabel = viewMode === 'all' ? 'Total Avg Score' : 'Daily Score';
 
