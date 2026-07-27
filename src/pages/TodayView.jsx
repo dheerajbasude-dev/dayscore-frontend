@@ -118,8 +118,6 @@ export default function TodayView() {
     return list
   }, [archives])
 
-  const userId = user?.id || user?._id || user?.email || 'guest';
-
   // Initialize data per user & date
   useEffect(() => {
     let isMounted = true;
@@ -150,17 +148,19 @@ export default function TodayView() {
 
     loadUserData()
     return () => { isMounted = false; }
-  }, [currentDateStr, userId])
+  }, [currentDateStr, user])
 
-  // Load daily tasks per user & date (smooth background sync without flashing loader)
+  // Load daily tasks per user & date
   useEffect(() => {
     let isMounted = true;
     const loadTasks = async () => {
       // Instant cache load
       const cached = store.getTasks(currentDateStr);
-      if (cached && Array.isArray(cached) && cached.length > 0) {
+      if (cached && cached.length > 0) {
         setTasks(cached);
         setLoading(false);
+      } else {
+        setLoading(true);
       }
 
       // Fetch ALL user tasks directly from MongoDB Atlas
@@ -174,6 +174,12 @@ export default function TodayView() {
 
       const isTaskRewardUnacknowledged = (t) => {
         if (!t.reward) return false;
+        const taskId = t.id || t._id;
+        try {
+          if (sessionStorage.getItem(`dayscore_reward_ack_${taskId}`) === 'true') {
+            return false;
+          }
+        } catch (e) {}
         const isClaimed = t.rewardClaimed === true || t.rewardClaimed === 1 || t.reward_claimed === 1 || t.reward_claimed === '1';
         const isAck = t.rewardAcknowledged === true || t.rewardAcknowledged === 1 || t.reward_acknowledged === 1 || t.reward_acknowledged === '1';
         return !isClaimed && !isAck;
@@ -199,11 +205,12 @@ export default function TodayView() {
         }
       });
       setCarryOverTasks(pastMissed);
+      setLoading(false);
     }
 
     loadTasks();
     return () => { isMounted = false; }
-  }, [currentDateStr, userId])
+  }, [currentDateStr, user])
 
   // Score, Streak & Averages Calculation effect
   useEffect(() => {
@@ -497,7 +504,11 @@ export default function TodayView() {
 
       for (const t of unackTasks) {
         const targetId = t.id || t._id;
-        await store.updateTask(currentDateStr, targetId, {
+        const targetDate = t.date || t.dateLabel || currentDateStr;
+        try {
+          sessionStorage.setItem(`dayscore_reward_ack_${targetId}`, 'true');
+        } catch (e) {}
+        await store.updateTask(targetDate, targetId, {
           rewardAcknowledged: true,
           reward_acknowledged: 1
         });
@@ -514,6 +525,10 @@ export default function TodayView() {
     const isObject = typeof taskOrId === 'object' && taskOrId !== null;
     const targetId = isObject ? (taskOrId.id || taskOrId._id) : taskOrId;
     const targetDate = isObject ? (taskOrId.date || taskOrId.dateLabel || currentDateStr) : currentDateStr;
+
+    try {
+      sessionStorage.setItem(`dayscore_reward_ack_${targetId}`, 'true');
+    } catch (e) {}
 
     await store.updateTask(targetDate, targetId, {
       rewardClaimed: true,

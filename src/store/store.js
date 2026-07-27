@@ -139,7 +139,19 @@ export async function fetchAllTasksApi() {
         tasksByDate.get(d).push(t);
       });
 
-      // Save fresh tasks per date directly to local cache
+      // Clear local task cache for this user to remove stale/guest/un-synced items
+      const uid = getUserId();
+      const prefix = `dayscore_${uid}_tasks_`;
+      const keysToRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith(prefix)) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(k => localStorage.removeItem(k));
+
+      // Save fresh tasks per date
       tasksByDate.forEach((tasks, dateStr) => {
         saveTasks(dateStr, tasks);
       });
