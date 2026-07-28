@@ -18,7 +18,25 @@ import { useAuth } from '../context/AuthContext'
 export default function TodayView() {
   const { user } = useAuth()
   const todayStr = useMemo(() => format(new Date(), 'yyyy-MM-dd'), [])
-  const [currentDateStr, setCurrentDateStr] = useState(todayStr)
+  const [currentDateStr, setCurrentDateStr] = useState(() => {
+    try {
+      const uid = store.getUserId()
+      const saved = localStorage.getItem(`dayscore_${uid}_selected_date`)
+      if (saved && /^\d{4}-\d{2}-\d{2}$/.test(saved)) {
+        return saved
+      }
+    } catch (e) {}
+    return format(new Date(), 'yyyy-MM-dd')
+  })
+
+  useEffect(() => {
+    try {
+      const uid = store.getUserId()
+      if (currentDateStr) {
+        localStorage.setItem(`dayscore_${uid}_selected_date`, currentDateStr)
+      }
+    } catch (e) {}
+  }, [currentDateStr, user])
 
   const [viewMode, setViewMode] = useState(() => {
     try {
