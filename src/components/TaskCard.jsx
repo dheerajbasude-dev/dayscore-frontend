@@ -114,22 +114,27 @@ export default function TaskCard({ index, task, onStatusChange, onDelete, onRequ
               ★ {task.rating}/{maxR}
             </span>
           )}
-          {createdFormatted && (
-            <span className="task-date-badge">
-              📅 Created: {createdFormatted}
-            </span>
-          )}
-          {dueFormatted && (
-            <span className={`task-date-badge ${task.status === 'missed' ? 'task-date-missed' : 'task-date-due'}`}>
-              ⏰ End: {dueFormatted}
-            </span>
-          )}
-          {completedFormatted && task.status === 'done' && (
-            <span className="task-date-badge task-date-completed">
-              ✓ Completed: {completedFormatted}
-            </span>
-          )}
         </div>
+
+        {(createdFormatted || dueFormatted || (completedFormatted && task.status === 'done')) && (
+          <div className="task-dates-row">
+            {createdFormatted && (
+              <span className="task-date-pill task-date-created">
+                📅 Created: {createdFormatted}
+              </span>
+            )}
+            {dueFormatted && (
+              <span className={`task-date-pill ${task.status === 'missed' ? 'task-date-missed' : 'task-date-due'}`}>
+                ⏰ End: {dueFormatted}
+              </span>
+            )}
+            {completedFormatted && task.status === 'done' && (
+              <span className="task-date-pill task-date-completed">
+                ✓ Done: {completedFormatted}
+              </span>
+            )}
+          </div>
+        )}
 
         {task.status === 'done' && (task.reward || task.penalty) && (
           <div className="task-reward-row">
