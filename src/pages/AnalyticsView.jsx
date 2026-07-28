@@ -116,12 +116,14 @@ export default function AnalyticsView() {
     for (const [dStr, taskList] of allTasksMap.entries()) {
       const res = scoring.calculateDailyScore(taskList);
       const existing = map.get(dStr) || {};
+      const hasDone = taskList.some(t => t && (t.status === 'done' || t.completedAt || t.completed_at));
       map.set(dStr, {
         ...existing,
         date: dStr,
-        score: res.score,
+        score: Math.max(res.score, Number(existing.score || 0)),
         tasks: taskList,
-        hasTasks: taskList.length > 0
+        hasTasks: taskList.length > 0,
+        hasDone: hasDone || Boolean(existing.hasDone)
       });
     }
 

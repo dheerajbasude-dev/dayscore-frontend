@@ -165,7 +165,7 @@ export function getAllValidStreakDates(archives = [], todayTasks = []) {
 
     if (Array.isArray(arc.tasks) && arc.tasks.length > 0) {
       arc.tasks.forEach(t => {
-        if (t && t.status === 'done') {
+        if (t && (t.status === 'done' || t.completedAt || t.completed_at)) {
           isArcValid = true;
           const tDate = getCleanDateStr(t.completedAt || t.completed_at || t.date || arc.date);
           if (tDate) activeDates.add(tDate);
@@ -180,14 +180,17 @@ export function getAllValidStreakDates(archives = [], todayTasks = []) {
 
   // 2. Process today's tasks
   if (Array.isArray(todayTasks) && todayTasks.length > 0) {
-    const hasDoneToday = todayTasks.some(t => t && t.status === 'done');
+    const hasDoneToday = todayTasks.some(t => t && (t.status === 'done' || t.completedAt || t.completed_at));
     const todayScoreResult = calculateDailyScore(todayTasks);
+
     if (hasDoneToday || todayScoreResult.score > 0) {
-      activeDates.add(todayStr);
+      const sampleTask = todayTasks.find(t => t && (t.completedAt || t.date));
+      const taskDate = sampleTask ? getCleanDateStr(sampleTask.completedAt || sampleTask.date) : todayStr;
+      activeDates.add(taskDate || todayStr);
     }
   }
 
-  return Array.from(activeDates).sort();
+  return Array.from(activeDates).filter(Boolean).sort();
 }
 
 export function getStreak(archives = [], todayTasks = []) {

@@ -285,21 +285,23 @@ export default function TodayView() {
 
   // Score, Streak & Averages Calculation effect
   useEffect(() => {
-    const result = scoring.calculateDailyScore(tasks)
-    setScoreResult(result)
+    const result = scoring.calculateDailyScore(tasks);
+    setScoreResult(result);
 
-    const updatedArchives = store.getAllArchives()
-    setArchives(updatedArchives)
+    const updatedArchives = store.getAllArchives();
+    setArchives(updatedArchives);
 
-    const updatedStreak = scoring.getStreak(updatedArchives, tasks)
-    setStreak(updatedStreak)
+    // Calculate user's current streak as of today using actual today's tasks
+    const actualTodayTasks = store.getTasks(todayStr);
+    const updatedStreak = scoring.getStreak(updatedArchives, actualTodayTasks);
+    setStreak(updatedStreak);
 
     setAverages({
       week: scoring.getRollingAverage(updatedArchives, 7, tasks),
       month: scoring.getRollingAverage(updatedArchives, 30, tasks),
       allTime: scoring.getRollingAverage(updatedArchives, 0, tasks)
-    })
-  }, [tasks, currentDateStr])
+    });
+  }, [tasks, currentDateStr, todayStr]);
 
   // Auto-flag overdue tasks as missed
   useEffect(() => {
