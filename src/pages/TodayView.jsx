@@ -101,7 +101,8 @@ export default function TodayView() {
   const [averages, setAverages] = useState({ week: 0, month: 0, allTime: 0 })
 
   const [activePunishment, setActivePunishment] = useState(null)
-  const [carryOverTasks, setCarryOverTasks] = useState([])
+  const [pastUnfinishedDates, setPastUnfinishedDates] = useState([])
+  const [showPastPendingBanner, setShowPastPendingBanner] = useState(false)
 
   const [todaysReward, setTodaysReward] = useState(null)
   const [settings, setSettings] = useState({ notifications: false })
@@ -213,7 +214,6 @@ export default function TodayView() {
   useEffect(() => {
     let isMounted = true;
 
-    // Load reflection instantly from local cache then fetch synced version from MongoDB
     setReflection(store.getReflection(currentDateStr));
     store.fetchReflectionApi(currentDateStr).then(syncedRef => {
       if (isMounted && syncedRef !== undefined) {
@@ -235,7 +235,6 @@ export default function TodayView() {
         return !isClaimed && !isAck;
       };
 
-      // Instant cache load
       const cached = store.getTasks(currentDateStr);
       if (cached && cached.length > 0) {
         setTasks(cached);
@@ -246,7 +245,6 @@ export default function TodayView() {
         setLoading(true);
       }
 
-      // Fetch ALL user tasks directly from MongoDB Atlas
       await store.fetchAllTasksApi();
       if (!isMounted) return;
 
@@ -258,30 +256,31 @@ export default function TodayView() {
       const unacknowledgedTask = freshToday.find(isTaskRewardUnacknowledged);
       setTodaysReward(unacknowledgedTask ? unacknowledgedTask.reward : null);
 
-      // Check ALL past dates for uncompleted tasks
+      // Check ALL past dates for unfinished / missed task dates for notification banner
       const allArcs = store.getAllArchives();
-      const pastMissed = [];
-      const seenIds = new Set();
+      const unfinishedSet = new Set();
       allArcs.forEach(arc => {
-        if (arc.date && arc.date < currentDateStr && Array.isArray(arc.tasks)) {
-          arc.tasks.forEach(t => {
-            if (t.status !== 'done' && t.status !== 'missed') {
-              const id = t.id || t._id;
-              if (id && !seenIds.has(id)) {
-                seenIds.add(id);
-                pastMissed.push({ ...t, sourceDate: arc.date });
-              }
-            }
-          });
+        if (arc.date && arc.date < todayStr && Array.isArray(arc.tasks)) {
+          const hasPending = arc.tasks.some(t => t.status === 'missed' || t.status === 'pending' || t.status === 'inprogress');
+          if (hasPending) {
+            unfinishedSet.add(arc.date);
+          }
         }
       });
-      setCarryOverTasks(pastMissed);
-      setLoading(false);
+      const datesList = Array.from(unfinishedSet).sort();
+      setPastUnfinishedDates(datesList);
+
+      try {
+        const isDismissed = sessionStorage.getItem(`dayscore_dismiss_pending_${todayStr}`);
+        if (!isDismissed && datesList.length > 0) {
+          setShowPastPendingBanner(true);
+        }
+      } catch (e) {}
     }
 
     loadTasks();
     return () => { isMounted = false; }
-  }, [currentDateStr, user])
+  }, [currentDateStr, user, todayStr])
 
   // Score, Streak & Averages Calculation effect
   useEffect(() => {
@@ -291,7 +290,6 @@ export default function TodayView() {
     const updatedArchives = store.getAllArchives();
     setArchives(updatedArchives);
 
-    // Calculate user's exact streak as of the currently viewed date (currentDateStr)
     const updatedStreak = scoring.getStreakAsOfDate(updatedArchives, currentDateStr);
     setStreak(updatedStreak);
 
@@ -302,27 +300,52 @@ export default function TodayView() {
     });
   }, [tasks, currentDateStr, todayStr]);
 
-  // Auto-flag overdue tasks as missed
+  // Auto-process past and overdue tasks:
+  // - Tasks on past dates with future due time -> move to target due date
+  // - Tasks on past dates with expired due time or no due time -> stay on original date & marked as missed
   useEffect(() => {
-    const checkOverdue = () => {
-      const now = new Date()
-      let updated = false
-      tasks.forEach(task => {
-        if (task.status === 'pending' || task.status === 'inprogress') {
-          if (task.dueDateTime && parseISO(task.dueDateTime) < now) {
-            store.updateTask(currentDateStr, task.id, { status: 'missed' })
-            updated = true
+    let isMounted = true;
+    const processPastAndOverdueTasks = async () => {
+      const now = new Date();
+      const allArcs = store.getAllArchives();
+      let updated = false;
+
+      for (const arc of allArcs) {
+        if (!arc.date || !Array.isArray(arc.tasks)) continue;
+
+        for (const task of arc.tasks) {
+          if (task.status === 'pending' || task.status === 'inprogress') {
+            const due = task.dueDateTime || task.due_date_time;
+            if (due) {
+              const dueDateObj = new Date(due);
+              const targetDueDateStr = format(dueDateObj, 'yyyy-MM-dd');
+
+              if (targetDueDateStr > arc.date && targetDueDateStr <= todayStr && dueDateObj >= now) {
+                await store.updateTask(arc.date, task.id || task._id, { date: targetDueDateStr });
+                updated = true;
+              } else if (dueDateObj < now) {
+                await store.updateTask(arc.date, task.id || task._id, { status: 'missed' });
+                updated = true;
+              }
+            } else if (arc.date < todayStr) {
+              await store.updateTask(arc.date, task.id || task._id, { status: 'missed' });
+              updated = true;
+            }
           }
         }
-      })
-      if (updated) {
-        setTasks(store.getTasks(currentDateStr))
       }
-    }
-    checkOverdue()
-    const interval = setInterval(checkOverdue, 5000)
-    return () => clearInterval(interval)
-  }, [tasks, currentDateStr])
+
+      if (updated && isMounted) {
+        await store.fetchAllTasksApi();
+        setTasks(store.getTasks(currentDateStr));
+        setArchives(store.getAllArchives());
+      }
+    };
+
+    processPastAndOverdueTasks();
+    const interval = setInterval(processPastAndOverdueTasks, 10000);
+    return () => { isMounted = false; clearInterval(interval); };
+  }, [currentDateStr, todayStr]);
 
   // Hooks
   const handleRollover = useCallback(() => {
@@ -847,32 +870,43 @@ export default function TodayView() {
   return (
     <div className="today-view">
 
-      {carryOverTasks.length > 0 && (
-        <div className="card-glass carryover-section" style={{ padding: '14px 18px', marginBottom: '20px', borderRadius: 'var(--radius-lg)', border: '1px solid rgba(251, 191, 36, 0.35)', background: 'rgba(251, 191, 36, 0.05)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
-            <h3 className="carryover-heading" style={{ margin: 0, fontSize: '0.95rem', color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <AlertTriangle size={18} color="#fbbf24" /> Unfinished Tasks From Previous Days ({carryOverTasks.length})
-            </h3>
-            <button className="btn btn-primary btn-sm" onClick={handleCarryOverAll} style={{ fontSize: '0.8rem', padding: '4px 10px' }}>
-              Carry All Over
-            </button>
+      {/* First Visit Notification Banner for Unfinished Days */}
+      {showPastPendingBanner && pastUnfinishedDates.length > 0 && (
+        <div className="card-glass" style={{ padding: '14px 18px', marginBottom: '20px', borderRadius: 'var(--radius-lg)', border: '1px solid rgba(245, 158, 11, 0.35)', background: 'rgba(245, 158, 11, 0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <Clock size={20} color="#f59e0b" style={{ flexShrink: 0 }} />
+            <div>
+              <strong style={{ fontSize: '0.9rem', color: 'var(--text-primary)', display: 'block' }}>
+                Pending / Missed Tasks From Previous Days ({pastUnfinishedDates.length} {pastUnfinishedDates.length === 1 ? 'Day' : 'Days'})
+              </strong>
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                Recorded on {pastUnfinishedDates.join(', ')}. Tasks remain on their specific dates.
+              </span>
+            </div>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {carryOverTasks.map(task => {
-              const targetId = task.id || task._id;
-              return (
-                <div key={targetId} className="carryover-item" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '10px 14px', borderRadius: 'var(--radius-md)', background: 'var(--bg-glass-light)', border: '1px solid var(--border-glass)', flexWrap: 'wrap' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                    <span className="carryover-task-name" style={{ fontWeight: '600', fontSize: '0.9rem', color: 'var(--text-primary)' }}>{task.title}</span>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>From {task.sourceDate} • {task.category || 'Work'}</span>
-                  </div>
-                  <div className="carryover-actions" style={{ display: 'flex', gap: '6px' }}>
-                    <button className="btn btn-secondary btn-sm" onClick={() => handleDismissCarryOver(task)} style={{ padding: '4px 10px', fontSize: '0.8rem' }}>Dismiss</button>
-                    <button className="btn btn-primary btn-sm" onClick={() => handleCarryOver(task)} style={{ padding: '4px 10px', fontSize: '0.8rem' }}>Carry Over</button>
-                  </div>
-                </div>
-              );
-            })}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={() => {
+                setCurrentDateStr(pastUnfinishedDates[pastUnfinishedDates.length - 1]);
+                setShowPastPendingBanner(false);
+              }}
+              style={{ fontSize: '0.8rem', padding: '5px 12px' }}
+            >
+              Review Past Date
+            </button>
+            <button
+              className="btn-icon"
+              onClick={() => {
+                setShowPastPendingBanner(false);
+                try {
+                  sessionStorage.setItem(`dayscore_dismiss_pending_${todayStr}`, 'true');
+                } catch (e) {}
+              }}
+              title="Dismiss Notification"
+            >
+              <X size={16} />
+            </button>
           </div>
         </div>
       )}
@@ -1324,7 +1358,6 @@ export default function TodayView() {
                     <option value="pending">Pending Tasks</option>
                     <option value="done">Completed Tasks</option>
                     <option value="missed">Missed Tasks</option>
-                    <option value="carriedOver">Carried Over Tasks</option>
                     <option value="reward">Tasks with Reward</option>
                     <option value="penalty">Tasks with Penalty</option>
                     <option value="unclaimedReward">🎁 Unclaimed Rewards</option>

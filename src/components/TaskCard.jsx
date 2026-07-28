@@ -108,7 +108,6 @@ export default function TaskCard({ index, task, onStatusChange, onDelete, onRequ
         <div className="task-meta">
           <span className={`badge badge-${task.category.toLowerCase()}`}>{task.category}</span>
           <span className={`priority-text priority-${task.priority.toLowerCase()}`}>{task.priority} Priority</span>
-          {task.carriedOver && <span className="carried-badge">↻ Carried Over</span>}
           {ratingDisplay && (
             <span className={`rating-badge ${getRatingBadgeClass()}`}>
               ★ {task.rating}/{maxR}
