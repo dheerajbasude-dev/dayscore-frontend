@@ -291,9 +291,8 @@ export default function TodayView() {
     const updatedArchives = store.getAllArchives();
     setArchives(updatedArchives);
 
-    // Calculate user's current streak as of today using actual today's tasks
-    const actualTodayTasks = store.getTasks(todayStr);
-    const updatedStreak = scoring.getStreak(updatedArchives, actualTodayTasks);
+    // Calculate user's exact streak as of the currently viewed date (currentDateStr)
+    const updatedStreak = scoring.getStreakAsOfDate(updatedArchives, currentDateStr);
     setStreak(updatedStreak);
 
     setAverages({

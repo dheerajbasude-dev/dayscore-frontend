@@ -316,9 +316,11 @@ export function getArchivesFromTasks() {
           dateStr = dateStr.trim().substring(0, 10);
 
           const scoreResult = calculateDailyScore(tasks);
+          const hasDone = tasks.some(t => t && (t.status === 'done' || t.completedAt || t.completed_at));
           archiveMap.set(dateStr, {
             date: dateStr,
             score: scoreResult.score,
+            hasDone,
             tasks
           });
         }

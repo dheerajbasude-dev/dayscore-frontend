@@ -193,24 +193,59 @@ export function getAllValidStreakDates(archives = [], todayTasks = []) {
   return Array.from(activeDates).filter(Boolean).sort();
 }
 
-export function getStreak(archives = [], todayTasks = []) {
-  const activeDatesSet = new Set(getAllValidStreakDates(archives, todayTasks));
-  const todayStr = format(new Date(), 'yyyy-MM-dd');
-  const yesterdayStr = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+export function getStreakAsOfDate(archives = [], targetDateStr = null) {
+  const effectiveTarget = targetDateStr
+    ? (targetDateStr.includes('T') ? targetDateStr.split('T')[0] : targetDateStr.trim().substring(0, 10))
+    : format(new Date(), 'yyyy-MM-dd');
 
-  let checkDate = new Date();
+  // Collect all active dates <= effectiveTarget
+  const activeDatesSet = new Set();
+  (archives || []).forEach(arc => {
+    if (!arc || !arc.date) return;
+    const cleanD = getCleanDateStr(arc.date);
+    if (!cleanD || cleanD > effectiveTarget) return;
+
+    let hasDoneTask = false;
+    if (Array.isArray(arc.tasks) && arc.tasks.length > 0) {
+      arc.tasks.forEach(t => {
+        if (t && (t.status === 'done' || t.completedAt || t.completed_at)) {
+          hasDoneTask = true;
+          const tDate = getCleanDateStr(t.completedAt || t.completed_at || t.date || arc.date);
+          if (tDate && tDate <= effectiveTarget) activeDatesSet.add(tDate);
+        }
+      });
+    }
+
+    const arcScore = Number(arc.score || 0);
+    if (hasDoneTask || arc.hasDone || arcScore > 0) {
+      activeDatesSet.add(cleanD);
+    }
+  });
+
+  if (activeDatesSet.size === 0) {
+    return { current: 0, isActive: false };
+  }
+
+  let checkDate = parseISO(effectiveTarget);
+  if (isNaN(checkDate.getTime())) {
+    checkDate = new Date();
+  }
+
+  const prevDate = subDays(checkDate, 1);
+  const prevDateStr = format(prevDate, 'yyyy-MM-dd');
+
   let streakCount = 0;
   let isActive = false;
 
-  // Check if today is active
-  if (activeDatesSet.has(todayStr)) {
+  // Check if effectiveTarget itself is active
+  if (activeDatesSet.has(effectiveTarget)) {
     isActive = true;
     streakCount++;
-    checkDate = subDays(checkDate, 1);
-  } else if (activeDatesSet.has(yesterdayStr)) {
-    // Keep streak active if yesterday was completed and today is in progress
+    checkDate = prevDate;
+  } else if (activeDatesSet.has(prevDateStr)) {
+    // If effectiveTarget is not active yet (e.g. today in progress), keep streak active from day before
     isActive = true;
-    checkDate = subDays(checkDate, 1);
+    checkDate = prevDate;
   } else {
     return { current: 0, isActive: false };
   }
@@ -227,6 +262,11 @@ export function getStreak(archives = [], todayTasks = []) {
   }
 
   return { current: streakCount, isActive };
+}
+
+export function getStreak(archives = [], todayTasks = []) {
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  return getStreakAsOfDate(archives, todayStr);
 }
 
 export function getBestStreak(archives = [], todayTasks = []) {

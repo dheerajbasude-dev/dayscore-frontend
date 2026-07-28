@@ -70,59 +70,32 @@ export default function AnalyticsView() {
     safeArchives.forEach(a => {
       if (a && a.date) {
         const cleanDate = a.date.includes('T') ? a.date.split('T')[0] : a.date.trim().substring(0, 10);
-        let scoreVal = 0;
-
-        if (Array.isArray(a.tasks) && a.tasks.length > 0) {
-          const res = scoring.calculateDailyScore(a.tasks);
-          scoreVal = res.score;
-        } else if (a.score !== undefined && a.score !== null) {
-          scoreVal = Number(a.score);
-        }
+        const taskList = Array.isArray(a.tasks) ? a.tasks : [];
+        const res = taskList.length > 0 ? scoring.calculateDailyScore(taskList) : { score: Number(a.score || 0) };
+        const hasDone = taskList.some(t => t && (t.status === 'done' || t.completedAt || t.completed_at)) || Boolean(a.hasDone);
 
         map.set(cleanDate, {
           ...a,
           date: cleanDate,
-          score: scoreVal,
-          hasTasks: Array.isArray(a.tasks) && a.tasks.length > 0
+          score: Math.max(res.score, Number(a.score || 0)),
+          tasks: taskList,
+          hasTasks: taskList.length > 0,
+          hasDone
         });
       }
     });
 
-    // 2. Group ALL tasks across archives & todayTasks by their specific completed/target date
-    const allTasksMap = new Map();
-    safeArchives.forEach(a => {
-      if (a && Array.isArray(a.tasks)) {
-        a.tasks.forEach(t => {
-          const tDate = t.completedAt ? t.completedAt.substring(0, 10) : (t.date || a.date);
-          if (tDate) {
-            const cleanD = tDate.includes('T') ? tDate.split('T')[0] : tDate.substring(0, 10);
-            if (!allTasksMap.has(cleanD)) allTasksMap.set(cleanD, []);
-            allTasksMap.get(cleanD).push(t);
-          }
-        });
-      }
-    });
-
-    safeTodayTasks.forEach(t => {
-      const tDate = t.completedAt ? t.completedAt.substring(0, 10) : (t.date || todayStr);
-      if (tDate) {
-        const cleanD = tDate.includes('T') ? tDate.split('T')[0] : tDate.substring(0, 10);
-        if (!allTasksMap.has(cleanD)) allTasksMap.set(cleanD, []);
-        allTasksMap.get(cleanD).push(t);
-      }
-    });
-
-    // Recalculate exact daily score for every date found in allTasksMap
-    for (const [dStr, taskList] of allTasksMap.entries()) {
-      const res = scoring.calculateDailyScore(taskList);
-      const existing = map.get(dStr) || {};
-      const hasDone = taskList.some(t => t && (t.status === 'done' || t.completedAt || t.completed_at));
-      map.set(dStr, {
+    // 2. Ensure today's date is updated with safeTodayTasks
+    if (safeTodayTasks.length > 0 || !map.has(todayStr)) {
+      const existing = map.get(todayStr) || {};
+      const res = scoring.calculateDailyScore(safeTodayTasks);
+      const hasDone = safeTodayTasks.some(t => t && (t.status === 'done' || t.completedAt || t.completed_at));
+      map.set(todayStr, {
         ...existing,
-        date: dStr,
+        date: todayStr,
         score: Math.max(res.score, Number(existing.score || 0)),
-        tasks: taskList,
-        hasTasks: taskList.length > 0,
+        tasks: safeTodayTasks,
+        hasTasks: safeTodayTasks.length > 0,
         hasDone: hasDone || Boolean(existing.hasDone)
       });
     }
