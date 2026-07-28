@@ -118,19 +118,20 @@ export default function TaskCard({ index, task, onStatusChange, onDelete, onRequ
 
         {(createdFormatted || dueFormatted || (completedFormatted && task.status === 'done')) && (
           <div className="task-dates-row">
-            {createdFormatted && (
-              <span className="task-date-pill task-date-created">
-                📅 Created: {createdFormatted}
-              </span>
-            )}
-            {dueFormatted && (
-              <span className={`task-date-pill ${task.status === 'missed' ? 'task-date-missed' : 'task-date-due'}`}>
-                ⏰ End: {dueFormatted}
+            {(createdFormatted || dueFormatted) && (
+              <span className="task-dates-range">
+                {createdFormatted && <span>{createdFormatted}</span>}
+                {createdFormatted && dueFormatted && <span className="dates-arrow">→</span>}
+                {dueFormatted && (
+                  <span className={`task-date-due ${task.status === 'missed' ? 'task-date-missed' : ''}`}>
+                    {dueFormatted}
+                  </span>
+                )}
               </span>
             )}
             {completedFormatted && task.status === 'done' && (
-              <span className="task-date-pill task-date-completed">
-                ✓ Done: {completedFormatted}
+              <span className="task-date-completed">
+                ✔️ {completedFormatted}
               </span>
             )}
           </div>
