@@ -72,6 +72,7 @@ export default function TaskCard({ index, task, onStatusChange, onDelete, onRequ
   const ratingDisplay = task.status === 'done' && task.rating != null;
   const createdFormatted = formatDateSafe(task.createdAt || task.created_at);
   const completedFormatted = formatDateSafe(task.completedAt || task.completed_at);
+  const dueFormatted = formatDateSafe(task.dueDateTime || task.due_date_time);
 
   return (
     <div className={`task-card ${task.status} animate-slide-up`}>
@@ -116,6 +117,11 @@ export default function TaskCard({ index, task, onStatusChange, onDelete, onRequ
           {createdFormatted && (
             <span className="task-date-badge">
               📅 Created: {createdFormatted}
+            </span>
+          )}
+          {dueFormatted && (
+            <span className={`task-date-badge ${task.status === 'missed' ? 'task-date-missed' : 'task-date-due'}`}>
+              ⏰ End: {dueFormatted}
             </span>
           )}
           {completedFormatted && task.status === 'done' && (
