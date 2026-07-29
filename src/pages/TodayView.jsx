@@ -62,6 +62,7 @@ export default function TodayView() {
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [showReflectionModal, setShowReflectionModal] = useState(false)
   const [showConfetti, setShowConfetti] = useState(false)
+  const [deletingTaskIds, setDeletingTaskIds] = useState(new Set())
 
   // Filter, Sort & Search States
   const [searchQuery, setSearchQuery] = useState('')
@@ -574,10 +575,16 @@ export default function TodayView() {
     const taskId = isObject ? (taskOrId.id || taskOrId._id) : taskOrId;
     const taskDate = isObject ? (taskOrId.date || taskOrId.dateLabel || currentDateStr) : currentDateStr;
 
+    // Animate out first
+    setDeletingTaskIds(prev => new Set(prev).add(taskId))
+    // Wait for animation to finish (matches CSS taskSlideOut 0.4s)
+    await new Promise(resolve => setTimeout(resolve, 400))
+
     await store.deleteTask(taskDate, taskId)
     await store.fetchAllTasksApi()
     setTasks(store.getTasks(currentDateStr))
     setArchives(store.getAllArchives())
+    setDeletingTaskIds(prev => { const s = new Set(prev); s.delete(taskId); return s; })
   }
 
 
@@ -1268,6 +1275,7 @@ export default function TodayView() {
                     key={task.id || task._id}
                     index={idx + 1}
                     task={task}
+                    isDeleting={deletingTaskIds.has(task.id || task._id)}
                     onStatusChange={(taskId, newStatus) => handleStatusChange(taskId, newStatus)}
                     onDelete={(taskId) => handleDeleteTask(taskId)}
                     onRequestComplete={handleRequestComplete}

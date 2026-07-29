@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { X, Loader2 } from 'lucide-react';
+import { X, Loader2, Check, AlertTriangle, Clock } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useTimer } from '../hooks/useTimer';
 
-export default function TaskCard({ index, task, onStatusChange, onDelete, onRequestComplete, onClaimReward, onAcceptPenalty }) {
+export default function TaskCard({ index, task, onStatusChange, onDelete, onRequestComplete, onClaimReward, onAcceptPenalty, isDeleting }) {
   const { timeLeft, urgencyClass, isOverdue } = useTimer(task.dueDateTime);
   const [claiming, setClaiming] = useState(false);
   const [accepting, setAccepting] = useState(false);
@@ -31,14 +31,15 @@ export default function TaskCard({ index, task, onStatusChange, onDelete, onRequ
   };
 
   const cycleStatus = () => {
+    // Once a task is completed, it stays completed permanently
+    if (task.status === 'done') return;
+
     if (task.status === 'pending' || task.status === 'inprogress' || task.status === 'missed') {
       if (onRequestComplete) {
         onRequestComplete(task);
       } else {
         onStatusChange(task, 'done');
       }
-    } else if (task.status === 'done') {
-      onStatusChange(task, 'pending');
     }
   };
 
@@ -73,71 +74,85 @@ export default function TaskCard({ index, task, onStatusChange, onDelete, onRequ
   const createdFormatted = formatDateSafe(task.createdAt || task.created_at);
   const completedFormatted = formatDateSafe(task.completedAt || task.completed_at);
   const dueFormatted = formatDateSafe(task.dueDateTime || task.due_date_time);
+  const isDone = task.status === 'done';
+  const isMissed = task.status === 'missed';
 
   return (
-    <div className={`task-card ${task.status} animate-slide-up`}>
-      <div className={`task-checkbox ${getCheckboxClass()}`} onClick={cycleStatus}>
-        {task.status === 'done' && '✓'}
-        {task.status === 'missed' && '✕'}
+    <div className={`task-card ${task.status} ${isDeleting ? 'task-exit' : 'task-enter'}`}>
+      {/* Checkbox */}
+      <div
+        className={`task-checkbox ${getCheckboxClass()} ${isDone ? 'locked' : ''}`}
+        onClick={cycleStatus}
+        title={isDone ? 'Task completed' : 'Mark as done'}
+      >
+        {isDone && <Check size={14} strokeWidth={3} />}
+        {isMissed && '✕'}
         {task.status === 'inprogress' && '⟳'}
       </div>
 
+      {/* Content */}
       <div className="task-info">
+        {/* Row 1: Title + Status + Delete */}
         <div className="task-header-row">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
+          <div className="task-title-group">
             {index !== undefined && index !== null && (
               <span className="task-index-num" title={`Task #${index}`}>
                 #{index}
               </span>
             )}
-            <div className={`task-title ${task.status === 'done' ? 'strikethrough' : ''}`}>
+            <span className={`task-title ${isDone ? 'strikethrough' : ''}`}>
               {task.title}
-            </div>
+            </span>
           </div>
           <div className="task-actions-right">
             <div className={`countdown ${urgencyClass}`}>
-              {task.status === 'done' ? <span className="text-success">✓ Done</span> : 
-               task.status === 'missed' ? <span className="text-danger">Missed</span> :
+              {isDone ? <span className="text-success">✓ Done</span> : 
+               isMissed ? <span className="text-danger">Missed</span> :
                timeLeft}
             </div>
             <button className="delete-btn" onClick={() => onDelete(task)} title="Delete Task">
-              <X size={16} />
+              <X size={14} />
             </button>
           </div>
         </div>
 
-        <div className="task-meta">
+        {/* Row 2: Meta badges + dates inline */}
+        <div className="task-meta-row">
           <span className={`badge badge-${task.category.toLowerCase()}`}>{task.category}</span>
-          <span className={`priority-text priority-${task.priority.toLowerCase()}`}>{task.priority} Priority</span>
+          <span className="meta-dot">·</span>
+          <span className={`priority-text priority-${task.priority.toLowerCase()}`}>{task.priority}</span>
           {ratingDisplay && (
-            <span className={`rating-badge ${getRatingBadgeClass()}`}>
-              ★ {task.rating}/{maxR}
-            </span>
+            <>
+              <span className="meta-dot">·</span>
+              <span className={`rating-badge ${getRatingBadgeClass()}`}>
+                ★ {task.rating}/{maxR}
+              </span>
+            </>
           )}
-        </div>
-
-        {(createdFormatted || dueFormatted || (completedFormatted && task.status === 'done')) && (
-          <div className="task-dates-row">
-            {(createdFormatted || dueFormatted) && (
-              <span className="task-dates-range">
+          {(createdFormatted || dueFormatted) && (
+            <>
+              <span className="meta-dot">·</span>
+              <span className="task-dates-inline">
                 {createdFormatted && <span>{createdFormatted}</span>}
                 {createdFormatted && dueFormatted && <span className="dates-arrow">→</span>}
                 {dueFormatted && (
-                  <span className={`task-date-due ${task.status === 'missed' ? 'task-date-missed' : ''}`}>
+                  <span className={isMissed ? 'task-date-missed' : 'task-date-due'}>
                     {dueFormatted}
                   </span>
                 )}
               </span>
-            )}
-            {completedFormatted && task.status === 'done' && (
-              <span className="task-date-completed">
-                ✔️ {completedFormatted}
-              </span>
-            )}
-          </div>
-        )}
+            </>
+          )}
+          {completedFormatted && isDone && (
+            <>
+              <span className="meta-dot">·</span>
+              <span className="task-date-completed">✔ {completedFormatted}</span>
+            </>
+          )}
+        </div>
 
-        {task.status === 'done' && (task.reward || task.penalty) && (
+        {/* Row 3: Reward / Penalty */}
+        {isDone && (task.reward || task.penalty) && (
           <div className="task-reward-row">
             {task.reward && (() => {
               const isClaimed = task.rewardClaimed === true || task.rewardClaimed === 1 || task.rewardClaimed === '1' ||
