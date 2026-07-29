@@ -1296,8 +1296,7 @@ export default function TodayView() {
         aria-label="Add Task"
         title="Add New Task"
       >
-        <Plus size={24} />
-        <span className="fab-text">Add Task</span>
+        <Plus size={28} />
       </button>
 
       {showAddModal && (
