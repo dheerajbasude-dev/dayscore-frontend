@@ -3,7 +3,7 @@ import { X, Loader2, Check, AlertTriangle, Clock } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useTimer } from '../hooks/useTimer';
 
-export default function TaskCard({ index, task, onStatusChange, onDelete, onRequestComplete, onClaimReward, onAcceptPenalty, isDeleting }) {
+export default function TaskCard({ index, task, onStatusChange, onDelete, onRequestComplete, onClaimReward, onAcceptPenalty, isDeleting, animDelay = 0 }) {
   const { timeLeft, urgencyClass, isOverdue } = useTimer(task.dueDateTime);
   const [claiming, setClaiming] = useState(false);
   const [accepting, setAccepting] = useState(false);
@@ -78,7 +78,10 @@ export default function TaskCard({ index, task, onStatusChange, onDelete, onRequ
   const isMissed = task.status === 'missed';
 
   return (
-    <div className={`task-card ${task.status} ${isDeleting ? 'task-exit' : 'task-enter'}`}>
+    <div 
+      className={`task-card ${task.status} ${isDeleting ? 'task-exit' : 'task-enter'}`}
+      style={{ animationDelay: isDeleting ? '0s' : `${animDelay}s` }}
+    >
       {/* Checkbox */}
       <div
         className={`task-checkbox ${getCheckboxClass()} ${isDone ? 'locked' : ''}`}

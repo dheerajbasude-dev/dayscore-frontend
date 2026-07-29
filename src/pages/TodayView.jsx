@@ -1275,6 +1275,7 @@ export default function TodayView() {
                     key={task.id || task._id}
                     index={idx + 1}
                     task={task}
+                    animDelay={Math.min(idx * 0.04, 0.3)}
                     isDeleting={deletingTaskIds.has(task.id || task._id)}
                     onStatusChange={(taskId, newStatus) => handleStatusChange(taskId, newStatus)}
                     onDelete={(taskId) => handleDeleteTask(taskId)}

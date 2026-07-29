@@ -2014,6 +2014,17 @@ body {
   color: var(--text-primary);
 }
 
+.btn:active,
+.btn-icon:active,
+.segmented-option:active,
+.reflection-chip:active,
+.fab:active,
+.badge-action-btn:active,
+.theme-toggle:active {
+  transform: scale(0.94);
+  transition: transform 0.1s ease;
+}
+
 /* Segmented Control */
 .segmented {
   display: flex;
@@ -2036,7 +2047,7 @@ body {
   padding: 8px 8px;
   border-radius: calc(var(--radius-md) - 3px);
   cursor: pointer;
-  transition: all var(--transition-normal);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   font-size: 0.78rem;
   font-weight: 500;
   color: var(--text-secondary);
@@ -2064,7 +2075,8 @@ body {
 .segmented-option.active {
   background: var(--accent-primary);
   color: #fff;
-  box-shadow: 0 2px 8px rgba(var(--accent-primary-rgb), 0.3);
+  box-shadow: 0 2px 10px rgba(var(--accent-primary-rgb), 0.4);
+  transform: scale(1.02);
 }
 
 /* ==========================================================================
@@ -2245,7 +2257,13 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  transition: border-color var(--transition-normal);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--border-glass-hover);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
 }
 
 @media (min-width: 480px) {
