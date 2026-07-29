@@ -82,156 +82,158 @@ export default function RatingSliderModal({ task, onConfirm, onCancel }) {
           </button>
         </div>
 
-        <div className="rating-task-info">
-          <span className="rating-task-title">{task.title}</span>
-          <div className="rating-status-badge-row">
-            <span className={`badge badge-${(task.category || 'work').toLowerCase()}`}>{task.category}</span>
-            {isOverdue ? (
-              <span className="rating-overdue-badge">
-                <AlertTriangle size={13} /> Overdue
-              </span>
-            ) : (
-              <span className="rating-ontime-badge">
-                <Clock size={13} /> On Time
-              </span>
-            )}
+        <div className="modal-form-scroll">
+          <div className="rating-task-info">
+            <span className="rating-task-title">{task.title}</span>
+            <div className="rating-status-badge-row">
+              <span className={`badge badge-${(task.category || 'work').toLowerCase()}`}>{task.category}</span>
+              {isOverdue ? (
+                <span className="rating-overdue-badge">
+                  <AlertTriangle size={13} /> Overdue
+                </span>
+              ) : (
+                <span className="rating-ontime-badge">
+                  <Clock size={13} /> On Time
+                </span>
+              )}
+            </div>
           </div>
-        </div>
 
-        {isOverdue ? (
-          <div className="rating-overdue-notice">
-            <AlertTriangle size={16} />
-            <span>Due datetime has passed — rating capped at max <strong>3</strong></span>
+          {isOverdue ? (
+            <div className="rating-overdue-notice">
+              <AlertTriangle size={16} />
+              <span>Due datetime has passed — rating capped at max <strong>3</strong></span>
+            </div>
+          ) : (
+            <div className="rating-ontime-notice">
+              <Clock size={16} />
+              <span>Click stars or 0.0 to rate effort (0 to <strong>10</strong>)</span>
+            </div>
+          )}
+
+          <div className="rating-display" style={{ margin: '12px 0 8px 0' }}>
+            <span className="rating-emoji">{getEmoji()}</span>
+            <span className="rating-value" style={{ color: getRatingColor(), fontSize: '2.4rem', fontWeight: '800' }}>
+              {activeRating % 1 === 0 ? activeRating.toFixed(0) : activeRating.toFixed(1)}
+            </span>
+            <span className="rating-max" style={{ fontSize: '1.2rem' }}>/ {maxRating}</span>
           </div>
-        ) : (
-          <div className="rating-ontime-notice">
-            <Clock size={16} />
-            <span>Click stars or 0.0 to rate effort (0 to <strong>10</strong>)</span>
+
+          {/* Zero Effort Chip */}
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '4px' }}>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => setRating(0)}
+              onMouseEnter={() => setHoverRating(0)}
+              style={{
+                padding: '4px 12px',
+                fontSize: '0.8rem',
+                borderRadius: '20px',
+                border: activeRating === 0 ? '1px solid #f87171' : '1px solid var(--border-glass)',
+                background: activeRating === 0 ? 'rgba(248, 113, 113, 0.18)' : 'var(--bg-glass-light)',
+                color: activeRating === 0 ? '#f87171' : 'var(--text-muted)',
+                fontWeight: activeRating === 0 ? '700' : '500',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              0.0 (Zero Effort)
+            </button>
           </div>
-        )}
 
-        <div className="rating-display" style={{ margin: '20px 0 12px 0' }}>
-          <span className="rating-emoji">{getEmoji()}</span>
-          <span className="rating-value" style={{ color: getRatingColor(), fontSize: '2.4rem', fontWeight: '800' }}>
-            {activeRating % 1 === 0 ? activeRating.toFixed(0) : activeRating.toFixed(1)}
-          </span>
-          <span className="rating-max" style={{ fontSize: '1.2rem' }}>/ {maxRating}</span>
-        </div>
-
-        {/* Zero Effort Chip */}
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
-            onClick={() => setRating(0)}
-            onMouseEnter={() => setHoverRating(0)}
-            style={{
-              padding: '4px 12px',
-              fontSize: '0.8rem',
-              borderRadius: '20px',
-              border: activeRating === 0 ? '1px solid #f87171' : '1px solid var(--border-glass)',
-              background: activeRating === 0 ? 'rgba(248, 113, 113, 0.18)' : 'var(--bg-glass-light)',
-              color: activeRating === 0 ? '#f87171' : 'var(--text-muted)',
-              fontWeight: activeRating === 0 ? '700' : '500',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease'
+          {/* Pure Interactive 10-Star Rating Bar */}
+          <div 
+            className="star-rating-bar"
+            onMouseLeave={() => setHoverRating(null)}
+            style={{ 
+              display: 'flex', 
+              justifyContent: 'center', 
+              alignItems: 'center', 
+              gap: isOverdue ? '12px' : '6px', 
+              padding: '12px 8px',
+              background: 'var(--bg-glass-light)',
+              borderRadius: 'var(--radius-lg)',
+              border: '1px solid var(--border-glass)',
+              margin: '4px 0 8px 0',
+              flexWrap: 'wrap'
             }}
           >
-            0.0 (Zero Effort)
-          </button>
-        </div>
+            {Array.from({ length: maxRating }).map((_, idx) => {
+              const starNum = idx + 1;
+              const isFull = starNum <= activeRating;
+              const isHalf = starNum - 0.5 === activeRating;
 
-        {/* Pure Interactive 10-Star Rating Bar */}
-        <div 
-          className="star-rating-bar"
-          onMouseLeave={() => setHoverRating(null)}
-          style={{ 
-            display: 'flex', 
-            justifyContent: 'center', 
-            alignItems: 'center', 
-            gap: isOverdue ? '12px' : '6px', 
-            padding: '16px 8px',
-            background: 'var(--bg-glass-light)',
-            borderRadius: 'var(--radius-lg)',
-            border: '1px solid var(--border-glass)',
-            margin: '4px 0 16px 0',
-            flexWrap: 'wrap'
-          }}
-        >
-          {Array.from({ length: maxRating }).map((_, idx) => {
-            const starNum = idx + 1;
-            const isFull = starNum <= activeRating;
-            const isHalf = starNum - 0.5 === activeRating;
-
-            return (
-              <div 
-                key={starNum}
-                style={{ 
-                  position: 'relative', 
-                  width: `${starSize}px`, 
-                  height: `${starSize}px`, 
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'transform 0.15s ease',
-                  transform: (isFull || isHalf) ? 'scale(1.08)' : 'scale(1)'
-                }}
-              >
-                {/* Left Half Click/Hover Zone */}
+              return (
                 <div 
+                  key={starNum}
                   style={{ 
-                    position: 'absolute', 
-                    top: 0, 
-                    left: 0, 
-                    width: '50%', 
-                    height: '100%', 
-                    zIndex: 10 
+                    position: 'relative', 
+                    width: `${starSize}px`, 
+                    height: `${starSize}px`, 
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'transform 0.15s ease',
+                    transform: (isFull || isHalf) ? 'scale(1.08)' : 'scale(1)'
                   }}
-                  onMouseEnter={() => setHoverRating(starNum - 0.5)}
-                  onClick={() => setRating(starNum - 0.5)}
-                  title={`Rate ${starNum - 0.5}`}
-                />
-
-                {/* Right Half Click/Hover Zone */}
-                <div 
-                  style={{ 
-                    position: 'absolute', 
-                    top: 0, 
-                    right: 0, 
-                    width: '50%', 
-                    height: '100%', 
-                    zIndex: 10 
-                  }}
-                  onMouseEnter={() => setHoverRating(starNum)}
-                  onClick={() => setRating(starNum)}
-                  title={`Rate ${starNum}`}
-                />
-
-                {/* Star SVG Rendering */}
-                {isHalf ? (
-                  <div style={{ position: 'relative', width: `${starSize}px`, height: `${starSize}px` }}>
-                    <Star size={starSize} stroke="var(--text-muted)" fill="none" />
-                    <div style={{ position: 'absolute', top: 0, left: 0, width: '50%', overflow: 'hidden' }}>
-                      <Star size={starSize} stroke={getRatingColor()} fill={getRatingColor()} />
-                    </div>
-                  </div>
-                ) : (
-                  <Star
-                    size={starSize}
-                    fill={isFull ? getRatingColor() : 'none'}
-                    stroke={isFull ? getRatingColor() : 'var(--text-muted)'}
-                    style={{ transition: 'all 0.2s ease' }}
+                >
+                  {/* Left Half Click/Hover Zone */}
+                  <div 
+                    style={{ 
+                      position: 'absolute', 
+                      top: 0, 
+                      left: 0, 
+                      width: '50%', 
+                      height: '100%', 
+                      zIndex: 10 
+                    }}
+                    onMouseEnter={() => setHoverRating(starNum - 0.5)}
+                    onClick={() => setRating(starNum - 0.5)}
+                    title={`Rate ${starNum - 0.5}`}
                   />
-                )}
-              </div>
-            );
-          })}
-        </div>
 
-        <p style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0 0 16px 0' }}>
-          💡 Click "<strong>0.0 (Zero Effort)</strong>" or click stars (half star <strong>0.5</strong>, full star <strong>1.0</strong>)
-        </p>
+                  {/* Right Half Click/Hover Zone */}
+                  <div 
+                    style={{ 
+                      position: 'absolute', 
+                      top: 0, 
+                      right: 0, 
+                      width: '50%', 
+                      height: '100%', 
+                      zIndex: 10 
+                    }}
+                    onMouseEnter={() => setHoverRating(starNum)}
+                    onClick={() => setRating(starNum)}
+                    title={`Rate ${starNum}`}
+                  />
+
+                  {/* Star SVG Rendering */}
+                  {isHalf ? (
+                    <div style={{ position: 'relative', width: `${starSize}px`, height: `${starSize}px` }}>
+                      <Star size={starSize} stroke="var(--text-muted)" fill="none" />
+                      <div style={{ position: 'absolute', top: 0, left: 0, width: '50%', overflow: 'hidden' }}>
+                        <Star size={starSize} stroke={getRatingColor()} fill={getRatingColor()} />
+                      </div>
+                    </div>
+                  ) : (
+                    <Star
+                      size={starSize}
+                      fill={isFull ? getRatingColor() : 'none'}
+                      stroke={isFull ? getRatingColor() : 'var(--text-muted)'}
+                      style={{ transition: 'all 0.2s ease' }}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <p style={{ textAlign: 'center', fontSize: '0.78rem', color: 'var(--text-muted)', margin: '0' }}>
+            💡 Click "<strong>0.0 (Zero Effort)</strong>" or click stars (half star <strong>0.5</strong>, full star <strong>1.0</strong>)
+          </p>
+        </div>
 
         <div className="modal-footer">
           <button type="button" className="btn btn-secondary" onClick={onCancel} disabled={submitting}>
