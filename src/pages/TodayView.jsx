@@ -1290,15 +1290,15 @@ export default function TodayView() {
         </>
       )}
 
-      {isToday && (
-        <button
-          className="fab"
-          onClick={handleOpenAddModal}
-          aria-label="Add Task"
-        >
-          <Plus size={28} />
-        </button>
-      )}
+      <button
+        className="fab"
+        onClick={handleOpenAddModal}
+        aria-label="Add Task"
+        title="Add New Task"
+      >
+        <Plus size={22} strokeWidth={2.5} />
+        <span className="fab-text">New Task</span>
+      </button>
 
       {showAddModal && (
         <AddTaskModal
