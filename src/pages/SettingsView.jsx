@@ -339,7 +339,7 @@ export default function SettingsView() {
             ) : (
               <div className="settings-template-grid">
                 {templates.map((t, idx) => (
-                  <div key={t.id} className="settings-template-card">
+                  <div key={t.id} className="settings-template-card animate-slide-up" style={{ animationDelay: `${Math.min(idx * 0.04, 0.3)}s` }}>
                     <div className="settings-template-card-main">
                       <div className="settings-template-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span style={{ fontSize: '0.72rem', fontWeight: '800', color: 'var(--accent-primary)', background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '1px 5px', flexShrink: 0 }}>

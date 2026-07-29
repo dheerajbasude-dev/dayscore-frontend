@@ -144,10 +144,10 @@ export default function RewardsView() {
 
             <ul className="rewards-list">
               {rewards.length === 0 ? (
-                <li className="card-glass rewards-list-empty">No rewards added yet.</li>
+                <li className="card-glass rewards-list-empty animate-slide-up">No rewards added yet.</li>
               ) : (
                 rewards.map((r, i) => (
-                  <li key={i} className="rewards-list-item">
+                  <li key={i} className="rewards-list-item animate-slide-up" style={{ animationDelay: `${Math.min(i * 0.04, 0.3)}s` }}>
                     <span>{r}</span>
                     <button onClick={() => handleDeleteReward(i)} className="btn-icon" style={{ color: 'var(--accent-danger)' }}>
                       <Trash2 size={18} />
@@ -179,10 +179,10 @@ export default function RewardsView() {
 
             <ul className="rewards-list">
               {punishments.length === 0 ? (
-                <li className="card-glass rewards-list-empty">No penalties added yet.</li>
+                <li className="card-glass rewards-list-empty animate-slide-up">No penalties added yet.</li>
               ) : (
                 punishments.map((p, i) => (
-                  <li key={i} className="rewards-list-item">
+                  <li key={i} className="rewards-list-item animate-slide-up" style={{ animationDelay: `${Math.min(i * 0.04, 0.3)}s` }}>
                     <span>{p}</span>
                     <button onClick={() => handleDeletePunishment(i)} className="btn-icon" style={{ color: 'var(--accent-danger)' }}>
                       <Trash2 size={18} />
@@ -197,8 +197,8 @@ export default function RewardsView() {
           <section>
             <h2 className="rewards-section-title">🔥 Streak Milestones</h2>
             <div className="milestones-grid">
-              {milestoneDays.map(days => (
-                <div key={days} className="card-glass milestone-card">
+              {milestoneDays.map((days, idx) => (
+                <div key={days} className="card-glass milestone-card animate-slide-up" style={{ animationDelay: `${idx * 0.05}s` }}>
                   <div className="milestone-header">
                     <span className="milestone-days">{days} Days</span>
                     {editingMilestone !== days ? (
