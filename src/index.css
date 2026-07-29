@@ -2197,6 +2197,13 @@ body {
   background: var(--accent-success);
 }
 
+.heatmap-cell-today {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 1px;
+  box-shadow: 0 0 8px rgba(var(--accent-primary-rgb), 0.6);
+  z-index: 1;
+}
+
 /* ==========================================================================
    Stats Cards
    ========================================================================== */
