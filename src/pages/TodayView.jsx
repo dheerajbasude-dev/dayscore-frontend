@@ -893,7 +893,7 @@ export default function TodayView() {
   const displayLabel = viewMode === 'all' ? 'Total Avg Score' : 'Daily Score';
 
   return (
-    <div className="today-view">
+    <div className="today-view animate-slide-up">
 
       {/* First Visit Notification Banner for Unfinished Days */}
       {showPastPendingBanner && pastUnfinishedDates.length > 0 && (

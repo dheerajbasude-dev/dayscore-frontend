@@ -32,6 +32,7 @@ export default function ScoreRing({
   return (
     <div className="card-glass score-ring-card">
       <div className="score-ring-wrapper">
+        <div className="score-ring-ambient-glow" style={{ background: glowColor }} />
         <svg className="score-ring-svg" viewBox={`0 0 ${size} ${size}`}>
           <circle
             className="score-ring-bg"
@@ -72,7 +73,6 @@ export default function ScoreRing({
           )}
         </div>
       </div>
-
     </div>
   );
 }

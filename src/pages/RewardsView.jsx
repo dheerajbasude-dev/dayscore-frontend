@@ -95,7 +95,7 @@ export default function RewardsView() {
   const milestoneDays = [7, 14, 30, 100]
 
   return (
-    <div className="rewards-view">
+    <div className="rewards-view animate-slide-up">
       <h1 className="rewards-title">🎁 Rewards & Penalties</h1>
 
       {loading ? (

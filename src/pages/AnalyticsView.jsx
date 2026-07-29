@@ -232,7 +232,7 @@ export default function AnalyticsView() {
   };
 
   return (
-    <div className="analytics-view">
+    <div className="analytics-view animate-slide-up">
       <h1 className="analytics-title">📊 Analytics</h1>
       
       <StatsCards 

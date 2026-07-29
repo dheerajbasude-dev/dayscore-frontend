@@ -231,7 +231,7 @@ export default function SettingsView() {
   )
 
   return (
-    <div className="settings-view">
+    <div className="settings-view animate-slide-up">
 
       <div className="settings-header-banner">
         <div className="settings-header-icon-wrapper">
