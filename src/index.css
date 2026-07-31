@@ -1579,12 +1579,18 @@ body {
    Modal Design System (Responsive, Non-Clipping Flex Layout)
    ========================================================================== */
 
-/* Allow body scrolling when modals are open */
+/* ==========================================================================
+   Modal Design System (Centralized Non-Clipping Flex Layout)
+   ========================================================================== */
+
+/* Lock body scrolling completely when any modal is open */
 body.modal-open,
 body.modal-open html,
 body.modal-open .main-content,
 body.modal-open .app-layout {
-  overflow-y: auto !important;
+  overflow: hidden !important;
+  touch-action: none;
+  overscroll-behavior: contain;
 }
 
 .modal-overlay {
@@ -1594,30 +1600,29 @@ body.modal-open .app-layout {
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   z-index: 999999 !important;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start !important;
-  padding: 40px 16px 24px 16px;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  padding: 24px 16px;
   animation: fadeIn 0.2s ease-out;
-  overflow-y: auto !important;
-  -webkit-overflow-scrolling: touch;
+  overflow: hidden !important;
 }
 
 .modal-content {
   background: var(--bg-secondary);
   border: 1px solid var(--border-glass-hover);
   border-radius: var(--radius-xl);
-  padding: 20px 22px;
+  padding: 22px 24px;
   width: 100%;
   max-width: 500px;
   max-height: min(85vh, 85dvh) !important;
   display: flex !important;
   flex-direction: column !important;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.75);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8), 0 0 32px rgba(var(--accent-primary-rgb), 0.15);
   animation: modalPopIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
   overflow: hidden !important;
-  margin: 0 auto;
+  margin: auto !important;
 }
 
 .modal-header {
@@ -1687,27 +1692,25 @@ body.modal-open .app-layout {
   width: 100%;
 }
 
-/* Mobile & Tablet Modal Responsive Styles */
+/* Mobile & Tablet Central Modal Styles */
 @media (max-width: 1023px) {
   .modal-overlay {
-    padding: 0 !important;
-    align-items: flex-end !important;
+    padding: 16px !important;
+    align-items: center !important;
     justify-content: center !important;
     z-index: 999999 !important;
-    overflow-y: auto !important;
+    overflow: hidden !important;
   }
 
   .modal-content {
     width: 100% !important;
-    max-width: 100% !important;
-    margin: 0 !important;
-    border-radius: 24px 24px 0 0 !important;
-    border-left: none !important;
-    border-right: none !important;
-    border-bottom: none !important;
-    padding: 14px 18px max(20px, env(safe-area-inset-bottom)) 18px !important;
-    max-height: min(90vh, 90dvh) !important;
-    box-shadow: 0 -12px 48px rgba(0, 0, 0, 0.85) !important;
+    max-width: 480px !important;
+    margin: auto !important;
+    border-radius: 24px !important;
+    padding: 18px 20px max(18px, env(safe-area-inset-bottom)) 20px !important;
+    max-height: min(88vh, 88dvh) !important;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.85) !important;
+  }
     animation: modalSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
     overflow: hidden !important;
   }
