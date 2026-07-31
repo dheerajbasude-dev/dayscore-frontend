@@ -250,16 +250,6 @@ export default function TodayView() {
     return Array.from(dateSet).sort();
   }, [archives, tasks, todayStr]);
 
-  // Auto-snap away from empty dates without data (unless it's todayStr)
-  useEffect(() => {
-    if (!loading && currentDateStr !== todayStr && !validTaskDates.includes(currentDateStr)) {
-      const closest = validTaskDates.reduce((prev, curr) => {
-        return Math.abs(new Date(curr) - new Date(currentDateStr)) < Math.abs(new Date(prev) - new Date(currentDateStr)) ? curr : prev;
-      }, todayStr);
-      setCurrentDateStr(closest);
-    }
-  }, [currentDateStr, validTaskDates, todayStr, loading]);
-
   const minAvailableDate = validTaskDates.length > 0 ? validTaskDates[0] : todayStr;
   const canGoPrev = currentDateStr > minAvailableDate && validTaskDates.some(d => d < currentDateStr);
   const canGoNext = currentDateStr < todayStr && validTaskDates.some(d => d > currentDateStr);
@@ -1186,45 +1176,20 @@ export default function TodayView() {
 
                 <div className="date-picker-wrapper" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'var(--bg-glass-light)', padding: '4px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-glass)' }}>
                   <Calendar size={15} style={{ color: 'var(--accent-primary)', flexShrink: 0 }} />
-                  <select
+                  <input
+                    type="date"
                     value={currentDateStr}
+                    min={minAvailableDate}
+                    max={todayStr}
                     onChange={(e) => {
                       const val = e.target.value;
-                      if (val && validTaskDates.includes(val)) {
+                      if (val && val >= minAvailableDate && val <= todayStr) {
                         setCurrentDateStr(val);
                       }
                     }}
-                    className="date-picker-select"
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      color: 'var(--text-primary)',
-                      fontWeight: '600',
-                      fontSize: '0.9rem',
-                      cursor: 'pointer',
-                      fontFamily: 'inherit',
-                      outline: 'none'
-                    }}
-                  >
-                    {validTaskDates.map((d) => {
-                      const isToday = d === todayStr;
-                      const arc = (archives || []).find(a => a.date === d);
-                      const count = arc && Array.isArray(arc.tasks) ? arc.tasks.length : (d === todayStr ? tasks.length : 0);
-                      let label = d;
-                      try {
-                        const parsed = parseISO(d);
-                        if (!isNaN(parsed.getTime())) {
-                          label = format(parsed, 'MMM dd, yyyy');
-                        }
-                      } catch (e) {}
-
-                      return (
-                        <option key={d} value={d} style={{ background: '#1e1b4b', color: '#fff' }}>
-                          {isToday ? `Today (${label})` : `${label} (${count} ${count === 1 ? 'task' : 'tasks'})`}
-                        </option>
-                      );
-                    })}
-                  </select>
+                    className="date-picker-input"
+                    style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer', fontFamily: 'inherit' }}
+                  />
                 </div>
 
                 <button
