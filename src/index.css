@@ -1710,7 +1710,6 @@ body.modal-open .app-layout {
     padding: 18px 20px max(18px, env(safe-area-inset-bottom)) 20px !important;
     max-height: min(88vh, 88dvh) !important;
     box-shadow: 0 16px 48px rgba(0, 0, 0, 0.85) !important;
-  }
     animation: modalSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
     overflow: hidden !important;
   }
