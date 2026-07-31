@@ -7,8 +7,8 @@ export default function ScoreRing({
   details = {},
   label = 'Daily Score'
 }) {
-  const radius = 58;
-  const strokeWidth = 9;
+  const radius = 70;
+  const strokeWidth = 10;
   const circumference = 2 * Math.PI * radius;
   const safeScore = Math.max(0, Math.min(10, score));
   const offset = circumference - (safeScore / 10) * circumference;
@@ -68,7 +68,7 @@ export default function ScoreRing({
             </div>
           ) : (
             <div className="streak-badge streak-badge-inactive">
-              ⚡ Complete a task to start streak!
+              ⚡ Start Streak
             </div>
           )}
         </div>

@@ -653,9 +653,9 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 10px 14px;
+  padding: 14px 18px;
   position: relative;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   background: var(--bg-glass);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -667,15 +667,15 @@ body {
 
 @media (min-width: 480px) {
   .score-ring-card {
-    padding: 12px 16px;
-    margin-bottom: 10px;
+    padding: 16px 20px;
+    margin-bottom: 14px;
   }
 }
 
 .score-ring-wrapper {
   position: relative;
-  width: 135px;
-  height: 135px;
+  width: 175px;
+  height: 175px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -684,23 +684,23 @@ body {
 
 @media (max-width: 380px) {
   .score-ring-wrapper {
-    width: 120px;
-    height: 120px;
+    width: 160px;
+    height: 160px;
   }
 }
 
 @media (min-width: 480px) {
   .score-ring-wrapper {
-    width: 145px;
-    height: 145px;
+    width: 185px;
+    height: 185px;
   }
 }
 
 .score-ring-ambient-glow {
   position: absolute;
-  inset: 10px;
+  inset: 12px;
   border-radius: 50%;
-  filter: blur(24px);
+  filter: blur(28px);
   opacity: 0.45;
   z-index: 0;
   transition: background 0.6s ease, opacity 0.6s ease;
@@ -722,12 +722,12 @@ body {
 .score-ring-bg {
   fill: none;
   stroke: var(--bg-tertiary);
-  stroke-width: 9;
+  stroke-width: 10;
 }
 
 .score-ring-progress {
   fill: none;
-  stroke-width: 9;
+  stroke-width: 10;
   stroke-linecap: round;
   transition: stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.5s ease;
   filter: none;
@@ -746,7 +746,7 @@ body {
 }
 
 .score-value {
-  font-size: clamp(1.5rem, 4.5vw, 2.1rem);
+  font-size: clamp(2rem, 5.5vw, 2.6rem);
   font-weight: 900;
   color: var(--text-primary);
   line-height: 1;
@@ -754,33 +754,36 @@ body {
   display: flex;
   align-items: baseline;
   justify-content: center;
-  gap: 1px;
+  gap: 2px;
 }
 
 .score-value-max {
-  font-size: clamp(0.72rem, 1.8vw, 0.85rem);
+  font-size: clamp(0.78rem, 2vw, 0.95rem);
   color: var(--text-muted);
   font-weight: 700;
 }
 
 .score-label {
-  font-size: 0.64rem;
+  font-size: 0.68rem;
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.1em;
   font-weight: 800;
-  margin-top: 2px;
+  margin-top: 3px;
 }
 
 .streak-badge {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 3px;
-  font-size: 0.68rem;
+  font-size: 0.65rem;
   font-weight: 700;
   padding: 2px 7px;
   border-radius: 12px;
-  margin-top: 4px;
+  margin-top: 3px;
+  max-width: 78%;
+  white-space: nowrap;
   transition: all 0.3s ease;
 }
 
