@@ -1553,17 +1553,19 @@ body {
 @media (min-width: 1024px) {
   .fab {
     display: flex !important;
-    position: fixed !important;
-    bottom: 36px !important;
-    right: 36px !important;
-    z-index: 9999 !important;
-    width: 58px;
-    height: 58px;
+    position: sticky;
+    bottom: 32px;
+    right: 32px;
+    float: right;
+    margin-left: auto;
+    z-index: 95;
+    width: 56px;
+    height: 56px;
     border-radius: 50%;
     background: linear-gradient(135deg, var(--accent-primary, #6366f1), #4f46e5);
     color: #ffffff;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    box-shadow: 0 10px 30px rgba(99, 102, 241, 0.55), 0 0 0 1px rgba(99, 102, 241, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    box-shadow: 0 8px 24px rgba(99, 102, 241, 0.5);
     cursor: pointer;
     align-items: center;
     justify-content: center;
@@ -1576,7 +1578,7 @@ body {
 
   .fab:hover {
     transform: translateY(-3px) scale(1.08);
-    box-shadow: 0 14px 36px rgba(99, 102, 241, 0.7);
+    box-shadow: 0 12px 32px rgba(99, 102, 241, 0.65);
   }
 
   .fab:active {
