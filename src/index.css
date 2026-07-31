@@ -1553,7 +1553,7 @@ body {
 }
 
 /* ==========================================================================
-   Modal
+   Modal Design System (Responsive, Non-Clipping Flex Layout)
    ========================================================================== */
 
 /* Body & container scroll lock when any modal is open */
@@ -1576,9 +1576,9 @@ body.modal-open .app-layout {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
+  padding: 20px 16px;
   animation: fadeIn 0.2s ease-out;
-  overflow: hidden;
+  overflow-y: auto;
   touch-action: none;
   overscroll-behavior: contain;
 }
@@ -1587,17 +1587,35 @@ body.modal-open .app-layout {
   background: var(--bg-secondary);
   border: 1px solid var(--border-glass-hover);
   border-radius: var(--radius-xl);
-  padding: 18px 20px;
+  padding: 20px 22px;
   width: 100%;
   max-width: 500px;
-  max-height: 85vh;
-  max-height: 85dvh;
+  max-height: min(88vh, 88dvh);
   display: flex;
   flex-direction: column;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.75);
   animation: modalPopIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
   overflow: hidden;
+  margin: auto;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-glass);
+  margin-bottom: 12px;
+  flex-shrink: 0;
+  width: 100%;
+}
+
+.modal-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
 }
 
 .modal-form-body {
@@ -1611,32 +1629,25 @@ body.modal-open .app-layout {
 .modal-form-scroll {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   overflow-y: auto;
-  padding: 2px 2px 8px 2px;
-  max-height: calc(85dvh - 120px);
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--border-glass);
-  margin-bottom: 10px;
-  flex-shrink: 0;
+  padding: 4px 2px 10px 2px;
+  flex: 1;
+  min-height: 0;
 }
 
 .modal-footer {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-  padding-top: 10px;
+  padding-top: 12px;
   border-top: 1px solid var(--border-glass);
   margin-top: auto;
   flex-shrink: 0;
+  width: 100%;
 }
 
+/* Mobile & Tablet Modal Responsive Styles */
 @media (max-width: 1023px) {
   .modal-overlay {
     padding: 0 !important;
@@ -1653,9 +1664,9 @@ body.modal-open .app-layout {
     border-left: none !important;
     border-right: none !important;
     border-bottom: none !important;
-    padding: 16px 16px max(20px, env(safe-area-inset-bottom)) 16px !important;
-    max-height: 85vh !important;
-    max-height: 85dvh !important;
+    padding: 14px 18px max(20px, env(safe-area-inset-bottom)) 18px !important;
+    max-height: 88vh !important;
+    max-height: 88dvh !important;
     box-shadow: 0 -12px 48px rgba(0, 0, 0, 0.85) !important;
   }
 
@@ -1666,13 +1677,18 @@ body.modal-open .app-layout {
     height: 4px;
     background: rgba(255, 255, 255, 0.25);
     border-radius: 2px;
-    margin: 0 auto 10px auto;
+    margin: 0 auto 12px auto;
     flex-shrink: 0;
   }
 
+  .modal-header {
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+  }
+
   .modal-form-scroll {
-    max-height: calc(85dvh - 110px) !important;
-    gap: 8px;
+    gap: 10px;
+    padding: 2px 0 10px 0;
   }
 }
 
