@@ -3886,7 +3886,7 @@ body {
     border-radius: 6px !important;
   }
 
-  .date-picker-input {
+  .date-picker-input, .date-picker-select {
     font-size: 0.72rem !important;
     width: 100% !important;
     text-align: center !important;
