@@ -383,27 +383,6 @@ export default function MissedTasksModal({
                                   Move to Today
                                 </button>
 
-                                {/* Complete Button */}
-                                <button
-                                  className="btn btn-secondary btn-sm"
-                                  onClick={() => handleComplete(t)}
-                                  disabled={isProcessing}
-                                  style={{
-                                    fontSize: '0.78rem',
-                                    padding: '5px 10px',
-                                    background: 'rgba(16, 185, 129, 0.15)',
-                                    border: '1px solid rgba(16, 185, 129, 0.3)',
-                                    color: '#34d399',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '4px'
-                                  }}
-                                  title="Mark completed for that date"
-                                >
-                                  <CheckCircle2 size={13} />
-                                  Done
-                                </button>
-
                                 {/* Delete Button */}
                                 <button
                                   className="btn-icon"
