@@ -542,9 +542,100 @@ export function getStreakMilestoneRewards() {
   return data ? JSON.parse(data) : { 7: '', 14: '', 30: '', 100: '' };
 }
 
-export function saveStreakMilestoneRewards(milestones) {
+export function getClaimedStreakMilestones() {
   const uid = getUserId();
-  localStorage.setItem(`dayscore_${uid}_streak_milestones`, JSON.stringify(milestones));
+  const data = localStorage.getItem(`dayscore_${uid}_claimed_streak_milestones`);
+  return data ? JSON.parse(data) : { 7: false, 14: false, 30: false, 100: false };
+}
+
+export function saveStreakMilestoneRewards(milestones, claimed = null) {
+  const uid = getUserId();
+  if (milestones) {
+    localStorage.setItem(`dayscore_${uid}_streak_milestones`, JSON.stringify(milestones));
+  }
+  if (claimed) {
+    localStorage.setItem(`dayscore_${uid}_claimed_streak_milestones`, JSON.stringify(claimed));
+  }
+}
+
+export async function fetchStreakMilestonesApi() {
+  const token = getToken();
+  if (!token) {
+    return {
+      milestones: getStreakMilestoneRewards(),
+      claimed: getClaimedStreakMilestones()
+    };
+  }
+
+  try {
+    const res = await authFetch('/api/streak-milestones');
+    if (res.ok) {
+      const data = await res.json();
+      const milestones = data.milestones || { 7: '', 14: '', 30: '', 100: '' };
+      const claimed = data.claimed_milestones || { 7: false, 14: false, 30: false, 100: false };
+      saveStreakMilestoneRewards(milestones, claimed);
+      return { milestones, claimed };
+    }
+  } catch (e) {
+    console.warn('Fetch streak milestones API error:', e);
+  }
+
+  return {
+    milestones: getStreakMilestoneRewards(),
+    claimed: getClaimedStreakMilestones()
+  };
+}
+
+export async function saveStreakMilestonesApi(milestones) {
+  saveStreakMilestoneRewards(milestones);
+  const token = getToken();
+  if (!token) return milestones;
+
+  try {
+    const res = await authFetch('/api/streak-milestones', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ milestones })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const updatedMilestones = data.milestones || milestones;
+      const updatedClaimed = data.claimed_milestones || null;
+      saveStreakMilestoneRewards(updatedMilestones, updatedClaimed);
+      return updatedMilestones;
+    }
+  } catch (e) {
+    console.error('Save streak milestones API error:', e);
+  }
+
+  return milestones;
+}
+
+export async function claimStreakMilestoneApi(days) {
+  const currentClaimed = getClaimedStreakMilestones();
+  currentClaimed[days] = true;
+  saveStreakMilestoneRewards(getStreakMilestoneRewards(), currentClaimed);
+
+  const token = getToken();
+  if (!token) return currentClaimed;
+
+  try {
+    const res = await authFetch('/api/streak-milestones/claim', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ days })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const updatedClaimed = data.claimed_milestones || currentClaimed;
+      saveStreakMilestoneRewards(data.milestones || getStreakMilestoneRewards(), updatedClaimed);
+      return updatedClaimed;
+    }
+  } catch (e) {
+    console.error('Claim streak milestone API error:', e);
+  }
+
+  return currentClaimed;
 }
 
 export function getTemplates() {
