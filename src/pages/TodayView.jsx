@@ -102,15 +102,17 @@ export default function TodayView() {
   const isToday = currentDateStr === todayStr
 
   const handleOpenAddModal = () => {
-    if (!isToday) {
-      return
-    }
-    if (!user) {
-      setShowAuthModal(true)
-    } else {
+    setShowAddModal(true)
+  }
+
+  useEffect(() => {
+    const handleOpenModalEvent = () => {
       setShowAddModal(true)
     }
-  }
+    window.addEventListener('open-add-task-modal', handleOpenModalEvent)
+    return () => window.removeEventListener('open-add-task-modal', handleOpenModalEvent)
+  }, [])
+
   const [showPenaltyFlash, setShowPenaltyFlash] = useState(false)
   const [ratingTask, setRatingTask] = useState(null)
 

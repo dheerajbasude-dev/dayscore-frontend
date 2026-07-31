@@ -1519,8 +1519,7 @@ body {
 .fab {
   position: fixed;
   bottom: 28px;
-  left: 50%;
-  transform: translateX(-50%);
+  right: 28px;
   z-index: 95;
   width: 56px;
   height: 56px;
@@ -1539,19 +1538,18 @@ body {
 }
 
 .fab:hover {
-  transform: translateX(-50%) translateY(-3px) scale(1.08);
+  transform: translateY(-3px) scale(1.08);
   box-shadow: 0 12px 32px rgba(99, 102, 241, 0.65);
 }
 
 .fab:active {
-  transform: translateX(-50%) scale(0.92);
+  transform: scale(0.92);
 }
 
 @media (max-width: 640px) {
   .fab {
     bottom: calc(var(--bottom-nav-height) + 16px);
-    left: 50%;
-    transform: translateX(-50%);
+    right: 16px;
     width: 50px;
     height: 50px;
     box-shadow: 0 6px 20px rgba(99, 102, 241, 0.55);
@@ -2147,8 +2145,7 @@ body.modal-open {
 .fab {
   position: fixed;
   bottom: calc(var(--bottom-nav-height) + 16px);
-  left: 50%;
-  transform: translateX(-50%);
+  right: 16px;
   width: 52px;
   height: 52px;
   border-radius: 50%;
@@ -2160,27 +2157,26 @@ body.modal-open {
   box-shadow: 0 4px 20px rgba(var(--accent-primary-rgb), 0.4);
   border: none;
   cursor: pointer;
-  z-index: 45;
+  z-index: 95;
   transition: all var(--transition-normal);
 }
 
 @media (min-width: 1024px) {
   .fab {
     bottom: 32px;
-    left: 50%;
-    transform: translateX(-50%);
+    right: 32px;
     width: 56px;
     height: 56px;
   }
 }
 
 .fab:hover {
-  transform: translateX(-50%) scale(1.1) rotate(90deg);
+  transform: scale(1.1) rotate(90deg);
   box-shadow: 0 6px 28px rgba(var(--accent-primary-rgb), 0.55);
 }
 
 .fab:active {
-  transform: translateX(-50%) scale(0.95);
+  transform: scale(0.95);
 }
 
 .fab svg {
@@ -3506,11 +3502,10 @@ body.modal-open {
 /* Floating Action Button (FAB) */
 .fab {
   position: fixed;
-  bottom: calc(var(--bottom-nav-height) + 12px);
-  left: 50%;
-  transform: translateX(-50%);
-  width: 44px;
-  height: 44px;
+  bottom: calc(var(--bottom-nav-height) + 16px);
+  right: 16px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--accent-primary, #6366f1), #818cf8);
   color: #ffffff;
@@ -3520,27 +3515,69 @@ body.modal-open {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  z-index: 800;
+  z-index: 95;
   transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s ease;
 }
 
 .fab:hover {
-  transform: translateX(-50%) scale(1.08);
+  transform: scale(1.08);
   box-shadow: 0 12px 28px rgba(99, 102, 241, 0.6);
 }
 
 .fab:active {
-  transform: translateX(-50%) scale(0.95);
+  transform: scale(0.95);
 }
 
 @media (min-width: 1024px) {
   .fab {
     bottom: 32px;
-    left: 50%;
-    transform: translateX(-50%);
+    right: 32px;
     width: 56px;
     height: 56px;
   }
+}
+
+/* Mobile Bottom Nav Add Button */
+.bottom-nav-add-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-weight: 600;
+  transition: all var(--transition-fast);
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+  flex: 1;
+  max-width: 80px;
+  min-height: 44px;
+}
+
+.bottom-nav-add-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-primary, #6366f1), #4f46e5);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 3px 10px rgba(99, 102, 241, 0.45);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.bottom-nav-add-btn:hover .bottom-nav-add-icon {
+  transform: scale(1.1);
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.6);
+}
+
+.bottom-nav-add-btn:active .bottom-nav-add-icon {
+  transform: scale(0.92);
 }
 
 /* ==========================================================================

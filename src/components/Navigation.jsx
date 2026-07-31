@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { NavLink } from 'react-router-dom';
-import { CalendarCheck, BarChart3, Gift, Settings, Sun, Moon, User, LogOut, LogIn } from 'lucide-react';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { CalendarCheck, BarChart3, Gift, Settings, Sun, Moon, User, LogOut, LogIn, Plus } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 import { useAuth } from '../context/AuthContext';
 import AuthModal from './AuthModal';
@@ -9,6 +9,19 @@ export default function Navigation() {
   const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const navigate = useNavigate();
+
+  const handleAddClick = (e) => {
+    e.preventDefault();
+    if (window.location.pathname !== '/') {
+      navigate('/');
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('open-add-task-modal'));
+      }, 100);
+    } else {
+      window.dispatchEvent(new CustomEvent('open-add-task-modal'));
+    }
+  };
 
   return (
     <>
@@ -93,6 +106,18 @@ export default function Navigation() {
           <BarChart3 size={20} />
           <span>Analytics</span>
         </NavLink>
+        <button 
+          type="button" 
+          className="bottom-nav-item bottom-nav-add-btn"
+          onClick={handleAddClick}
+          aria-label="Add Task"
+          title="Add New Task"
+        >
+          <div className="bottom-nav-add-icon">
+            <Plus size={18} />
+          </div>
+          <span>Add</span>
+        </button>
         <NavLink to="/rewards" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
           <Gift size={20} />
           <span>Rewards</span>
