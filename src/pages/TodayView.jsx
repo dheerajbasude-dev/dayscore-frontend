@@ -6,6 +6,7 @@ import AddTaskModal from '../components/AddTaskModal'
 import RatingSliderModal from '../components/RatingSliderModal'
 import MissedTasksModal from '../components/MissedTasksModal'
 import CustomDatePicker from '../components/CustomDatePicker'
+import CustomSelect from '../components/CustomSelect'
 import ReflectionBox from '../components/ReflectionBox'
 import ConfettiCelebration from '../components/ConfettiCelebration'
 import PenaltyCelebration from '../components/PenaltyCelebration'
@@ -1516,88 +1517,98 @@ export default function TodayView() {
 
             <div className="modal-form-body">
               <div className="modal-form-scroll">
-                <div className="filter-modal-grid">
+                <div className="filter-modal-grid" style={{ overflow: 'visible' }}>
                   {/* Category Filter */}
                   <div className="form-group">
                     <label className="form-label">Category</label>
-                    <select className="select" value={filterCategory} onChange={e => setFilterCategory(e.target.value)}>
-                      <option value="all">All Categories</option>
-                      <option value="Work">Work</option>
-                      <option value="Learning">Learning</option>
-                      <option value="Health">Health</option>
-                      <option value="Personal">Personal</option>
-                    </select>
+                    <CustomSelect
+                      value={filterCategory}
+                      onChange={val => setFilterCategory(val)}
+                      options={[
+                        { label: 'All Categories', value: 'all' },
+                        { label: 'Work', value: 'Work' },
+                        { label: 'Learning', value: 'Learning' },
+                        { label: 'Health', value: 'Health' },
+                        { label: 'Personal', value: 'Personal' }
+                      ]}
+                    />
                   </div>
 
                   {/* Priority Filter */}
                   <div className="form-group">
                     <label className="form-label">Priority</label>
-                    <select className="select" value={filterPriority} onChange={e => setFilterPriority(e.target.value)}>
-                      <option value="all">All Priorities</option>
-                      <option value="High">High</option>
-                      <option value="Med">Medium</option>
-                      <option value="Low">Low</option>
-                    </select>
+                    <CustomSelect
+                      value={filterPriority}
+                      onChange={val => setFilterPriority(val)}
+                      options={[
+                        { label: 'All Priorities', value: 'all' },
+                        { label: 'High', value: 'High' },
+                        { label: 'Medium', value: 'Med' },
+                        { label: 'Low', value: 'Low' }
+                      ]}
+                    />
                   </div>
 
                   {/* Status & Special Type Filter */}
                   <div className="form-group">
                     <label className="form-label">Task Type / Status</label>
-                    <select className="select" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-                      <option value="all">All Task Types</option>
-                      <option value="pending">Pending Tasks</option>
-                      <option value="done">Completed Tasks</option>
-                      <option value="missed">Missed Tasks</option>
-                      <option value="reward">Tasks with Reward</option>
-                      <option value="penalty">Tasks with Penalty</option>
-                      <option value="unclaimedReward">🎁 Unclaimed Rewards</option>
-                      <option value="unackPenalty">⚠️ Unacknowledged Penalties</option>
-                    </select>
+                    <CustomSelect
+                      value={filterStatus}
+                      onChange={val => setFilterStatus(val)}
+                      options={[
+                        { label: 'All Task Types', value: 'all' },
+                        { label: 'Pending Tasks', value: 'pending' },
+                        { label: 'Completed Tasks', value: 'done' },
+                        { label: 'Missed Tasks', value: 'missed' },
+                        { label: 'Tasks with Reward', value: 'reward' },
+                        { label: 'Tasks with Penalty', value: 'penalty' },
+                        { label: '🎁 Unclaimed Rewards', value: 'unclaimedReward' },
+                        { label: '⚠️ Unacknowledged Penalties', value: 'unackPenalty' }
+                      ]}
+                    />
                   </div>
 
                   {/* Rating Range Filter */}
                   <div className="form-group">
                     <label className="form-label">Rating Range</label>
-                    <select className="select" value={filterRatingRange} onChange={e => setFilterRatingRange(e.target.value)}>
-                      <option value="all">All Ratings</option>
-                      <option value="red">🔴 Red Threshold (≤ 4.0)</option>
-                      <option value="blue">🔵 Blue Threshold (4.1 – 8.5)</option>
-                      <option value="green">🟢 Green Threshold (&gt; 8.5)</option>
-                      <option value="" disabled>── Specific Rating Values ──</option>
-                      {Array.from({ length: 21 }).map((_, i) => {
-                        const val = (i * 0.5).toFixed(1);
-                        return <option key={val} value={val}>Rating: ★ {val}</option>;
-                      })}
-                    </select>
+                    <CustomSelect
+                      value={filterRatingRange}
+                      onChange={val => setFilterRatingRange(val)}
+                      options={[
+                        { label: 'All Ratings', value: 'all' },
+                        { label: '🔴 Red Threshold (≤ 4.0)', value: 'red' },
+                        { label: '🔵 Blue Threshold (4.1 – 8.5)', value: 'blue' },
+                        { label: '🟢 Green Threshold (> 8.5)', value: 'green' },
+                        { label: '── Specific Rating Values ──', value: '', disabled: true },
+                        ...Array.from({ length: 21 }).map((_, i) => {
+                          const val = (i * 0.5).toFixed(1);
+                          return { label: `Rating: ★ ${val}`, value: val };
+                        })
+                      ]}
+                    />
                   </div>
                 </div>
 
                 {/* Date Range Filter */}
-                <div className="form-group">
+                <div className="form-group" style={{ overflow: 'visible' }}>
                   <label className="form-label" style={{ fontWeight: '600' }}>Date Range Filter (Only Available Task Dates)</label>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', overflow: 'visible' }}>
                     <div>
                       <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>From Date</label>
-                      <input
-                        type="date"
-                        className="input"
-                        value={filterDateFrom}
-                        min={minAvailableDate}
-                        max={filterDateTo || todayStr}
-                        onChange={e => setFilterDateFrom(e.target.value)}
-                        style={{ fontSize: '0.85rem' }}
+                      <CustomDatePicker
+                        currentDateStr={filterDateFrom || minAvailableDate}
+                        validTaskDates={validTaskDates}
+                        todayStr={todayStr}
+                        onSelectDate={(newDate) => setFilterDateFrom(newDate)}
                       />
                     </div>
                     <div>
                       <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>To Date</label>
-                      <input
-                        type="date"
-                        className="input"
-                        value={filterDateTo}
-                        min={filterDateFrom || minAvailableDate}
-                        max={todayStr}
-                        onChange={e => setFilterDateTo(e.target.value)}
-                        style={{ fontSize: '0.85rem' }}
+                      <CustomDatePicker
+                        currentDateStr={filterDateTo || todayStr}
+                        validTaskDates={validTaskDates}
+                        todayStr={todayStr}
+                        onSelectDate={(newDate) => setFilterDateTo(newDate)}
                       />
                     </div>
                   </div>
