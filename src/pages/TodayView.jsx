@@ -11,7 +11,7 @@ import ReflectionBox from '../components/ReflectionBox'
 import ConfettiCelebration from '../components/ConfettiCelebration'
 import PenaltyCelebration from '../components/PenaltyCelebration'
 import AuthModal from '../components/AuthModal'
-import { Plus, AlertTriangle, Gift, PenLine, ChevronLeft, ChevronRight, Calendar, Layers, Search, SlidersHorizontal, Filter, RotateCcw, X, Clock, Zap } from 'lucide-react'
+import { Plus, AlertTriangle, Gift, PenLine, ChevronLeft, ChevronRight, Calendar, Layers, Search, SlidersHorizontal, Filter, RotateCcw, X, Clock, Zap, Check } from 'lucide-react'
 import * as store from '../store/store'
 import * as scoring from '../store/scoring'
 import { useDayRollover } from '../hooks/useDayRollover'
@@ -1299,6 +1299,27 @@ export default function TodayView() {
 
           {/* Filter, Sort & Search Control Bar */}
           <div className="card-glass task-controls-card">
+            {/* Sleek Device-Friendly Total Tasks Summary Bar */}
+            <div className="total-tasks-summary-bar">
+              <div className="total-tasks-badge">
+                <Layers size={16} style={{ color: 'var(--accent-primary)' }} />
+                <span>Total Tasks: <strong>{filteredTasks.length}</strong></span>
+              </div>
+              <div className="total-tasks-stat-group">
+                <span className="task-stat-chip chip-pending" title="Pending Tasks">
+                  <Clock size={13} /> <strong>{filteredTasks.filter(t => !t.completed && !t.missed).length}</strong> Pending
+                </span>
+                <span className="task-stat-chip chip-done" title="Completed Tasks">
+                  <Check size={13} /> <strong>{filteredTasks.filter(t => t.completed).length}</strong> Done
+                </span>
+                {filteredTasks.filter(t => t.missed).length > 0 && (
+                  <span className="task-stat-chip chip-missed" title="Missed Tasks">
+                    <AlertTriangle size={13} /> <strong>{filteredTasks.filter(t => t.missed).length}</strong> Missed
+                  </span>
+                )}
+              </div>
+            </div>
+
             {/* Search Input Row, Inline Sort & Advanced Filter Button */}
             <div className="task-search-row">
               <div className="task-search-input-wrapper">
