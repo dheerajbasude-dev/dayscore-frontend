@@ -456,9 +456,31 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-                        <button type="button" onClick={() => setCalendarViewDate(subMonths(calendarViewDate, 1))} style={{ width: '26px', height: '26px', borderRadius: '6px', border: '1px solid rgba(255, 255, 255, 0.12)', background: 'rgba(255, 255, 255, 0.06)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                          <ChevronLeft size={14} />
-                        </button>
+                        {(() => {
+                          const isPrevDisabled = format(calendarViewDate, 'yyyy-MM') <= format(new Date(), 'yyyy-MM');
+                          return (
+                            <button
+                              type="button"
+                              disabled={isPrevDisabled}
+                              onClick={() => !isPrevDisabled && setCalendarViewDate(subMonths(calendarViewDate, 1))}
+                              style={{
+                                width: '26px',
+                                height: '26px',
+                                borderRadius: '6px',
+                                border: '1px solid rgba(255, 255, 255, 0.12)',
+                                background: 'rgba(255, 255, 255, 0.06)',
+                                color: '#fff',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: isPrevDisabled ? 'not-allowed' : 'pointer',
+                                opacity: isPrevDisabled ? 0.3 : 1
+                              }}
+                            >
+                              <ChevronLeft size={14} />
+                            </button>
+                          );
+                        })()}
                         <strong style={{ fontSize: '0.88rem', color: '#ffffff', fontWeight: 700 }}>
                           {format(calendarViewDate, 'MMMM yyyy')}
                         </strong>

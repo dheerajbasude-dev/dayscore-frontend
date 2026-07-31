@@ -67,6 +67,19 @@ export default function CustomDatePicker({
 
   const validSet = new Set(validTaskDates);
 
+  // Check if previous/next months have any valid data (if validTaskDates provided)
+  const prevMonthDate = subMonths(viewDate, 1);
+  const prevMonthDays = eachDayOfInterval({ start: startOfMonth(prevMonthDate), end: endOfMonth(prevMonthDate) });
+  const isPrevDisabled = validTaskDates && validTaskDates.length > 0
+    ? !prevMonthDays.some(dObj => validSet.has(format(dObj, 'yyyy-MM-dd')))
+    : false;
+
+  const nextMonthDate = addMonths(viewDate, 1);
+  const nextMonthDays = eachDayOfInterval({ start: startOfMonth(nextMonthDate), end: endOfMonth(nextMonthDate) });
+  const isNextDisabled = validTaskDates && validTaskDates.length > 0
+    ? !nextMonthDays.some(dObj => validSet.has(format(dObj, 'yyyy-MM-dd')))
+    : false;
+
   return (
     <div ref={popoverRef} style={{ position: 'relative', display: 'inline-flex', zIndex: 105 }}>
       {/* Trigger Button */}
@@ -115,7 +128,8 @@ export default function CustomDatePicker({
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
             <button
               type="button"
-              onClick={handlePrevMonth}
+              disabled={isPrevDisabled}
+              onClick={(e) => !isPrevDisabled && handlePrevMonth(e)}
               style={{
                 width: '30px',
                 height: '30px',
@@ -126,7 +140,8 @@ export default function CustomDatePicker({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                cursor: 'pointer'
+                cursor: isPrevDisabled ? 'not-allowed' : 'pointer',
+                opacity: isPrevDisabled ? 0.3 : 1
               }}
             >
               <ChevronLeft size={16} />
@@ -136,7 +151,8 @@ export default function CustomDatePicker({
             </strong>
             <button
               type="button"
-              onClick={handleNextMonth}
+              disabled={isNextDisabled}
+              onClick={(e) => !isNextDisabled && handleNextMonth(e)}
               style={{
                 width: '30px',
                 height: '30px',
@@ -147,7 +163,8 @@ export default function CustomDatePicker({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                cursor: 'pointer'
+                cursor: isNextDisabled ? 'not-allowed' : 'pointer',
+                opacity: isNextDisabled ? 0.3 : 1
               }}
             >
               <ChevronRight size={16} />
