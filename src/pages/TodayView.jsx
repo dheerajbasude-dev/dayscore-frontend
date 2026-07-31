@@ -1322,13 +1322,13 @@ export default function TodayView() {
                 value={sortOption}
                 onChange={val => setSortOption(val)}
                 options={[
-                  { label: '⚡ Sort: Default', value: 'default' },
-                  { label: '⏰ Sort: Due Time', value: 'urgency' },
-                  { label: '★ Sort: High Rating', value: 'rating_desc' },
-                  { label: '★ Sort: Low Rating', value: 'rating_asc' },
-                  { label: '🔤 Sort: Title (A-Z)', value: 'title_asc' },
-                  { label: '📁 Sort: Category', value: 'category' },
-                  { label: '🆕 Sort: Newest', value: 'created_desc' }
+                  { label: '⚡Default', value: 'default' },
+                  { label: '⏰Due Time', value: 'urgency' },
+                  { label: '★High Rating', value: 'rating_desc' },
+                  { label: '★Low Rating', value: 'rating_asc' },
+                  { label: '🔤Title (A-Z)', value: 'title_asc' },
+                  { label: '📁Category', value: 'category' },
+                  { label: '🆕Newest', value: 'created_desc' }
                 ]}
                 style={{ width: 'auto', minWidth: '160px' }}
               />
