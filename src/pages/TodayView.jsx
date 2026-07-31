@@ -254,6 +254,38 @@ export default function TodayView() {
   const canGoPrev = currentDateStr > minAvailableDate && validTaskDates.some(d => d < currentDateStr);
   const canGoNext = currentDateStr < todayStr && validTaskDates.some(d => d > currentDateStr);
 
+  const [dateNotice, setDateNotice] = useState(null);
+
+  const findNearestValidDate = useCallback((targetDateStr) => {
+    if (!validTaskDates || validTaskDates.length === 0) return todayStr;
+    if (validTaskDates.includes(targetDateStr)) return targetDateStr;
+
+    let nearest = validTaskDates[0];
+    let minDiff = Math.abs(new Date(targetDateStr) - new Date(nearest));
+
+    for (let i = 1; i < validTaskDates.length; i++) {
+      const diff = Math.abs(new Date(targetDateStr) - new Date(validTaskDates[i]));
+      if (diff < minDiff) {
+        minDiff = diff;
+        nearest = validTaskDates[i];
+      }
+    }
+    return nearest;
+  }, [validTaskDates, todayStr]);
+
+  const handleDateSelect = useCallback((selectedVal) => {
+    if (!selectedVal) return;
+    if (validTaskDates.includes(selectedVal)) {
+      setCurrentDateStr(selectedVal);
+      setDateNotice(null);
+    } else {
+      const nearest = findNearestValidDate(selectedVal);
+      setCurrentDateStr(nearest);
+      setDateNotice(`No recorded tasks found for ${selectedVal}. Automatically switched to nearest date with data (${nearest}).`);
+      setTimeout(() => setDateNotice(null), 4500);
+    }
+  }, [validTaskDates, findNearestValidDate]);
+
   const handlePrevDay = () => {
     const prevDates = validTaskDates.filter(d => d < currentDateStr);
     if (prevDates.length > 0) {
@@ -1108,6 +1140,27 @@ export default function TodayView() {
         </div>
       )}
 
+      {dateNotice && (
+        <div className="card-glass animate-fade-in" style={{
+          padding: '10px 16px',
+          marginBottom: '16px',
+          borderRadius: 'var(--radius-md)',
+          background: 'rgba(59, 130, 246, 0.12)',
+          border: '1px solid rgba(59, 130, 246, 0.35)',
+          color: '#60a5fa',
+          fontSize: '0.84rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '12px'
+        }}>
+          <span>ℹ️ {dateNotice}</span>
+          <button className="btn-icon" onClick={() => setDateNotice(null)} title="Dismiss">
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
       <ConfettiCelebration trigger={showConfetti} />
       <PenaltyCelebration trigger={showPenaltyFlash} />
 
@@ -1174,22 +1227,49 @@ export default function TodayView() {
                   <ChevronLeft size={14} /> Prev
                 </button>
 
-                <div className="date-picker-wrapper" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'var(--bg-glass-light)', padding: '4px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-glass)' }}>
-                  <Calendar size={15} style={{ color: 'var(--accent-primary)', flexShrink: 0 }} />
-                  <input
-                    type="date"
+                <div className="date-picker-wrapper" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                  <select
                     value={currentDateStr}
-                    min={minAvailableDate}
-                    max={todayStr}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (val && val >= minAvailableDate && val <= todayStr) {
-                        setCurrentDateStr(val);
-                      }
+                    onChange={(e) => handleDateSelect(e.target.value)}
+                    style={{
+                      background: 'var(--bg-glass-light)',
+                      border: '1px solid var(--border-glass)',
+                      color: 'var(--text-primary)',
+                      fontWeight: '600',
+                      fontSize: '0.85rem',
+                      padding: '5px 8px',
+                      borderRadius: 'var(--radius-sm)',
+                      cursor: 'pointer'
                     }}
-                    className="date-picker-input"
-                    style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer', fontFamily: 'inherit' }}
-                  />
+                    title="Select from dates with recorded data"
+                  >
+                    {validTaskDates.map(d => {
+                      let label = d;
+                      try {
+                        const parsed = parseISO(d);
+                        if (!isNaN(parsed.getTime())) {
+                          label = format(parsed, 'MMM dd, yyyy');
+                        }
+                      } catch (e) {}
+                      return (
+                        <option key={d} value={d}>
+                          {d === todayStr ? `📅 Today (${label})` : `📅 ${label}`}
+                        </option>
+                      );
+                    })}
+                  </select>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'var(--bg-glass-light)', padding: '4px 8px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-glass)' }}>
+                    <Calendar size={14} style={{ color: 'var(--accent-primary)', flexShrink: 0 }} />
+                    <input
+                      type="date"
+                      value={currentDateStr}
+                      min={minAvailableDate}
+                      max={todayStr}
+                      onChange={(e) => handleDateSelect(e.target.value)}
+                      className="date-picker-input"
+                      style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer', fontFamily: 'inherit' }}
+                    />
+                  </div>
                 </div>
 
                 <button
