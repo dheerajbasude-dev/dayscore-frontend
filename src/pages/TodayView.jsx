@@ -1300,75 +1300,79 @@ export default function TodayView() {
 
           {/* Filter, Sort & Search Control Bar */}
           <div className="card-glass task-controls-card">
-            {/* Sleek Device-Friendly Total Tasks Summary Bar */}
-            <div className="total-tasks-summary-bar">
-              <div className="total-tasks-badge">
-                <Layers size={16} style={{ color: 'var(--accent-primary)' }} />
-                <span>Total Tasks: <strong>{displayTasksList.length}</strong></span>
-              </div>
-              <div className="total-tasks-stat-group">
-                <span className="task-stat-chip chip-pending" title="Pending Tasks">
-                  <Clock size={13} /> <strong>{displayTasksList.filter(t => t.status !== 'done' && t.status !== 'missed').length}</strong> Pending
-                </span>
-                <span className="task-stat-chip chip-done" title="Completed Tasks">
-                  <Check size={13} /> <strong>{displayTasksList.filter(t => t.status === 'done' || t.completed === true).length}</strong> Done
-                </span>
-                {displayTasksList.filter(t => t.status === 'missed' || t.missed === true).length > 0 && (
-                  <span className="task-stat-chip chip-missed" title="Missed Tasks">
-                    <AlertTriangle size={13} /> <strong>{displayTasksList.filter(t => t.status === 'missed' || t.missed === true).length}</strong> Missed
+            <div className="compact-task-toolbar">
+              
+              {/* Left Group: Total Tasks Badge & Stat Chips */}
+              <div className="total-tasks-badge-group">
+                <div className="total-tasks-badge">
+                  <Layers size={15} style={{ color: 'var(--accent-primary)', flexShrink: 0 }} />
+                  <span>Tasks: <strong>{displayTasksList.length}</strong></span>
+                </div>
+                <div className="total-tasks-stat-group">
+                  <span className="task-stat-chip chip-pending" title="Pending Tasks">
+                    <Clock size={12} /> <strong>{displayTasksList.filter(t => t.status !== 'done' && t.status !== 'missed').length}</strong> Pending
                   </span>
-                )}
+                  <span className="task-stat-chip chip-done" title="Completed Tasks">
+                    <Check size={12} /> <strong>{displayTasksList.filter(t => t.status === 'done' || t.completed === true).length}</strong> Done
+                  </span>
+                  {displayTasksList.filter(t => t.status === 'missed' || t.missed === true).length > 0 && (
+                    <span className="task-stat-chip chip-missed" title="Missed Tasks">
+                      <AlertTriangle size={12} /> <strong>{displayTasksList.filter(t => t.status === 'missed' || t.missed === true).length}</strong> Missed
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
 
-            {/* Search Input Row, Inline Sort & Advanced Filter Button */}
-            <div className="task-search-row">
-              <div className="task-search-input-wrapper">
-                <Search size={16} className="search-icon" />
-                <input
-                  type="text"
-                  className="task-search-input"
-                  placeholder="Search tasks by title..."
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
+              {/* Right Group: Search, Sort & Filters */}
+              <div className="task-actions-group">
+                <div className="task-search-input-wrapper">
+                  <Search size={15} className="search-icon" />
+                  <input
+                    type="text"
+                    className="task-search-input"
+                    placeholder="Search tasks..."
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                  />
+                  {searchQuery && (
+                    <button type="button" className="task-search-clear" onClick={() => setSearchQuery('')}>
+                      <X size={13} />
+                    </button>
+                  )}
+                </div>
+
+                {/* Inline Sort Selection */}
+                <CustomSelect
+                  value={sortOption}
+                  onChange={val => setSortOption(val)}
+                  options={[
+                    { label: '⚡Default', value: 'default' },
+                    { label: '⏰Due Time', value: 'urgency' },
+                    { label: '★High Rating', value: 'rating_desc' },
+                    { label: '★Low Rating', value: 'rating_asc' },
+                    { label: '🔤Title (A-Z)', value: 'title_asc' },
+                    { label: '📁Category', value: 'category' },
+                    { label: '🆕Newest', value: 'created_desc' }
+                  ]}
+                  style={{ width: 'auto', minWidth: '135px' }}
                 />
-                {searchQuery && (
-                  <button type="button" className="task-search-clear" onClick={() => setSearchQuery('')}>
-                    <X size={14} />
-                  </button>
-                )}
+
+                <button
+                  type="button"
+                  className={`btn btn-secondary btn-sm ${activeFilterCount > 0 ? 'active' : ''}`}
+                  onClick={() => setShowFilterModal(true)}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap', padding: '6px 12px', height: '36px', fontSize: '0.82rem' }}
+                >
+                  <SlidersHorizontal size={14} />
+                  <span>Filters</span>
+                  {activeFilterCount > 0 && (
+                    <span className="badge badge-pri" style={{ fontSize: '0.65rem', padding: '1px 5px', borderRadius: '10px' }}>
+                      {activeFilterCount}
+                    </span>
+                  )}
+                </button>
               </div>
 
-              {/* Inline Sort Selection */}
-              <CustomSelect
-                value={sortOption}
-                onChange={val => setSortOption(val)}
-                options={[
-                  { label: '⚡Default', value: 'default' },
-                  { label: '⏰Due Time', value: 'urgency' },
-                  { label: '★High Rating', value: 'rating_desc' },
-                  { label: '★Low Rating', value: 'rating_asc' },
-                  { label: '🔤Title (A-Z)', value: 'title_asc' },
-                  { label: '📁Category', value: 'category' },
-                  { label: '🆕Newest', value: 'created_desc' }
-                ]}
-                style={{ width: 'auto', minWidth: '160px' }}
-              />
-
-              <button
-                type="button"
-                className={`btn btn-secondary btn-sm ${activeFilterCount > 0 ? 'active' : ''}`}
-                onClick={() => setShowFilterModal(true)}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', padding: '8px 14px' }}
-              >
-                <SlidersHorizontal size={15} />
-                <span>Filters</span>
-                {activeFilterCount > 0 && (
-                  <span className="badge badge-pri" style={{ fontSize: '0.68rem', padding: '1px 6px', borderRadius: '10px' }}>
-                    {activeFilterCount}
-                  </span>
-                )}
-              </button>
             </div>
 
             {/* Active Filters Bar & Reset Action */}
