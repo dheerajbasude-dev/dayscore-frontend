@@ -443,7 +443,8 @@ export default function SettingsView() {
                 <X size={18} />
               </button>
             </div>
-            <form onSubmit={handleSaveTemplate} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <form onSubmit={handleSaveTemplate} className="modal-form-body">
+              <div className="modal-form-scroll">
               <div className="form-group">
                 <label className="form-label">Title</label>
                 <input required type="text" className="input" value={tTitle} onChange={e => setTTitle(e.target.value)} placeholder="Task title" autoFocus disabled={isSavingTemplate} />
@@ -548,6 +549,7 @@ export default function SettingsView() {
                     })}
                   </select>
                 </div>
+              </div>
               </div>
 
               <div className="modal-footer">
