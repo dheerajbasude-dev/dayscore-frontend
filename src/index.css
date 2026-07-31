@@ -927,6 +927,23 @@ body {
   pointer-events: none;
 }
 
+/* Task Group List - Responsive Multi-Column Grid on Large Screens */
+.task-group-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+@media (min-width: 1024px) {
+  .task-group-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    gap: 16px;
+    align-items: stretch;
+  }
+}
+
 /* Base Card */
 .task-card {
   display: flex;
@@ -934,11 +951,12 @@ body {
   gap: 12px;
   background: var(--bg-secondary);
   border-radius: var(--radius-lg);
-  padding: 10px 14px;
+  padding: 12px 16px;
   border: 1px solid var(--border-glass);
-  transition: border-color 0.2s, box-shadow 0.2s, opacity 0.2s, background 0.2s;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
 .task-card::before {
@@ -947,15 +965,16 @@ body {
   left: 0;
   top: 0;
   bottom: 0;
-  width: 3px;
-  border-radius: 3px 0 0 3px;
+  width: 4px;
+  border-radius: 4px 0 0 4px;
   background: transparent;
-  transition: background 0.2s;
+  transition: background 0.25s ease;
 }
 
 .task-card:hover {
   border-color: var(--border-glass-hover);
-  box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), 0 0 12px rgba(var(--accent-primary-rgb), 0.1);
 }
 
 /* Status Variants */
