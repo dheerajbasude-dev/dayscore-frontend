@@ -349,10 +349,10 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
 
               {/* Quick Presets */}
               <div style={{ display: 'flex', gap: '6px', marginBottom: '8px', flexWrap: 'wrap' }}>
-                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setPresetTime(30)} style={{ fontSize: '0.75rem', padding: '3px 8px' }}>+30 Min</button>
-                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setPresetTime(60)} style={{ fontSize: '0.75rem', padding: '3px 8px' }}>+1 Hour</button>
-                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setPresetTime(120)} style={{ fontSize: '0.75rem', padding: '3px 8px' }}>+2 Hours</button>
-                <button type="button" className="btn btn-secondary btn-sm" onClick={setEndOfDay} style={{ fontSize: '0.75rem', padding: '3px 8px' }}>End of Day (11:59 PM)</button>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setPresetTime(30)} style={{ fontSize: '0.74rem', padding: '3px 7px' }}>+30 Min</button>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setPresetTime(60)} style={{ fontSize: '0.74rem', padding: '3px 7px' }}>+1 Hour</button>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setPresetTime(120)} style={{ fontSize: '0.74rem', padding: '3px 7px' }}>+2 Hours</button>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={setEndOfDay} style={{ fontSize: '0.74rem', padding: '3px 7px' }}>End of Day (11:59 PM)</button>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr', gap: '8px' }}>
