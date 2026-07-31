@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Clock, Calendar, ArrowRight, CheckCircle2, Trash2, Zap, Check, AlertTriangle, Sparkles, AlertCircle } from 'lucide-react';
+import { X, Clock, Calendar, ArrowRight, CheckCircle2, Trash2, Zap, Sparkles, AlertCircle } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
 export default function MissedTasksModal({
@@ -14,10 +14,12 @@ export default function MissedTasksModal({
 }) {
   const [processingId, setProcessingId] = useState(null);
   const [bulkProcessing, setBulkProcessing] = useState(false);
+  const [localRemovedIds, setLocalRemovedIds] = useState(new Set());
 
   useEffect(() => {
     if (isOpen) {
       document.body.classList.add('modal-open');
+      setLocalRemovedIds(new Set());
     } else {
       document.body.classList.remove('modal-open');
     }
@@ -26,8 +28,14 @@ export default function MissedTasksModal({
 
   if (!isOpen) return null;
 
+  // Filter tasks strictly to active pending tasks not removed locally
+  const activeUnfinishedTasks = pastUnfinishedTasks.filter(t => {
+    const id = t.id || t._id;
+    return !localRemovedIds.has(id) && (t.status === 'pending' || t.status === 'inprogress');
+  });
+
   // Group tasks by date
-  const groupedTasks = pastUnfinishedTasks.reduce((acc, task) => {
+  const groupedTasks = activeUnfinishedTasks.reduce((acc, task) => {
     const d = task.taskDate || task.date || 'Unknown';
     if (!acc[d]) acc[d] = [];
     acc[d].push(task);
@@ -35,13 +43,16 @@ export default function MissedTasksModal({
   }, {});
 
   const datesSorted = Object.keys(groupedTasks).sort().reverse(); // Newest past date first
-  const totalCount = pastUnfinishedTasks.length;
+  const totalCount = activeUnfinishedTasks.length;
 
   const handleCarryOver = async (task) => {
     const id = task.id || task._id;
     setProcessingId(`carry_${id}`);
+    setLocalRemovedIds(prev => new Set(prev).add(id));
     try {
       await onCarryOverTask(task);
+    } catch (e) {
+      console.error('Carry over task error:', e);
     } finally {
       setProcessingId(null);
     }
@@ -50,8 +61,11 @@ export default function MissedTasksModal({
   const handleComplete = async (task) => {
     const id = task.id || task._id;
     setProcessingId(`complete_${id}`);
+    setLocalRemovedIds(prev => new Set(prev).add(id));
     try {
       await onCompleteTask(task);
+    } catch (e) {
+      console.error('Complete task error:', e);
     } finally {
       setProcessingId(null);
     }
@@ -60,8 +74,11 @@ export default function MissedTasksModal({
   const handleDelete = async (task) => {
     const id = task.id || task._id;
     setProcessingId(`delete_${id}`);
+    setLocalRemovedIds(prev => new Set(prev).add(id));
     try {
       await onDeleteTask(task);
+    } catch (e) {
+      console.error('Delete task error:', e);
     } finally {
       setProcessingId(null);
     }
@@ -70,8 +87,16 @@ export default function MissedTasksModal({
   const handleBulkCarryOver = async () => {
     if (bulkProcessing) return;
     setBulkProcessing(true);
+    const allIds = activeUnfinishedTasks.map(t => t.id || t._id);
+    setLocalRemovedIds(prev => {
+      const next = new Set(prev);
+      allIds.forEach(id => next.add(id));
+      return next;
+    });
     try {
       await onCarryOverAll();
+    } catch (e) {
+      console.error('Bulk carry over error:', e);
     } finally {
       setBulkProcessing(false);
     }
@@ -85,6 +110,17 @@ export default function MissedTasksModal({
       return format(parsed, 'EEEE, MMM d, yyyy');
     } catch {
       return dateStr;
+    }
+  };
+
+  const formatTimeDisplay = (isoStr) => {
+    if (!isoStr) return null;
+    try {
+      const parsed = typeof isoStr === 'string' ? parseISO(isoStr) : new Date(isoStr);
+      if (isNaN(parsed.getTime())) return isoStr;
+      return format(parsed, 'MMM d, h:mm a');
+    } catch {
+      return isoStr;
     }
   };
 
@@ -120,7 +156,7 @@ export default function MissedTasksModal({
               </div>
               <div>
                 <h3 className="modal-title" style={{ fontSize: '1.2rem', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  Manage Missed & Pending Tasks
+                  Manage Pending Missed Tasks
                   {totalCount > 0 && (
                     <span style={{
                       fontSize: '0.75rem',
@@ -135,7 +171,7 @@ export default function MissedTasksModal({
                   )}
                 </h3>
                 <p style={{ margin: '2px 0 0 0', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-                  Review, complete, or carry over tasks left behind from previous days.
+                  Review, complete, or carry over pending tasks left behind from previous days.
                 </p>
               </div>
             </div>
@@ -166,7 +202,7 @@ export default function MissedTasksModal({
                 All Backlog Cleared!
               </h4>
               <p style={{ margin: '0 0 20px 0', fontSize: '0.85rem', color: 'var(--text-muted)', maxWidth: '360px', marginLeft: 'auto', marginRight: 'auto' }}>
-                You have no pending or missed tasks from previous days. Outstanding productivity!
+                You have no pending tasks from previous days. Outstanding productivity!
               </p>
               <button className="btn btn-primary" onClick={onClose}>
                 Back to Dashboard
@@ -189,7 +225,7 @@ export default function MissedTasksModal({
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <Sparkles size={16} color="#fbbf24" />
                   <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 500 }}>
-                    Quick Resolve: Bring all {totalCount} task{totalCount === 1 ? '' : 's'} to today's plan
+                    Quick Resolve: Bring all {totalCount} pending task{totalCount === 1 ? '' : 's'} to today's plan
                   </span>
                 </div>
                 <button
@@ -307,9 +343,9 @@ export default function MissedTasksModal({
                                     {t.category || 'Work'}
                                   </span>
                                   {(t.dueDateTime || t.due_date_time) && (
-                                    <span style={{ fontSize: '0.7rem', color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                                      <Clock size={11} />
-                                      {t.dueDateTime || t.due_date_time}
+                                    <span style={{ fontSize: '0.72rem', color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                      <Clock size={12} />
+                                      Due: {formatTimeDisplay(t.dueDateTime || t.due_date_time)}
                                     </span>
                                   )}
                                 </div>
@@ -322,18 +358,6 @@ export default function MissedTasksModal({
                                 }}>
                                   {t.title}
                                 </span>
-
-                                {/* Reward/Penalty info if present */}
-                                {t.reward && (
-                                  <span style={{ fontSize: '0.72rem', color: '#10b981', display: 'block', marginTop: '2px' }}>
-                                    🎁 Reward: {t.reward}
-                                  </span>
-                                )}
-                                {t.penalty && (
-                                  <span style={{ fontSize: '0.72rem', color: '#f87171', display: 'block', marginTop: '2px' }}>
-                                    ⚠️ Penalty: {t.penalty}
-                                  </span>
-                                )}
                               </div>
 
                               {/* Right Action Buttons */}
@@ -387,8 +411,7 @@ export default function MissedTasksModal({
                                   disabled={isProcessing}
                                   style={{
                                     padding: '5px',
-                                    color: 'var(--text-muted)',
-                                    hover: { color: '#f87171' }
+                                    color: 'var(--text-muted)'
                                   }}
                                   title="Delete task"
                                 >

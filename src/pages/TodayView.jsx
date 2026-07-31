@@ -145,11 +145,11 @@ export default function TodayView() {
 
   const pastUnfinishedTasks = useMemo(() => {
     const list = [];
-    const allArcs = archives.length > 0 ? archives : store.getAllArchives();
+    const allArcs = archives.length > 0 ? archives : store.getArchivesFromTasks();
     allArcs.forEach(arc => {
       if (arc.date && arc.date < todayStr && Array.isArray(arc.tasks)) {
         arc.tasks.forEach(t => {
-          if (t.status === 'pending' || t.status === 'missed' || t.status === 'inprogress') {
+          if (t.status === 'pending' || t.status === 'inprogress') {
             list.push({ ...t, taskDate: arc.date });
           }
         });
@@ -159,20 +159,28 @@ export default function TodayView() {
   }, [archives, todayStr]);
 
   const handleCarryOverMissedTask = async (task) => {
-    const originDate = task.taskDate || task.date;
+    const originDate = task.taskDate || task.date || task.dateLabel;
     const taskId = task.id || task._id;
     await store.updateTask(originDate, taskId, {
       date: todayStr,
       carriedOver: true,
-      carried_over: 1
+      carried_over: 1,
+      originalDate: originDate,
+      original_date: originDate,
+      reward: null,
+      penalty: null,
+      rewardClaimed: false,
+      reward_claimed: 0,
+      penaltyAccepted: false,
+      penalty_accepted: 0
     });
     await store.fetchAllTasksApi();
     setTasks(store.getTasks(currentDateStr));
-    setArchives(store.getAllArchives());
+    setArchives(store.getArchivesFromTasks());
   };
 
   const handleCompleteMissedTask = async (task) => {
-    const originDate = task.taskDate || task.date;
+    const originDate = task.taskDate || task.date || task.dateLabel;
     const taskId = task.id || task._id;
     await store.updateTask(originDate, taskId, {
       status: 'completed',
@@ -181,31 +189,39 @@ export default function TodayView() {
     });
     await store.fetchAllTasksApi();
     setTasks(store.getTasks(currentDateStr));
-    setArchives(store.getAllArchives());
+    setArchives(store.getArchivesFromTasks());
   };
 
   const handleDeleteMissedTask = async (task) => {
-    const originDate = task.taskDate || task.date;
+    const originDate = task.taskDate || task.date || task.dateLabel;
     const taskId = task.id || task._id;
     await store.deleteTask(originDate, taskId);
     await store.fetchAllTasksApi();
     setTasks(store.getTasks(currentDateStr));
-    setArchives(store.getAllArchives());
+    setArchives(store.getArchivesFromTasks());
   };
 
   const handleCarryOverAllMissedTasks = async () => {
     for (const t of pastUnfinishedTasks) {
-      const originDate = t.taskDate || t.date;
+      const originDate = t.taskDate || t.date || t.dateLabel;
       const taskId = t.id || t._id;
       await store.updateTask(originDate, taskId, {
         date: todayStr,
         carriedOver: true,
-        carried_over: 1
+        carried_over: 1,
+        originalDate: originDate,
+        original_date: originDate,
+        reward: null,
+        penalty: null,
+        rewardClaimed: false,
+        reward_claimed: 0,
+        penaltyAccepted: false,
+        penalty_accepted: 0
       });
     }
     await store.fetchAllTasksApi();
     setTasks(store.getTasks(currentDateStr));
-    setArchives(store.getAllArchives());
+    setArchives(store.getArchivesFromTasks());
   };
 
   // Compute all dates that contain recorded task data or archives (plus today)
