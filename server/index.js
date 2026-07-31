@@ -20,34 +20,21 @@ import connectDB, {
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Clean & Robust Universal CORS Middleware
-const allowedOrigins = [
-  "http://localhost:5173",
-  "http://localhost:3000",
-  "http://localhost:4173",
-  "https://dayscore-daily.vercel.app",
-  ...(process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim()) : [])
-];
+// Universal CORS Middleware with preflight support
+app.use(cors({
+  origin: true,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Access-Control-Request-Method', 'Access-Control-Request-Headers']
+}));
 
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-
   if (origin) {
-    const cleanOrigin = origin.replace(/\/+$/, '');
-    const isAllowed =
-      allowedOrigins.some(o => o.replace(/\/+$/, '') === cleanOrigin) ||
-      cleanOrigin.endsWith('.vercel.app') ||
-      /^http:\/\/localhost(:\d+)?$/.test(cleanOrigin);
-
-    if (isAllowed) {
-      res.setHeader('Access-Control-Allow-Origin', origin);
-    } else {
-      res.setHeader('Access-Control-Allow-Origin', origin);
-    }
+    res.setHeader('Access-Control-Allow-Origin', origin);
   } else {
     res.setHeader('Access-Control-Allow-Origin', '*');
   }
-
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Request-Method, Access-Control-Request-Headers');
@@ -482,7 +469,7 @@ app.get('/api/streak-milestones', verifyTokenMiddleware, async (req, res) => {
   }
 });
 
-app.put('/api/streak-milestones', verifyTokenMiddleware, async (req, res) => {
+const handleSaveMilestones = async (req, res) => {
   try {
     const { milestones, claimed_milestones } = req.body;
     const filter = buildUserFilter(req.user.id);
@@ -517,7 +504,10 @@ app.put('/api/streak-milestones', verifyTokenMiddleware, async (req, res) => {
     console.error('Update streak milestones error:', err);
     return res.status(500).json({ error: 'Failed to update streak milestones.' });
   }
-});
+};
+
+app.put('/api/streak-milestones', verifyTokenMiddleware, handleSaveMilestones);
+app.post('/api/streak-milestones', verifyTokenMiddleware, handleSaveMilestones);
 
 app.post('/api/streak-milestones/claim', verifyTokenMiddleware, async (req, res) => {
   try {

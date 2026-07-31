@@ -592,12 +592,19 @@ export async function saveStreakMilestonesApi(milestones) {
   if (!token) return milestones;
 
   try {
-    const res = await authFetch('/api/streak-milestones', {
-      method: 'PUT',
+    let res = await authFetch('/api/streak-milestones', {
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ milestones })
     });
-    if (res.ok) {
+    if (!res || !res.ok) {
+      res = await authFetch('/api/streak-milestones', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ milestones })
+      });
+    }
+    if (res && res.ok) {
       const data = await res.json();
       const updatedMilestones = data.milestones || milestones;
       const updatedClaimed = data.claimed_milestones || null;
@@ -605,7 +612,7 @@ export async function saveStreakMilestonesApi(milestones) {
       return updatedMilestones;
     }
   } catch (e) {
-    console.error('Save streak milestones API error:', e);
+    console.warn('Save streak milestones API warning:', e);
   }
 
   return milestones;
