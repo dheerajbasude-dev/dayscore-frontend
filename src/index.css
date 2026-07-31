@@ -1656,10 +1656,9 @@ body {
 .modal-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 6px;
   padding-top: 18px;
   border-top: 1px solid var(--border-glass);
-  margin-top: 20px;
   flex-shrink: 0 !important;
   width: 100%;
 }
@@ -1796,7 +1795,7 @@ body {
   align-items: baseline;
   justify-content: center;
   gap: 8px;
-  padding: 12px 0;
+  padding: 0;
 }
 
 .rating-emoji {
