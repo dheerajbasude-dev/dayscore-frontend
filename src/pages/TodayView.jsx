@@ -140,6 +140,7 @@ export default function TodayView() {
   const [todaysReward, setTodaysReward] = useState(null)
   const [settings, setSettings] = useState({ notifications: false })
   const [loading, setLoading] = useState(true)
+  const [dateWarningToast, setDateWarningToast] = useState(null)
 
   const [isMissedModalOpen, setIsMissedModalOpen] = useState(false)
 
@@ -1183,8 +1184,20 @@ export default function TodayView() {
                     max={todayStr}
                     onChange={(e) => {
                       const val = e.target.value;
-                      if (val && val >= minAvailableDate && val <= todayStr) {
+                      if (!val) return;
+                      if (validTaskDates.includes(val)) {
                         setCurrentDateStr(val);
+                        setDateWarningToast(null);
+                      } else {
+                        let formattedDate = val;
+                        try {
+                          const parsed = parseISO(val);
+                          if (!isNaN(parsed.getTime())) {
+                            formattedDate = format(parsed, 'MMMM d, yyyy');
+                          }
+                        } catch (err) {}
+                        setDateWarningToast(`No task records found for ${formattedDate}. Date selection disabled.`);
+                        setTimeout(() => setDateWarningToast(null), 3500);
                       }
                     }}
                     className="date-picker-input"
@@ -1636,6 +1649,29 @@ export default function TodayView() {
         onCarryOverAll={handleCarryOverAllMissedTasks}
         onJumpToDate={(d) => setCurrentDateStr(d)}
       />
+
+      {dateWarningToast && (
+        <div className="animate-fade-in" style={{
+          position: 'fixed',
+          bottom: '24px',
+          right: '24px',
+          zIndex: 999999,
+          background: 'rgba(239, 68, 68, 0.95)',
+          color: '#fff',
+          padding: '12px 18px',
+          borderRadius: 'var(--radius-md)',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+          fontSize: '0.85rem',
+          fontWeight: 600,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          border: '1px solid rgba(255, 255, 255, 0.2)'
+        }}>
+          <AlertTriangle size={16} color="#fff" />
+          {dateWarningToast}
+        </div>
+      )}
 
       <ConfettiCelebration trigger={showConfetti} />
     </div>
