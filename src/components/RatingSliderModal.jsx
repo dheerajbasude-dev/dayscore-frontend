@@ -85,9 +85,8 @@ export default function RatingSliderModal({ task, onConfirm, onCancel }) {
           <button className="btn-icon" onClick={onCancel} aria-label="Close">
             <X size={20} />
           </button>
-        </div>
-
-        <div className="modal-form-scroll">
+        <div className="modal-form-body">
+          <div className="modal-form-scroll">
           <div className="rating-task-info">
             <span className="rating-task-title">{task.title}</span>
             <div className="rating-status-badge-row">
@@ -239,8 +238,9 @@ export default function RatingSliderModal({ task, onConfirm, onCancel }) {
             💡 Click "<strong>0.0 (Zero Effort)</strong>" or click stars (half star <strong>0.5</strong>, full star <strong>1.0</strong>)
           </p>
         </div>
+      </div>
 
-        <div className="modal-footer">
+      <div className="modal-footer">
           <button type="button" className="btn btn-secondary" onClick={onCancel} disabled={submitting}>
             Cancel
           </button>

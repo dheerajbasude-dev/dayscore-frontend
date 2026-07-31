@@ -1576,9 +1576,9 @@ body.modal-open .app-layout {
   -webkit-backdrop-filter: blur(16px);
   z-index: 999999 !important;
   display: flex;
-  align-items: center;
   justify-content: center;
-  padding: 20px 16px;
+  align-items: flex-start !important;
+  padding: 40px 16px 24px 16px;
   animation: fadeIn 0.2s ease-out;
   overflow-y: auto !important;
   -webkit-overflow-scrolling: touch;
@@ -1591,24 +1591,24 @@ body.modal-open .app-layout {
   padding: 20px 22px;
   width: 100%;
   max-width: 500px;
-  max-height: min(88vh, 88dvh);
-  display: flex;
-  flex-direction: column;
+  max-height: min(85vh, 85dvh) !important;
+  display: flex !important;
+  flex-direction: column !important;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.75);
   animation: modalPopIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
-  overflow: hidden;
-  margin: auto;
+  overflow: hidden !important;
+  margin: 0 auto;
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-bottom: 10px;
+  padding-bottom: 12px;
   border-bottom: 1px solid var(--border-glass);
   margin-bottom: 12px;
-  flex-shrink: 0;
+  flex-shrink: 0 !important;
   width: 100%;
 }
 
@@ -1620,11 +1620,11 @@ body.modal-open .app-layout {
 }
 
 .modal-form-body {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
 }
 
 .modal-form-scroll {
@@ -1633,8 +1633,8 @@ body.modal-open .app-layout {
   gap: 12px;
   overflow-y: auto !important;
   padding: 4px 6px 10px 2px;
-  flex: 1;
-  min-height: 0;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
   scrollbar-width: thin;
   scrollbar-color: rgba(99, 102, 241, 0.6) rgba(255, 255, 255, 0.05);
 }
@@ -1661,10 +1661,10 @@ body.modal-open .app-layout {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-  padding-top: 12px;
+  padding-top: 14px;
   border-top: 1px solid var(--border-glass);
   margin-top: auto;
-  flex-shrink: 0;
+  flex-shrink: 0 !important;
   width: 100%;
 }
 
@@ -1675,6 +1675,7 @@ body.modal-open .app-layout {
     align-items: flex-end !important;
     justify-content: center !important;
     z-index: 999999 !important;
+    overflow-y: auto !important;
   }
 
   .modal-content {
@@ -1686,9 +1687,10 @@ body.modal-open .app-layout {
     border-right: none !important;
     border-bottom: none !important;
     padding: 14px 18px max(20px, env(safe-area-inset-bottom)) 18px !important;
-    max-height: 88vh !important;
-    max-height: 88dvh !important;
+    max-height: min(90vh, 90dvh) !important;
     box-shadow: 0 -12px 48px rgba(0, 0, 0, 0.85) !important;
+    animation: modalSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    overflow: hidden !important;
   }
 
   .modal-content::before {
@@ -1699,17 +1701,18 @@ body.modal-open .app-layout {
     background: rgba(255, 255, 255, 0.25);
     border-radius: 2px;
     margin: 0 auto 12px auto;
-    flex-shrink: 0;
+    flex-shrink: 0 !important;
   }
 
   .modal-header {
     padding-bottom: 10px;
     margin-bottom: 10px;
+    flex-shrink: 0 !important;
   }
 
   .modal-form-scroll {
     gap: 10px;
-    padding: 2px 0 10px 0;
+    padding: 2px 2px 10px 0;
   }
 }
 

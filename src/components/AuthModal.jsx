@@ -75,52 +75,54 @@ export default function AuthModal({ isOpen, onClose }) {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="auth-form">
-          {isSignUp && (
+        <form onSubmit={handleSubmit} className="auth-form modal-form-body">
+          <div className="modal-form-scroll">
+            {isSignUp && (
+              <div className="form-group">
+                <label className="form-label">Full Name</label>
+                <div className="input-icon-wrapper">
+                  <User size={18} className="input-icon" />
+                  <input 
+                    type="text" 
+                    className="input input-with-icon" 
+                    placeholder="e.g. Alex Morgan"
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="form-group">
-              <label className="form-label">Full Name</label>
+              <label className="form-label">Email Address</label>
               <div className="input-icon-wrapper">
-                <User size={18} className="input-icon" />
+                <Mail size={18} className="input-icon" />
                 <input 
-                  type="text" 
+                  type="email" 
                   className="input input-with-icon" 
-                  placeholder="e.g. Alex Morgan"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
                   required
                 />
               </div>
             </div>
-          )}
 
-          <div className="form-group">
-            <label className="form-label">Email Address</label>
-            <div className="input-icon-wrapper">
-              <Mail size={18} className="input-icon" />
-              <input 
-                type="email" 
-                className="input input-with-icon" 
-                placeholder="you@example.com"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                required
-              />
-            </div>
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Password</label>
-            <div className="input-icon-wrapper">
-              <Lock size={18} className="input-icon" />
-              <input 
-                type="password" 
-                className="input input-with-icon" 
-                placeholder="••••••••"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                required
-                minLength={6}
-              />
+            <div className="form-group">
+              <label className="form-label">Password</label>
+              <div className="input-icon-wrapper">
+                <Lock size={18} className="input-icon" />
+                <input 
+                  type="password" 
+                  className="input input-with-icon" 
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                />
+              </div>
             </div>
           </div>
 
