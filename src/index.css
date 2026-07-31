@@ -1579,13 +1579,7 @@ body {
    Modal Design System (Responsive, Non-Clipping Flex Layout)
    ========================================================================== */
 
-/* Allow body scrolling when modal is open */
-body.modal-open,
-body.modal-open html,
-body.modal-open .main-content,
-body.modal-open .app-layout {
-  overflow-y: auto !important;
-}
+/* Body scrolling is disabled when modal is open to keep focus on the modal */
 
 .modal-overlay {
   position: fixed;
@@ -1690,13 +1684,14 @@ body.modal-open .app-layout {
 
 /* Mobile & Tablet Modal Responsive Styles */
 @media (max-width: 1023px) {
-  .modal-overlay {
-    padding: 0 !important;
-    align-items: flex-end !important;
-    justify-content: center !important;
-    z-index: 999999 !important;
-    overflow: hidden !important;
-  }
+.modal-overlay {
+  /* Mobile centered modal overlay */
+  padding: 32px 16px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
 
   .modal-content {
     width: 100% !important;
