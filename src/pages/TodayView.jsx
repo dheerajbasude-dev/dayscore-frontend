@@ -4,11 +4,12 @@ import ScoreRing from '../components/ScoreRing'
 import TaskCard from '../components/TaskCard'
 import AddTaskModal from '../components/AddTaskModal'
 import RatingSliderModal from '../components/RatingSliderModal'
+import MissedTasksModal from '../components/MissedTasksModal'
 import ReflectionBox from '../components/ReflectionBox'
 import ConfettiCelebration from '../components/ConfettiCelebration'
 import PenaltyCelebration from '../components/PenaltyCelebration'
 import AuthModal from '../components/AuthModal'
-import { Plus, AlertTriangle, Gift, PenLine, ChevronLeft, ChevronRight, Calendar, Layers, Search, SlidersHorizontal, Filter, RotateCcw, X, Clock } from 'lucide-react'
+import { Plus, AlertTriangle, Gift, PenLine, ChevronLeft, ChevronRight, Calendar, Layers, Search, SlidersHorizontal, Filter, RotateCcw, X, Clock, Zap } from 'lucide-react'
 import * as store from '../store/store'
 import * as scoring from '../store/scoring'
 import { useDayRollover } from '../hooks/useDayRollover'
@@ -139,6 +140,73 @@ export default function TodayView() {
   const [todaysReward, setTodaysReward] = useState(null)
   const [settings, setSettings] = useState({ notifications: false })
   const [loading, setLoading] = useState(true)
+
+  const [isMissedModalOpen, setIsMissedModalOpen] = useState(false)
+
+  const pastUnfinishedTasks = useMemo(() => {
+    const list = [];
+    const allArcs = archives.length > 0 ? archives : store.getAllArchives();
+    allArcs.forEach(arc => {
+      if (arc.date && arc.date < todayStr && Array.isArray(arc.tasks)) {
+        arc.tasks.forEach(t => {
+          if (t.status === 'pending' || t.status === 'missed' || t.status === 'inprogress') {
+            list.push({ ...t, taskDate: arc.date });
+          }
+        });
+      }
+    });
+    return list;
+  }, [archives, todayStr]);
+
+  const handleCarryOverMissedTask = async (task) => {
+    const originDate = task.taskDate || task.date;
+    const taskId = task.id || task._id;
+    await store.updateTask(originDate, taskId, {
+      date: todayStr,
+      carriedOver: true,
+      carried_over: 1
+    });
+    await store.fetchAllTasksApi();
+    setTasks(store.getTasks(currentDateStr));
+    setArchives(store.getAllArchives());
+  };
+
+  const handleCompleteMissedTask = async (task) => {
+    const originDate = task.taskDate || task.date;
+    const taskId = task.id || task._id;
+    await store.updateTask(originDate, taskId, {
+      status: 'completed',
+      completedAt: new Date().toISOString(),
+      completed_at: new Date().toISOString()
+    });
+    await store.fetchAllTasksApi();
+    setTasks(store.getTasks(currentDateStr));
+    setArchives(store.getAllArchives());
+  };
+
+  const handleDeleteMissedTask = async (task) => {
+    const originDate = task.taskDate || task.date;
+    const taskId = task.id || task._id;
+    await store.deleteTask(originDate, taskId);
+    await store.fetchAllTasksApi();
+    setTasks(store.getTasks(currentDateStr));
+    setArchives(store.getAllArchives());
+  };
+
+  const handleCarryOverAllMissedTasks = async () => {
+    for (const t of pastUnfinishedTasks) {
+      const originDate = t.taskDate || t.date;
+      const taskId = t.id || t._id;
+      await store.updateTask(originDate, taskId, {
+        date: todayStr,
+        carriedOver: true,
+        carried_over: 1
+      });
+    }
+    await store.fetchAllTasksApi();
+    setTasks(store.getTasks(currentDateStr));
+    setArchives(store.getAllArchives());
+  };
 
   // Compute all dates that contain recorded task data or archives (plus today)
   const validTaskDates = useMemo(() => {
@@ -908,30 +976,81 @@ export default function TodayView() {
   return (
     <div className="today-view animate-slide-up">
 
-      {/* First Visit Notification Banner for Unfinished Days */}
-      {showPastPendingBanner && pastUnfinishedDates.length > 0 && (
-        <div className="card-glass" style={{ padding: '14px 18px', marginBottom: '20px', borderRadius: 'var(--radius-lg)', border: '1px solid rgba(245, 158, 11, 0.35)', background: 'rgba(245, 158, 11, 0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <Clock size={20} color="#f59e0b" style={{ flexShrink: 0 }} />
+      {/* Notification Banner for Unfinished / Missed Days */}
+      {showPastPendingBanner && pastUnfinishedTasks.length > 0 && (
+        <div className="card-glass animate-slide-up" style={{
+          padding: '16px 20px',
+          marginBottom: '20px',
+          borderRadius: 'var(--radius-lg)',
+          border: '1px solid rgba(245, 158, 11, 0.4)',
+          background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(99, 102, 241, 0.04) 100%)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '14px',
+          boxShadow: '0 8px 24px rgba(245, 158, 11, 0.12)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '12px',
+              background: 'rgba(245, 158, 11, 0.18)',
+              border: '1px solid rgba(245, 158, 11, 0.35)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}>
+              <Clock size={20} color="#f59e0b" />
+            </div>
             <div>
-              <strong style={{ fontSize: '0.9rem', color: 'var(--text-primary)', display: 'block' }}>
-                Pending / Missed Tasks From Previous Days ({pastUnfinishedDates.length} {pastUnfinishedDates.length === 1 ? 'Day' : 'Days'})
+              <strong style={{ fontSize: '0.95rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                Pending & Missed Tasks From Previous Days
+                <span style={{
+                  fontSize: '0.72rem',
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  background: 'rgba(245, 158, 11, 0.25)',
+                  color: '#fbbf24',
+                  fontWeight: 600
+                }}>
+                  {pastUnfinishedTasks.length} {pastUnfinishedTasks.length === 1 ? 'Task' : 'Tasks'}
+                </span>
               </strong>
-              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                Recorded on {pastUnfinishedDates.join(', ')}. Tasks remain on their specific dates.
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginTop: '2px' }}>
+                Recorded across {pastUnfinishedDates.length} {pastUnfinishedDates.length === 1 ? 'day' : 'days'} ({pastUnfinishedDates.join(', ')}). Resolve or bring them to today.
               </span>
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <button
+              className="btn btn-primary"
+              onClick={() => setIsMissedModalOpen(true)}
+              style={{
+                fontSize: '0.82rem',
+                padding: '7px 14px',
+                background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                border: 'none',
+                color: '#fff',
+                fontWeight: 600,
+                boxShadow: '0 4px 12px rgba(245, 158, 11, 0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              <Zap size={14} />
+              Manage Missed Tasks
+            </button>
             <button
               className="btn btn-secondary btn-sm"
-              onClick={() => {
-                setCurrentDateStr(pastUnfinishedDates[pastUnfinishedDates.length - 1]);
-                setShowPastPendingBanner(false);
-              }}
-              style={{ fontSize: '0.8rem', padding: '5px 12px' }}
+              onClick={handleCarryOverAllMissedTasks}
+              style={{ fontSize: '0.82rem', padding: '7px 12px' }}
+              title="Bring all missed tasks to today instantly"
             >
-              Review Past Date
+              Carry Over All
             </button>
             <button
               className="btn-icon"
@@ -941,9 +1060,9 @@ export default function TodayView() {
                   sessionStorage.setItem(`dayscore_dismiss_pending_${todayStr}`, 'true');
                 } catch (e) {}
               }}
-              title="Dismiss Notification"
+              title="Dismiss Banner"
             >
-              <X size={16} />
+              <X size={18} />
             </button>
           </div>
         </div>
@@ -1466,6 +1585,17 @@ export default function TodayView() {
           </div>
         </div>
       )}
+
+      <MissedTasksModal
+        isOpen={isMissedModalOpen}
+        onClose={() => setIsMissedModalOpen(false)}
+        pastUnfinishedTasks={pastUnfinishedTasks}
+        onCarryOverTask={handleCarryOverMissedTask}
+        onCompleteTask={handleCompleteMissedTask}
+        onDeleteTask={handleDeleteMissedTask}
+        onCarryOverAll={handleCarryOverAllMissedTasks}
+        onJumpToDate={(d) => setCurrentDateStr(d)}
+      />
 
       <ConfettiCelebration trigger={showConfetti} />
     </div>
