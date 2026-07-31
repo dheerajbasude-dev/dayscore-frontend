@@ -1,8 +1,9 @@
 node_modules
-server
 dist
 .env
 .env.local
 .DS_Store
+server/node_modules
+server/.env
 server/database.sqlite
 *.log
