@@ -5,6 +5,7 @@ import TaskCard from '../components/TaskCard'
 import AddTaskModal from '../components/AddTaskModal'
 import RatingSliderModal from '../components/RatingSliderModal'
 import MissedTasksModal from '../components/MissedTasksModal'
+import CustomDatePicker from '../components/CustomDatePicker'
 import ReflectionBox from '../components/ReflectionBox'
 import ConfettiCelebration from '../components/ConfettiCelebration'
 import PenaltyCelebration from '../components/PenaltyCelebration'
@@ -1175,35 +1176,12 @@ export default function TodayView() {
                   <ChevronLeft size={14} /> Prev
                 </button>
 
-                <div className="date-picker-wrapper" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'var(--bg-glass-light)', padding: '4px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-glass)' }}>
-                  <Calendar size={15} style={{ color: 'var(--accent-primary)', flexShrink: 0 }} />
-                  <input
-                    type="date"
-                    value={currentDateStr}
-                    min={minAvailableDate}
-                    max={todayStr}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (!val) return;
-                      if (validTaskDates.includes(val)) {
-                        setCurrentDateStr(val);
-                        setDateWarningToast(null);
-                      } else {
-                        let formattedDate = val;
-                        try {
-                          const parsed = parseISO(val);
-                          if (!isNaN(parsed.getTime())) {
-                            formattedDate = format(parsed, 'MMMM d, yyyy');
-                          }
-                        } catch (err) {}
-                        setDateWarningToast(`No task records found for ${formattedDate}. Date selection disabled.`);
-                        setTimeout(() => setDateWarningToast(null), 3500);
-                      }
-                    }}
-                    className="date-picker-input"
-                    style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer', fontFamily: 'inherit' }}
-                  />
-                </div>
+                <CustomDatePicker
+                  currentDateStr={currentDateStr}
+                  validTaskDates={validTaskDates}
+                  todayStr={todayStr}
+                  onSelectDate={(newDate) => setCurrentDateStr(newDate)}
+                />
 
                 <button
                   className="btn btn-secondary btn-sm date-nav-btn"
