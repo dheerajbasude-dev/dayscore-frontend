@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, ChevronDown, Zap, Check } from 'lucide-react';
-import { format, addHours } from 'date-fns';
+import { X, ChevronDown, Zap, Check, Calendar as CalendarIcon, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
+import { format, addHours, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths } from 'date-fns';
 
 export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates = [] }) {
   const [title, setTitle] = useState('');
@@ -13,8 +13,22 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
   const [selectedMinute, setSelectedMinute] = useState(() => addHours(new Date(), 2).getMinutes());
 
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
+  
+  // Custom Dropdown Open States
   const [isTemplateMenuOpen, setIsTemplateMenuOpen] = useState(false);
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [isHourPickerOpen, setIsHourPickerOpen] = useState(false);
+  const [isMinutePickerOpen, setIsMinutePickerOpen] = useState(false);
+
+  // Calendar View Month state for Modal Date Picker
+  const [calendarViewDate, setCalendarViewDate] = useState(() => {
+    try { return parseISO(todayDateStr); } catch { return new Date(); }
+  });
+
   const templateMenuRef = useRef(null);
+  const datePickerRef = useRef(null);
+  const hourPickerRef = useRef(null);
+  const minutePickerRef = useRef(null);
 
   const now = new Date();
   const isSelectedToday = selectedDate === todayDateStr;
@@ -29,22 +43,35 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
       setSelectedDate(initialDate);
       setSelectedHour(initialDue.getHours());
       setSelectedMinute(initialDue.getMinutes());
+      try { setCalendarViewDate(parseISO(initialDate)); } catch {}
       setTitle('');
       setCategory('Work');
       setPriority('Med');
       setSelectedTemplateId('');
       setIsTemplateMenuOpen(false);
+      setIsDatePickerOpen(false);
+      setIsHourPickerOpen(false);
+      setIsMinutePickerOpen(false);
     } else {
       document.body.classList.remove('modal-open');
     }
     return () => document.body.classList.remove('modal-open');
   }, [isOpen]);
 
-  // Close dropdown on click outside
+  // Click Outside Listener for all dropdowns
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (templateMenuRef.current && !templateMenuRef.current.contains(e.target)) {
         setIsTemplateMenuOpen(false);
+      }
+      if (datePickerRef.current && !datePickerRef.current.contains(e.target)) {
+        setIsDatePickerOpen(false);
+      }
+      if (hourPickerRef.current && !hourPickerRef.current.contains(e.target)) {
+        setIsHourPickerOpen(false);
+      }
+      if (minutePickerRef.current && !minutePickerRef.current.contains(e.target)) {
+        setIsMinutePickerOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -98,7 +125,6 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
     setCategory(tpl.category);
     setPriority(tpl.priority);
 
-    // Always set due date to current active date (today when used today, tomorrow when used tomorrow)
     const currentToday = format(new Date(), 'yyyy-MM-dd');
     setSelectedDate(currentToday);
 
@@ -119,7 +145,6 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
       if (parts.length === 2 && !isNaN(parts[1])) targetM = parts[1];
     }
 
-    // Auto-clamp if time has passed for today
     const nowObj = new Date();
     const curH = nowObj.getHours();
     const curM = nowObj.getMinutes();
@@ -156,9 +181,23 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
     }
   })();
 
+  const formatDisplayDate = (dStr) => {
+    try {
+      const parsed = parseISO(dStr);
+      if (!isNaN(parsed.getTime())) return format(parsed, 'MMM d, yyyy');
+    } catch {}
+    return dStr;
+  };
+
+  // Calendar calculations for Modal Date Picker
+  const monthStart = startOfMonth(calendarViewDate);
+  const monthEnd = endOfMonth(calendarViewDate);
+  const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
+  const startDayOffset = getDay(monthStart);
+
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '480px' }}>
+      <div className="modal-content animate-pop-in" onClick={e => e.stopPropagation()} style={{ maxWidth: '520px', overflow: 'visible' }}>
         <div className="modal-header">
           <h2 className="modal-title">Add New Task</h2>
           <button className="btn-icon" onClick={onClose} aria-label="Close modal">
@@ -166,8 +205,9 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="modal-form-body">
-          <div className="modal-form-scroll">
+        <form onSubmit={handleSubmit} className="modal-form-body" style={{ overflow: 'visible' }}>
+          <div className="modal-form-scroll" style={{ overflow: 'visible' }}>
+            {/* Quick Template */}
             {templates.length > 0 && (
               <div className="form-group" ref={templateMenuRef} style={{ position: 'relative' }}>
                 <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -184,15 +224,20 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
                   )}
                 </label>
 
-                {/* Custom Selector Trigger */}
+                {/* Custom Template Trigger */}
                 <div 
                   className="template-select-trigger"
-                  onClick={() => setIsTemplateMenuOpen(!isTemplateMenuOpen)}
+                  onClick={() => {
+                    setIsTemplateMenuOpen(!isTemplateMenuOpen);
+                    setIsDatePickerOpen(false);
+                    setIsHourPickerOpen(false);
+                    setIsMinutePickerOpen(false);
+                  }}
                   style={{
                     background: 'var(--bg-tertiary)',
                     border: isTemplateMenuOpen ? '1px solid var(--accent-primary)' : '1px solid var(--border-glass)',
                     borderRadius: 'var(--radius-md)',
-                    padding: '8px 12px',
+                    padding: '9px 12px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
@@ -229,25 +274,24 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
                 {/* Custom Floating Glass Menu */}
                 {isTemplateMenuOpen && (
                   <div 
-                    className="template-select-menu"
+                    className="animate-pop-in"
                     style={{
                       position: 'absolute',
-                      top: 'calc(100% + 4px)',
+                      top: 'calc(100% + 6px)',
                       left: 0,
                       right: 0,
-                      zIndex: 100,
-                      background: 'var(--bg-secondary)',
-                      border: '1px solid var(--border-glass-hover)',
+                      zIndex: 99999,
+                      background: '#121426',
+                      border: '1px solid rgba(99, 102, 241, 0.35)',
                       borderRadius: 'var(--radius-md)',
-                      padding: '4px',
-                      maxHeight: '200px',
+                      padding: '6px',
+                      maxHeight: '220px',
                       overflowY: 'auto',
-                      boxShadow: '0 12px 32px rgba(0, 0, 0, 0.45)',
+                      boxShadow: '0 16px 40px rgba(0, 0, 0, 0.8)',
                       backdropFilter: 'blur(20px)',
-                      WebkitBackdropFilter: 'blur(20px)',
                       display: 'flex',
                       flexDirection: 'column',
-                      gap: '3px'
+                      gap: '4px'
                     }}
                   >
                     {templates.map((t, idx) => {
@@ -257,10 +301,10 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
                           key={t.id}
                           onClick={() => applyTemplate(t)}
                           style={{
-                            padding: '6px 10px',
-                            borderRadius: '6px',
-                            background: isSelected ? 'rgba(99, 102, 241, 0.2)' : 'transparent',
-                            border: isSelected ? '1px solid rgba(99, 102, 241, 0.4)' : '1px solid transparent',
+                            padding: '8px 12px',
+                            borderRadius: '8px',
+                            background: isSelected ? 'rgba(99, 102, 241, 0.25)' : 'rgba(255, 255, 255, 0.03)',
+                            border: isSelected ? '1px solid rgba(99, 102, 241, 0.45)' : '1px solid transparent',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
@@ -268,13 +312,12 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
                             cursor: 'pointer',
                             transition: 'all 0.15s ease'
                           }}
-                          className="template-select-item"
                         >
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
                             <span style={{ fontSize: '0.72rem', fontWeight: '800', color: 'var(--accent-primary)', background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '1px 5px', flexShrink: 0 }}>
                               #{idx + 1}
                             </span>
-                            <span style={{ fontWeight: '700', fontSize: '0.85rem', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            <span style={{ fontWeight: '700', fontSize: '0.88rem', color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {t.title}
                             </span>
                           </div>
@@ -295,6 +338,7 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
               </div>
             )}
             
+            {/* Task Title */}
             <div className="form-group">
               <label className="form-label">Task Title</label>
               <input 
@@ -308,6 +352,7 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
               />
             </div>
 
+            {/* Category */}
             <div className="form-group">
               <label className="form-label">Category</label>
               <div className="segmented">
@@ -323,6 +368,7 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
               </div>
             </div>
 
+            {/* Priority */}
             <div className="form-group">
               <label className="form-label">Priority</label>
               <div className="segmented">
@@ -338,8 +384,8 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
               </div>
             </div>
 
-            {/* Custom Date & Time Picker */}
-            <div className="form-group">
+            {/* Custom Date & Time Picker Group */}
+            <div className="form-group" style={{ overflow: 'visible' }}>
               <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span>Due Date & Time</span>
                 <span style={{ fontSize: '0.78rem', color: 'var(--accent-primary)', fontWeight: '700' }}>
@@ -348,65 +394,310 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
               </label>
 
               {/* Quick Presets */}
-              <div style={{ display: 'flex', gap: '6px', marginBottom: '8px', flexWrap: 'wrap' }}>
-                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setPresetTime(30)} style={{ fontSize: '0.70rem', padding: '3px 7px' }}>+30 Min</button>
-                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setPresetTime(60)} style={{ fontSize: '0.70rem', padding: '3px 7px' }}>+1 Hour</button>
-                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setPresetTime(120)} style={{ fontSize: '0.70rem', padding: '3px 7px' }}>+2 Hours</button>
-                <button type="button" className="btn btn-secondary btn-sm" onClick={setEndOfDay} style={{ fontSize: '0.70rem', padding: '3px 7px' }}>End of Day (11:59 PM)</button>
+              <div style={{ display: 'flex', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setPresetTime(30)} style={{ fontSize: '0.72rem', padding: '4px 8px' }}>+30 Min</button>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setPresetTime(60)} style={{ fontSize: '0.72rem', padding: '4px 8px' }}>+1 Hour</button>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setPresetTime(120)} style={{ fontSize: '0.72rem', padding: '4px 8px' }}>+2 Hours</button>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={setEndOfDay} style={{ fontSize: '0.72rem', padding: '4px 8px' }}>End of Day (11:59 PM)</button>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr', gap: '8px' }}>
-                {/* Date Input */}
-                <input
-                  type="date"
-                  className="input"
-                  min={todayDateStr}
-                  value={selectedDate}
-                  onChange={e => {
-                    const val = e.target.value;
-                    if (val && val >= todayDateStr) {
-                      setSelectedDate(val);
-                    }
-                  }}
-                  required
-                  style={{ padding: '8px 10px', fontSize: '0.85rem' }}
-                />
+              {/* Glassmorphic Date & Time Triggers Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr', gap: '8px', overflow: 'visible' }}>
+                
+                {/* 1. Glassmorphic Date Picker */}
+                <div style={{ position: 'relative' }} ref={datePickerRef}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsDatePickerOpen(!isDatePickerOpen);
+                      setIsHourPickerOpen(false);
+                      setIsMinutePickerOpen(false);
+                      setIsTemplateMenuOpen(false);
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '9px 10px',
+                      borderRadius: 'var(--radius-md)',
+                      background: 'var(--bg-tertiary)',
+                      border: isDatePickerOpen ? '1px solid var(--accent-primary)' : '1px solid var(--border-glass)',
+                      color: '#ffffff',
+                      fontSize: '0.85rem',
+                      fontWeight: '600',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <CalendarIcon size={14} color="var(--accent-primary)" />
+                      <span>{formatDisplayDate(selectedDate)}</span>
+                    </div>
+                    <ChevronDown size={14} color="var(--text-muted)" style={{ transform: isDatePickerOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                  </button>
 
-                {/* Hour Dropdown (Disables Past Hours for Today) */}
-                <select
-                  className="select"
-                  value={selectedHour}
-                  onChange={e => setSelectedHour(Number(e.target.value))}
-                  style={{ padding: '8px 10px', fontSize: '0.85rem' }}
-                >
-                  {Array.from({ length: 24 }).map((_, h) => {
-                    const isPast = isSelectedToday && h < currentHour;
-                    const ampm = h >= 12 ? 'PM' : 'AM';
-                    const displayH = h % 12 === 0 ? 12 : h % 12;
-                    return (
-                      <option key={h} value={h} disabled={isPast}>
-                        {String(displayH).padStart(2, '0')}:00 {ampm} {isPast ? '(Past)' : ''}
-                      </option>
-                    );
-                  })}
-                </select>
+                  {/* Calendar Popover */}
+                  {isDatePickerOpen && (
+                    <div
+                      className="animate-pop-in"
+                      style={{
+                        position: 'absolute',
+                        bottom: 'calc(100% + 8px)',
+                        left: 0,
+                        zIndex: 99999,
+                        width: '270px',
+                        padding: '14px',
+                        borderRadius: '16px',
+                        background: '#121426',
+                        border: '1px solid rgba(99, 102, 241, 0.35)',
+                        boxShadow: '0 20px 48px rgba(0, 0, 0, 0.85)',
+                        backdropFilter: 'blur(20px)',
+                        color: '#ffffff'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                        <button type="button" onClick={() => setCalendarViewDate(subMonths(calendarViewDate, 1))} style={{ width: '26px', height: '26px', borderRadius: '6px', border: '1px solid rgba(255, 255, 255, 0.12)', background: 'rgba(255, 255, 255, 0.06)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                          <ChevronLeft size={14} />
+                        </button>
+                        <strong style={{ fontSize: '0.88rem', color: '#ffffff', fontWeight: 700 }}>
+                          {format(calendarViewDate, 'MMMM yyyy')}
+                        </strong>
+                        <button type="button" onClick={() => setCalendarViewDate(addMonths(calendarViewDate, 1))} style={{ width: '26px', height: '26px', borderRadius: '6px', border: '1px solid rgba(255, 255, 255, 0.12)', background: 'rgba(255, 255, 255, 0.06)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                          <ChevronRight size={14} />
+                        </button>
+                      </div>
 
-                {/* Minute Dropdown (Disables Past Minutes for Current Hour of Today) */}
-                <select
-                  className="select"
-                  value={selectedMinute}
-                  onChange={e => setSelectedMinute(Number(e.target.value))}
-                  style={{ padding: '8px 10px', fontSize: '0.85rem' }}
-                >
-                  {Array.from({ length: 60 }).map((_, m) => {
-                    const isPast = isSelectedToday && selectedHour === currentHour && m < currentMinute;
-                    return (
-                      <option key={m} value={m} disabled={isPast}>
-                        :{String(m).padStart(2, '0')} {isPast ? '(Past)' : ''}
-                      </option>
-                    );
-                  })}
-                </select>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', textAlign: 'center', marginBottom: '6px' }}>
+                        {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((d) => (
+                          <span key={d} style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8' }}>{d}</span>
+                        ))}
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '3px' }}>
+                        {Array.from({ length: startDayOffset }).map((_, i) => <div key={`empty_${i}`} />)}
+                        {daysInMonth.map((dayObj) => {
+                          const dStr = format(dayObj, 'yyyy-MM-dd');
+                          const isPast = dStr < todayDateStr;
+                          const isSel = dStr === selectedDate;
+                          const isTod = dStr === todayDateStr;
+
+                          return (
+                            <button
+                              key={dStr}
+                              type="button"
+                              disabled={isPast}
+                              onClick={() => {
+                                if (!isPast) {
+                                  setSelectedDate(dStr);
+                                  setIsDatePickerOpen(false);
+                                }
+                              }}
+                              style={{
+                                height: '30px',
+                                borderRadius: '6px',
+                                border: isSel ? '1px solid #818cf8' : '1px solid transparent',
+                                background: isSel ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' : (isTod ? 'rgba(99, 102, 241, 0.18)' : 'rgba(255, 255, 255, 0.04)'),
+                                color: isSel ? '#ffffff' : (isPast ? '#475569' : '#f8fafc'),
+                                opacity: isPast ? 0.3 : 1,
+                                cursor: isPast ? 'not-allowed' : 'pointer',
+                                fontSize: '0.8rem',
+                                fontWeight: isSel || isTod ? 700 : 500
+                              }}
+                            >
+                              {format(dayObj, 'd')}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. Glassmorphic Hour Picker */}
+                <div style={{ position: 'relative' }} ref={hourPickerRef}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsHourPickerOpen(!isHourPickerOpen);
+                      setIsDatePickerOpen(false);
+                      setIsMinutePickerOpen(false);
+                      setIsTemplateMenuOpen(false);
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '9px 10px',
+                      borderRadius: 'var(--radius-md)',
+                      background: 'var(--bg-tertiary)',
+                      border: isHourPickerOpen ? '1px solid var(--accent-primary)' : '1px solid var(--border-glass)',
+                      color: '#ffffff',
+                      fontSize: '0.85rem',
+                      fontWeight: '600',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Clock size={14} color="var(--accent-primary)" />
+                      <span>
+                        {String(selectedHour % 12 === 0 ? 12 : selectedHour % 12).padStart(2, '0')}:00 {selectedHour >= 12 ? 'PM' : 'AM'}
+                      </span>
+                    </div>
+                    <ChevronDown size={14} color="var(--text-muted)" style={{ transform: isHourPickerOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                  </button>
+
+                  {/* Hour Popover */}
+                  {isHourPickerOpen && (
+                    <div
+                      className="animate-pop-in"
+                      style={{
+                        position: 'absolute',
+                        bottom: 'calc(100% + 8px)',
+                        left: 0,
+                        right: 0,
+                        zIndex: 99999,
+                        background: '#121426',
+                        border: '1px solid rgba(99, 102, 241, 0.35)',
+                        borderRadius: '12px',
+                        padding: '6px',
+                        maxHeight: '200px',
+                        overflowY: 'auto',
+                        boxShadow: '0 16px 40px rgba(0, 0, 0, 0.85)',
+                        backdropFilter: 'blur(20px)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '3px'
+                      }}
+                    >
+                      {Array.from({ length: 24 }).map((_, h) => {
+                        const isPast = isSelectedToday && h < currentHour;
+                        const ampm = h >= 12 ? 'PM' : 'AM';
+                        const displayH = h % 12 === 0 ? 12 : h % 12;
+                        const isSel = h === selectedHour;
+
+                        return (
+                          <div
+                            key={h}
+                            onClick={() => {
+                              if (!isPast) {
+                                setSelectedHour(h);
+                                setIsHourPickerOpen(false);
+                              }
+                            }}
+                            style={{
+                              padding: '7px 10px',
+                              borderRadius: '6px',
+                              background: isSel ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' : (isPast ? 'transparent' : 'rgba(255, 255, 255, 0.04)'),
+                              color: isSel ? '#ffffff' : (isPast ? '#475569' : '#f8fafc'),
+                              opacity: isPast ? 0.35 : 1,
+                              cursor: isPast ? 'not-allowed' : 'pointer',
+                              fontSize: '0.82rem',
+                              fontWeight: isSel ? 700 : 500,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between'
+                            }}
+                          >
+                            <span>{String(displayH).padStart(2, '0')}:00 {ampm}</span>
+                            {isPast && <span style={{ fontSize: '0.68rem', color: '#64748b' }}>Past</span>}
+                            {isSel && <Check size={14} color="#ffffff" />}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* 3. Glassmorphic Minute Picker */}
+                <div style={{ position: 'relative' }} ref={minutePickerRef}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMinutePickerOpen(!isMinutePickerOpen);
+                      setIsDatePickerOpen(false);
+                      setIsHourPickerOpen(false);
+                      setIsTemplateMenuOpen(false);
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '9px 10px',
+                      borderRadius: 'var(--radius-md)',
+                      background: 'var(--bg-tertiary)',
+                      border: isMinutePickerOpen ? '1px solid var(--accent-primary)' : '1px solid var(--border-glass)',
+                      color: '#ffffff',
+                      fontSize: '0.85rem',
+                      fontWeight: '600',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <span>:{String(selectedMinute).padStart(2, '0')}</span>
+                    <ChevronDown size={14} color="var(--text-muted)" style={{ transform: isMinutePickerOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                  </button>
+
+                  {/* Minute Popover */}
+                  {isMinutePickerOpen && (
+                    <div
+                      className="animate-pop-in"
+                      style={{
+                        position: 'absolute',
+                        bottom: 'calc(100% + 8px)',
+                        left: 0,
+                        right: 0,
+                        zIndex: 99999,
+                        background: '#121426',
+                        border: '1px solid rgba(99, 102, 241, 0.35)',
+                        borderRadius: '12px',
+                        padding: '6px',
+                        maxHeight: '200px',
+                        overflowY: 'auto',
+                        boxShadow: '0 16px 40px rgba(0, 0, 0, 0.85)',
+                        backdropFilter: 'blur(20px)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '3px'
+                      }}
+                    >
+                      {Array.from({ length: 60 }).map((_, m) => {
+                        const isPast = isSelectedToday && selectedHour === currentHour && m < currentMinute;
+                        const isSel = m === selectedMinute;
+
+                        return (
+                          <div
+                            key={m}
+                            onClick={() => {
+                              if (!isPast) {
+                                setSelectedMinute(m);
+                                setIsMinutePickerOpen(false);
+                              }
+                            }}
+                            style={{
+                              padding: '7px 10px',
+                              borderRadius: '6px',
+                              background: isSel ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' : (isPast ? 'transparent' : 'rgba(255, 255, 255, 0.04)'),
+                              color: isSel ? '#ffffff' : (isPast ? '#475569' : '#f8fafc'),
+                              opacity: isPast ? 0.35 : 1,
+                              cursor: isPast ? 'not-allowed' : 'pointer',
+                              fontSize: '0.82rem',
+                              fontWeight: isSel ? 700 : 500,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between'
+                            }}
+                          >
+                            <span>:{String(m).padStart(2, '0')}</span>
+                            {isPast && <span style={{ fontSize: '0.68rem', color: '#64748b' }}>Past</span>}
+                            {isSel && <Check size={14} color="#ffffff" />}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
               </div>
             </div>
           </div>
