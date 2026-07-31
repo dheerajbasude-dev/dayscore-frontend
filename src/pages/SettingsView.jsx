@@ -534,7 +534,7 @@ export default function SettingsView() {
                   <button type="button" className="btn btn-secondary btn-sm" onClick={setTemplateEndOfDay} disabled={isSavingTemplate} style={{ fontSize: '0.75rem', padding: '3px 8px' }}>End of Day (11:59 PM)</button>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr', gap: '8px', overflow: 'visible' }}>
+                <div className="due-time-grid">
                   
                   {/* 1. Custom Glassmorphic Date Picker */}
                   <div style={{ position: 'relative' }} ref={tDatePickerRef}>

@@ -2156,11 +2156,34 @@ body {
   gap: 3px;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
 }
 
-.segmented::-webkit-scrollbar {
-  display: none;
+.segmented::-webkit-scrollbar,
+.segmented-option::-webkit-scrollbar,
+.modal-form-scroll::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
+/* Due Time Grid Responsive Layout */
+.due-time-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 8px;
+  overflow: visible;
+}
+
+@media (max-width: 480px) {
+  .due-time-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .due-time-grid > div:first-child {
+    grid-column: 1 / -1;
+  }
 }
 
 .segmented-option {
