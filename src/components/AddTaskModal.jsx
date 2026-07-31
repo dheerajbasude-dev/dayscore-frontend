@@ -439,7 +439,7 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
                   {/* Calendar Popover */}
                   {isDatePickerOpen && (
                     <div
-                      className="animate-pop-in"
+                      className="animate-pop-in date-picker-popover"
                       style={{
                         position: 'absolute',
                         bottom: 'calc(100% + 8px)',
@@ -550,7 +550,7 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
                   {/* Hour Popover */}
                   {isHourPickerOpen && (
                     <div
-                      className="animate-pop-in"
+                      className="animate-pop-in glass-popover-time"
                       style={{
                         position: 'absolute',
                         bottom: 'calc(100% + 8px)',
@@ -641,7 +641,7 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
                   {/* Minute Popover */}
                   {isMinutePickerOpen && (
                     <div
-                      className="animate-pop-in"
+                      className="animate-pop-in glass-popover-time"
                       style={{
                         position: 'absolute',
                         bottom: 'calc(100% + 8px)',

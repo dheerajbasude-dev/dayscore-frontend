@@ -4566,3 +4566,42 @@ body {
   border-color: rgba(251, 191, 36, 0.4) !important;
   background: rgba(251, 191, 36, 0.08) !important;
 }
+
+/* ==========================================================================
+   Mobile Responsive Glassmorphic Popovers & Calendar Centering
+   ========================================================================== */
+
+@media (max-width: 640px) {
+  .date-picker-popover {
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: 300px !important;
+    max-width: 90vw !important;
+    z-index: 999999 !important;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.95), 0 0 0 100vmax rgba(0, 0, 0, 0.55) !important;
+  }
+
+  .custom-select-popover {
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: 290px !important;
+    max-width: 90vw !important;
+    z-index: 999999 !important;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.95), 0 0 0 100vmax rgba(0, 0, 0, 0.55) !important;
+  }
+
+  .glass-popover-time {
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: 260px !important;
+    max-width: 85vw !important;
+    z-index: 999999 !important;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.95), 0 0 0 100vmax rgba(0, 0, 0, 0.55) !important;
+  }
+}

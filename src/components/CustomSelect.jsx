@@ -65,7 +65,7 @@ export default function CustomSelect({
       {/* Floating Glassmorphic Menu */}
       {isOpen && (
         <div
-          className="animate-pop-in"
+          className="animate-pop-in custom-select-popover"
           style={{
             position: 'absolute',
             top: 'calc(100% + 6px)',

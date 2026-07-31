@@ -95,7 +95,7 @@ export default function CustomDatePicker({
       {/* Popover Calendar Grid */}
       {isOpen && (
         <div
-          className="animate-pop-in"
+          className="animate-pop-in date-picker-popover"
           style={{
             position: 'absolute',
             top: 'calc(100% + 8px)',

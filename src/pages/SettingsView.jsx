@@ -571,7 +571,7 @@ export default function SettingsView() {
                     {/* Calendar Popover */}
                     {isTDatePickerOpen && (
                       <div
-                        className="animate-pop-in"
+                        className="animate-pop-in date-picker-popover"
                         style={{
                           position: 'absolute',
                           bottom: 'calc(100% + 8px)',
@@ -682,7 +682,7 @@ export default function SettingsView() {
                     {/* Hour Popover */}
                     {isTHourPickerOpen && (
                       <div
-                        className="animate-pop-in"
+                        className="animate-pop-in glass-popover-time"
                         style={{
                           position: 'absolute',
                           bottom: 'calc(100% + 8px)',
@@ -773,7 +773,7 @@ export default function SettingsView() {
                     {/* Minute Popover */}
                     {isTMinutePickerOpen && (
                       <div
-                        className="animate-pop-in"
+                        className="animate-pop-in glass-popover-time"
                         style={{
                           position: 'absolute',
                           bottom: 'calc(100% + 8px)',
