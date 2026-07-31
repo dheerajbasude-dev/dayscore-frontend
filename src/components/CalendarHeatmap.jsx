@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { format, subDays, startOfWeek, endOfWeek, addDays, parseISO } from 'date-fns';
+import { Calendar, Info } from 'lucide-react';
 
 export default function CalendarHeatmap({ archives = [] }) {
+  const [activeDay, setActiveDay] = useState(null);
   const today = new Date();
   const todayStr = format(today, 'yyyy-MM-dd');
 
@@ -81,6 +83,25 @@ export default function CalendarHeatmap({ archives = [] }) {
 
   return (
     <div className="heatmap-wrapper">
+      {/* Mobile & Desktop Interactive Date Info Banner */}
+      <div className={`heatmap-info-pill ${activeDay ? 'active' : ''}`}>
+        <Calendar size={14} color="var(--accent-primary)" />
+        {activeDay ? (
+          <span>
+            <strong>{activeDay.formattedDate}</strong> {activeDay.isToday ? '(Today)' : ''}: {' '}
+            {activeDay.score !== null && activeDay.record?.hasTasks
+              ? `Score ${activeDay.score.toFixed(1)}/10`
+              : activeDay.isToday
+              ? 'Ongoing Day'
+              : 'No activity recorded'}
+          </span>
+        ) : (
+          <span className="heatmap-info-placeholder">
+            Tap or hover any day box below to view date & score
+          </span>
+        )}
+      </div>
+
       <div className="heatmap-container">
         <div className="heatmap-months">
           {monthLabels.map((m, i) => (
@@ -99,8 +120,11 @@ export default function CalendarHeatmap({ archives = [] }) {
                 {week.map((day, dIndex) => (
                   <div 
                     key={dIndex} 
-                    className={`heatmap-cell heatmap-level-${day.level} ${day.isToday ? 'heatmap-cell-today' : ''}`}
+                    className={`heatmap-cell heatmap-level-${day.level} ${day.isToday ? 'heatmap-cell-today' : ''} ${activeDay?.dateStr === day.dateStr ? 'heatmap-cell-selected' : ''}`}
                     title={getTooltip(day)}
+                    onClick={() => setActiveDay(day)}
+                    onTouchStart={() => setActiveDay(day)}
+                    onMouseEnter={() => setActiveDay(day)}
                   />
                 ))}
               </div>

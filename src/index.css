@@ -2277,17 +2277,49 @@ body.modal-open .app-layout {
   gap: 2px;
 }
 
+.heatmap-info-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--bg-glass-light);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  margin-bottom: 12px;
+  font-size: 0.82rem;
+  color: var(--text-primary);
+  min-height: 38px;
+  transition: all 0.25s ease;
+}
+
+.heatmap-info-pill.active {
+  border-color: rgba(var(--accent-primary-rgb), 0.4);
+  background: rgba(var(--accent-primary-rgb), 0.08);
+  box-shadow: 0 0 12px rgba(var(--accent-primary-rgb), 0.15);
+}
+
+.heatmap-info-placeholder {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
 .heatmap-cell {
   width: 12px;
   height: 12px;
   border-radius: 2px;
-  transition: transform 0.15s ease;
+  transition: transform 0.15s ease, outline 0.15s ease;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.heatmap-cell:hover {
-  transform: scale(1.3);
-  z-index: 2;
+.heatmap-cell:hover,
+.heatmap-cell:active,
+.heatmap-cell.heatmap-cell-selected {
+  transform: scale(1.4) !important;
+  z-index: 10 !important;
+  outline: 2px solid var(--accent-primary) !important;
+  outline-offset: 1px !important;
+  box-shadow: 0 0 10px rgba(var(--accent-primary-rgb), 0.8);
 }
 
 .heatmap-level-0 {
