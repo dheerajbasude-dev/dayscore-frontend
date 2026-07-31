@@ -1288,7 +1288,7 @@ export default function TodayView() {
           )}
 
           {/* Daily Reflection Section */}
-          <div className="reflection-section-top" style={{ marginBottom: '14px' }}>
+          <div className="reflection-section-top" style={{ marginBottom: '8px' }}>
             <ReflectionBox 
               value={reflection} 
               onChange={(val) => {

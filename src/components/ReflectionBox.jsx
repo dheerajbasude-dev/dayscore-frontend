@@ -47,31 +47,32 @@ export default function ReflectionBox({ value, onChange, isModal = false, onClos
 
   return (
     <div className={`reflection-box ${isFocused ? 'focused' : ''} ${isModal ? 'reflection-modal-body' : ''}`}>
-      <div className="reflection-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <PenLine size={16} color="var(--accent-primary)" />
-          <span style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-primary)' }}>Daily Reflection Journal</span>
+      {/* Combined Header & Prompt Chips Row */}
+      <div className="reflection-header-row">
+        <div className="reflection-title-group">
+          <PenLine size={15} color="var(--accent-primary)" />
+          <span className="reflection-title">Daily Reflection</span>
+          {savedToast && (
+            <span className="reflection-saved-tag animate-fade-in">
+              <CheckCircle2 size={12} color="#86efac" /> Saved
+            </span>
+          )}
         </div>
-        {savedToast && (
-          <span className="reflection-saved-tag animate-fade-in">
-            <CheckCircle2 size={13} color="#86efac" /> Saved
-          </span>
-        )}
-      </div>
 
-      <div className="reflection-tags">
-        <span className="reflection-tags-label"><Sparkles size={12} color="var(--accent-warning)" /> Prompts:</span>
-        <div className="reflection-tags-list">
-          {QUICK_TAGS.map((tag) => (
-            <button
-              key={tag.label}
-              type="button"
-              className="reflection-chip"
-              onClick={() => handleAddTag(tag.sentence)}
-            >
-              {tag.label}
-            </button>
-          ))}
+        <div className="reflection-tags-inline">
+          <span className="reflection-tags-label"><Sparkles size={11} color="var(--accent-warning)" /> Prompts:</span>
+          <div className="reflection-tags-list">
+            {QUICK_TAGS.map((tag) => (
+              <button
+                key={tag.label}
+                type="button"
+                className="reflection-chip"
+                onClick={() => handleAddTag(tag.sentence)}
+              >
+                {tag.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -82,17 +83,16 @@ export default function ReflectionBox({ value, onChange, isModal = false, onClos
           placeholder="What went well today? Click a prompt above or type your reflection..."
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
-          rows={isModal ? 4 : (isFocused || value ? 3 : 2)}
-          style={{ minHeight: isModal ? '90px' : (isFocused || value ? '72px' : '50px') }}
+          rows={isModal ? 3 : (isFocused || value ? 2 : 1)}
+          style={{ minHeight: isModal ? '80px' : (isFocused || value ? '54px' : '36px') }}
         />
-        <div className="reflection-footer">
-          <span className="char-count" style={{ fontSize: '0.72rem' }}>{value?.length || 0} characters</span>
-          {isModal && onClose && (
+        {isModal && onClose && (
+          <div className="reflection-footer-modal" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
             <button className="btn btn-primary btn-sm" onClick={onClose}>
               Done & Save
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

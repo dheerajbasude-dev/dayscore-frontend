@@ -2645,10 +2645,10 @@ body {
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08));
   border-radius: var(--radius-md, 12px);
-  padding: 10px 14px;
+  padding: 8px 12px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 5px;
   transition: all 0.25s ease;
 }
 
@@ -2657,26 +2657,40 @@ body {
   box-shadow: 0 0 16px rgba(99, 102, 241, 0.15);
 }
 
-.reflection-header {
+.reflection-header-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  flex-wrap: wrap;
+}
+
+.reflection-title-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.reflection-title {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--text-primary);
 }
 
 .reflection-saved-tag {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: #86efac;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   font-weight: 600;
   background: rgba(34, 197, 94, 0.1);
-  padding: 2px 8px;
-  border-radius: 12px;
+  padding: 1px 6px;
+  border-radius: 10px;
 }
 
-.reflection-tags {
+.reflection-tags-inline {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -2684,7 +2698,7 @@ body {
 }
 
 .reflection-tags-label {
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   color: var(--text-muted);
   font-weight: 600;
   display: inline-flex;
@@ -2703,9 +2717,9 @@ body {
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
   color: var(--text-secondary);
-  font-size: 0.72rem;
-  padding: 2px 8px;
-  border-radius: 12px;
+  font-size: 0.7rem;
+  padding: 2px 7px;
+  border-radius: 10px;
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -2725,12 +2739,12 @@ body {
 .reflection-content textarea {
   width: 100%;
   background: rgba(0, 0, 0, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  padding: 6px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 6px;
+  padding: 5px 9px;
   color: var(--text-primary);
-  font-size: 0.85rem;
-  line-height: 1.4;
+  font-size: 0.83rem;
+  line-height: 1.35;
   resize: vertical;
   font-family: inherit;
   transition: border-color 0.2s ease;
