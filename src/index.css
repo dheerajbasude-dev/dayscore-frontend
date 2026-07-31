@@ -1579,11 +1579,7 @@ body {
    Modal Design System (Responsive, Non-Clipping Flex Layout)
    ========================================================================== */
 
-/* ==========================================================================
-   Modal Design System (Centralized Non-Clipping Flex Layout)
-   ========================================================================== */
-
-/* Lock body scrolling completely when any modal is open */
+/* Lock body & background scroll when any modal is open */
 body.modal-open,
 body.modal-open html,
 body.modal-open .main-content,
@@ -1603,22 +1599,24 @@ body.modal-open .app-layout {
   display: flex !important;
   justify-content: center !important;
   align-items: center !important;
-  padding: 24px 16px;
+  padding: 20px 16px;
   animation: fadeIn 0.2s ease-out;
   overflow: hidden !important;
+  touch-action: none;
+  overscroll-behavior: contain;
 }
 
 .modal-content {
   background: var(--bg-secondary);
   border: 1px solid var(--border-glass-hover);
   border-radius: var(--radius-xl);
-  padding: 22px 24px;
+  padding: 20px 22px;
   width: 100%;
-  max-width: 500px;
+  max-width: 520px;
   max-height: min(85vh, 85dvh) !important;
   display: flex !important;
   flex-direction: column !important;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8), 0 0 32px rgba(var(--accent-primary-rgb), 0.15);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.85);
   animation: modalPopIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
   overflow: hidden !important;
@@ -1656,6 +1654,7 @@ body.modal-open .app-layout {
   flex-direction: column;
   gap: 12px;
   overflow-y: auto !important;
+  overscroll-behavior: contain;
   padding: 4px 6px 10px 2px;
   flex: 1 1 auto !important;
   min-height: 0 !important;
@@ -1692,11 +1691,11 @@ body.modal-open .app-layout {
   width: 100%;
 }
 
-/* Mobile & Tablet Central Modal Styles */
+/* Mobile & Tablet Modal Responsive Styles */
 @media (max-width: 1023px) {
   .modal-overlay {
-    padding: 16px !important;
-    align-items: center !important;
+    padding: 0 !important;
+    align-items: flex-end !important;
     justify-content: center !important;
     z-index: 999999 !important;
     overflow: hidden !important;
@@ -1704,12 +1703,15 @@ body.modal-open .app-layout {
 
   .modal-content {
     width: 100% !important;
-    max-width: 480px !important;
-    margin: auto !important;
-    border-radius: 24px !important;
-    padding: 18px 20px max(18px, env(safe-area-inset-bottom)) 20px !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    border-radius: 24px 24px 0 0 !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-bottom: none !important;
+    padding: 14px 18px max(20px, env(safe-area-inset-bottom)) 18px !important;
     max-height: min(88vh, 88dvh) !important;
-    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.85) !important;
+    box-shadow: 0 -12px 48px rgba(0, 0, 0, 0.85) !important;
     animation: modalSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
     overflow: hidden !important;
   }
