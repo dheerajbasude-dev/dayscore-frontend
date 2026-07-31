@@ -29,7 +29,7 @@ export default function CustomSelect({
   }, [isOpen]);
 
   return (
-    <div ref={containerRef} style={{ position: 'relative', width: '100%', ...style }}>
+    <div ref={containerRef} style={{ position: 'relative', width: '100%', zIndex: isOpen ? 99999 : 'auto', ...style }}>
       {/* Trigger Button */}
       <button
         type="button"

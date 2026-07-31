@@ -4276,6 +4276,9 @@ body {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  position: relative;
+  z-index: 100;
+  overflow: visible;
 }
 
 .task-search-row {
@@ -4283,6 +4286,9 @@ body {
   gap: 10px;
   align-items: center;
   flex-wrap: wrap;
+  position: relative;
+  z-index: 100;
+  overflow: visible;
 }
 
 .task-search-input-wrapper {
