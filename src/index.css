@@ -1523,9 +1523,11 @@ body {
 @media (min-width: 1024px) {
   .fab {
     display: flex !important;
-    position: fixed;
+    position: sticky;
     bottom: 32px;
     right: 32px;
+    float: right;
+    margin-left: auto;
     z-index: 95;
     width: 56px;
     height: 56px;
@@ -1538,7 +1540,9 @@ body {
     align-items: center;
     justify-content: center;
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);
+    -webkit-user-select: none;
     user-select: none;
   }
 
