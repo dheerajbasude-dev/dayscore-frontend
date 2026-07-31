@@ -402,7 +402,7 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
               </div>
 
               {/* Glassmorphic Date & Time Triggers Grid */}
-              <div className="due-time-grid">
+              <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr', gap: '8px', overflow: 'visible' }}>
                 
                 {/* 1. Glassmorphic Date Picker */}
                 <div style={{ position: 'relative' }} ref={datePickerRef}>
