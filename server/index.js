@@ -463,7 +463,7 @@ app.delete('/api/punishments', verifyTokenMiddleware, async (req, res) => {
 // Streak Milestones
 app.get('/api/streak-milestones', verifyTokenMiddleware, async (req, res) => {
   try {
-    let doc = await UserStreakMilestone.findOne(buildUserFilter(req.user.id)).lean();
+    let doc = await UserStreakMilestone.findOne(buildUserFilter(req.user.id));
     if (!doc) {
       doc = await UserStreakMilestone.create({
         user_id: req.user.id,
@@ -471,9 +471,10 @@ app.get('/api/streak-milestones', verifyTokenMiddleware, async (req, res) => {
         claimed_milestones: { 7: false, 14: false, 30: false, 100: false }
       });
     }
+    const result = doc.toObject ? doc.toObject() : doc;
     return res.json({
-      milestones: doc.milestones || { 7: '', 14: '', 30: '', 100: '' },
-      claimed_milestones: doc.claimed_milestones || { 7: false, 14: false, 30: false, 100: false }
+      milestones: result.milestones || { 7: '', 14: '', 30: '', 100: '' },
+      claimed_milestones: result.claimed_milestones || { 7: false, 14: false, 30: false, 100: false }
     });
   } catch (err) {
     console.error('Fetch streak milestones error:', err);
@@ -484,28 +485,33 @@ app.get('/api/streak-milestones', verifyTokenMiddleware, async (req, res) => {
 app.put('/api/streak-milestones', verifyTokenMiddleware, async (req, res) => {
   try {
     const { milestones, claimed_milestones } = req.body;
-    const updateFields = {
-      updated_at: new Date().toISOString()
-    };
-    if (milestones && typeof milestones === 'object') {
-      updateFields.milestones = milestones;
-    }
-    if (claimed_milestones && typeof claimed_milestones === 'object') {
-      updateFields.claimed_milestones = claimed_milestones;
+    const filter = buildUserFilter(req.user.id);
+    
+    let doc = await UserStreakMilestone.findOne(filter);
+    if (!doc) {
+      doc = new UserStreakMilestone({
+        user_id: req.user.id,
+        milestones: milestones || { 7: '', 14: '', 30: '', 100: '' },
+        claimed_milestones: claimed_milestones || { 7: false, 14: false, 30: false, 100: false }
+      });
+    } else {
+      if (milestones && typeof milestones === 'object') {
+        doc.milestones = { ...doc.milestones, ...milestones };
+        doc.markModified('milestones');
+      }
+      if (claimed_milestones && typeof claimed_milestones === 'object') {
+        doc.claimed_milestones = { ...doc.claimed_milestones, ...claimed_milestones };
+        doc.markModified('claimed_milestones');
+      }
+      doc.updated_at = new Date().toISOString();
     }
 
-    const doc = await UserStreakMilestone.findOneAndUpdate(
-      buildUserFilter(req.user.id),
-      {
-        $set: updateFields,
-        $setOnInsert: { user_id: req.user.id }
-      },
-      { upsert: true, new: true }
-    ).lean();
+    await doc.save();
+    const result = doc.toObject();
 
     return res.json({
-      milestones: doc.milestones || { 7: '', 14: '', 30: '', 100: '' },
-      claimed_milestones: doc.claimed_milestones || { 7: false, 14: false, 30: false, 100: false }
+      milestones: result.milestones || { 7: '', 14: '', 30: '', 100: '' },
+      claimed_milestones: result.claimed_milestones || { 7: false, 14: false, 30: false, 100: false }
     });
   } catch (err) {
     console.error('Update streak milestones error:', err);
@@ -518,25 +524,28 @@ app.post('/api/streak-milestones/claim', verifyTokenMiddleware, async (req, res)
     const { days } = req.body;
     if (!days) return res.status(400).json({ error: 'Milestone days parameter required.' });
 
-    let doc = await UserStreakMilestone.findOne(buildUserFilter(req.user.id)).lean();
-    const currentClaimed = doc && doc.claimed_milestones ? { ...doc.claimed_milestones } : { 7: false, 14: false, 30: false, 100: false };
-    currentClaimed[days] = true;
+    const filter = buildUserFilter(req.user.id);
+    let doc = await UserStreakMilestone.findOne(filter);
+    if (!doc) {
+      doc = new UserStreakMilestone({
+        user_id: req.user.id,
+        milestones: { 7: '', 14: '', 30: '', 100: '' },
+        claimed_milestones: { 7: false, 14: false, 30: false, 100: false }
+      });
+    }
 
-    const updatedDoc = await UserStreakMilestone.findOneAndUpdate(
-      buildUserFilter(req.user.id),
-      {
-        $set: {
-          claimed_milestones: currentClaimed,
-          updated_at: new Date().toISOString()
-        },
-        $setOnInsert: { user_id: req.user.id, milestones: { 7: '', 14: '', 30: '', 100: '' } }
-      },
-      { upsert: true, new: true }
-    ).lean();
+    const currentClaimed = doc.claimed_milestones ? { ...doc.claimed_milestones } : { 7: false, 14: false, 30: false, 100: false };
+    currentClaimed[days] = true;
+    doc.claimed_milestones = currentClaimed;
+    doc.markModified('claimed_milestones');
+    doc.updated_at = new Date().toISOString();
+
+    await doc.save();
+    const result = doc.toObject();
 
     return res.json({
-      milestones: updatedDoc.milestones || { 7: '', 14: '', 30: '', 100: '' },
-      claimed_milestones: updatedDoc.claimed_milestones || { 7: false, 14: false, 30: false, 100: false }
+      milestones: result.milestones || { 7: '', 14: '', 30: '', 100: '' },
+      claimed_milestones: result.claimed_milestones || { 7: false, 14: false, 30: false, 100: false }
     });
   } catch (err) {
     console.error('Claim streak milestone error:', err);

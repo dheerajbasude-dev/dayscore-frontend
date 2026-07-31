@@ -138,7 +138,7 @@ const userStreakMilestoneSchema = new mongoose.Schema({
   milestones: { type: Object, default: { 7: '', 14: '', 30: '', 100: '' } },
   claimed_milestones: { type: Object, default: { 7: false, 14: false, 30: false, 100: false } },
   updated_at: { type: String, default: () => new Date().toISOString() }
-}, { timestamps: false });
+}, { timestamps: false, minimize: false, collection: 'user_streak_milestones' });
 
 export const User = mongoose.models.User || mongoose.model('User', userSchema);
 export const Task = mongoose.models.Task || mongoose.model('Task', taskSchema);
