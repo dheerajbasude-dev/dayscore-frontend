@@ -1667,7 +1667,8 @@ body {
 /* Mobile & Tablet Modal Responsive Styles */
 @media (max-width: 1023px) {
   .modal-overlay {
-    padding: 24px 16px !important;
+    padding: 0 !important;
+    margin: 0 !important;
     align-items: center !important;
     justify-content: center !important;
     overflow-y: auto !important;
