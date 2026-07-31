@@ -1336,7 +1336,7 @@ export default function TodayView() {
 
       {showReflectionModal && (
         <div className="modal-overlay" onClick={() => setShowReflectionModal(false)}>
-          <div className="modal-content card-glass animate-scale-up" onClick={e => e.stopPropagation()} style={{ maxWidth: '540px', width: '92%' }}>
+          <div className="modal-content card-glass animate-scale-up" onClick={e => e.stopPropagation()} style={{ maxWidth: '540px' }}>
             <ReflectionBox
               value={reflection}
               onChange={(val) => {
@@ -1353,7 +1353,7 @@ export default function TodayView() {
       {/* Advanced Filter Modal */}
       {showFilterModal && (
         <div className="modal-overlay" onClick={() => setShowFilterModal(false)}>
-          <div className="modal-content card-glass animate-scale-up" onClick={e => e.stopPropagation()} style={{ maxWidth: '560px', width: '92%' }}>
+          <div className="modal-content card-glass animate-scale-up" onClick={e => e.stopPropagation()} style={{ maxWidth: '560px' }}>
             <div className="modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Filter size={20} color="var(--accent-primary)" />
