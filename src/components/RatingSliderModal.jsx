@@ -30,6 +30,11 @@ export default function RatingSliderModal({ task, onConfirm, onCancel }) {
     setSubmitting(false);
   }, [maxRating, task.id, task._id]);
 
+  useEffect(() => {
+    document.body.classList.add('modal-open');
+    return () => document.body.classList.remove('modal-open');
+  }, []);
+
   const activeRating = hoverRating !== null ? hoverRating : rating;
 
   const handleConfirm = async () => {

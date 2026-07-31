@@ -1556,10 +1556,14 @@ body {
    Modal
    ========================================================================== */
 
-/* Body scroll lock when any modal is open */
-body.modal-open {
+/* Body & container scroll lock when any modal is open */
+body.modal-open,
+body.modal-open html,
+body.modal-open .main-content,
+body.modal-open .app-layout {
   overflow: hidden !important;
   touch-action: none;
+  overscroll-behavior: contain;
 }
 
 .modal-overlay {
@@ -1575,6 +1579,8 @@ body.modal-open {
   padding: 16px;
   animation: fadeIn 0.2s ease-out;
   overflow: hidden;
+  touch-action: none;
+  overscroll-behavior: contain;
 }
 
 .modal-content {
