@@ -264,12 +264,27 @@ export async function updateTask(dateStr, taskId, updates) {
     }
   }
 
-  const index = tasks.findIndex(t => t.id === taskId || t._id === taskId);
-  if (index !== -1) {
-    tasks[index] = { ...tasks[index], ...cleanUpdates, id: targetId, _id: targetId };
-    saveTasks(dateStr, tasks);
+  if (cleanUpdates.date && cleanUpdates.date !== dateStr) {
+    const oldTasks = getTasks(dateStr).filter(t => t.id !== targetId && t._id !== targetId);
+    saveTasks(dateStr, oldTasks);
+
+    const newTasks = getTasks(cleanUpdates.date);
+    const existingIdx = newTasks.findIndex(t => t.id === targetId || t._id === targetId);
+    const updatedTaskObj = { ...existing, ...cleanUpdates, id: targetId, _id: targetId, date: cleanUpdates.date };
+    if (existingIdx !== -1) {
+      newTasks[existingIdx] = updatedTaskObj;
+    } else {
+      newTasks.push(updatedTaskObj);
+    }
+    saveTasks(cleanUpdates.date, newTasks);
+  } else {
+    const index = tasks.findIndex(t => t.id === taskId || t._id === taskId);
+    if (index !== -1) {
+      tasks[index] = { ...tasks[index], ...cleanUpdates, id: targetId, _id: targetId };
+      saveTasks(dateStr, tasks);
+    }
   }
-  return tasks;
+  return getTasks(dateStr);
 }
 
 export async function deleteTask(dateStr, taskId) {
