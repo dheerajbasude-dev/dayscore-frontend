@@ -704,6 +704,7 @@ export default function SettingsView() {
                       >
                         {Array.from({ length: 24 }).map((_, h) => {
                           const isPast = isSelectedToday && h < currentHour;
+                          if (isPast) return null;
                           const ampm = h >= 12 ? 'PM' : 'AM';
                           const displayH = h % 12 === 0 ? 12 : h % 12;
                           const isSel = h === tHour;
@@ -712,18 +713,15 @@ export default function SettingsView() {
                             <div
                               key={h}
                               onClick={() => {
-                                if (!isPast) {
-                                  setTHour(h);
-                                  setIsTHourPickerOpen(false);
-                                }
+                                setTHour(h);
+                                setIsTHourPickerOpen(false);
                               }}
                               style={{
                                 padding: '7px 10px',
                                 borderRadius: '6px',
-                                background: isSel ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' : (isPast ? 'transparent' : 'rgba(255, 255, 255, 0.04)'),
-                                color: isSel ? '#ffffff' : (isPast ? '#475569' : '#f8fafc'),
-                                opacity: isPast ? 0.35 : 1,
-                                cursor: isPast ? 'not-allowed' : 'pointer',
+                                background: isSel ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' : 'rgba(255, 255, 255, 0.04)',
+                                color: isSel ? '#ffffff' : '#f8fafc',
+                                cursor: 'pointer',
                                 fontSize: '0.82rem',
                                 fontWeight: isSel ? 700 : 500,
                                 display: 'flex',
@@ -732,7 +730,6 @@ export default function SettingsView() {
                               }}
                             >
                               <span>{String(displayH).padStart(2, '0')}:00 {ampm}</span>
-                              {isPast && <span style={{ fontSize: '0.68rem', color: '#64748b' }}>Past</span>}
                               {isSel && <Check size={14} color="#ffffff" />}
                             </div>
                           );
@@ -795,24 +792,22 @@ export default function SettingsView() {
                       >
                         {Array.from({ length: 60 }).map((_, m) => {
                           const isPast = isSelectedToday && tHour === currentHour && m < currentMinute;
+                          if (isPast) return null;
                           const isSel = m === tMinute;
 
                           return (
                             <div
                               key={m}
                               onClick={() => {
-                                if (!isPast) {
-                                  setTMinute(m);
-                                  setIsTMinutePickerOpen(false);
-                                }
+                                setTMinute(m);
+                                setIsTMinutePickerOpen(false);
                               }}
                               style={{
                                 padding: '7px 10px',
                                 borderRadius: '6px',
-                                background: isSel ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' : (isPast ? 'transparent' : 'rgba(255, 255, 255, 0.04)'),
-                                color: isSel ? '#ffffff' : (isPast ? '#475569' : '#f8fafc'),
-                                opacity: isPast ? 0.35 : 1,
-                                cursor: isPast ? 'not-allowed' : 'pointer',
+                                background: isSel ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' : 'rgba(255, 255, 255, 0.04)',
+                                color: isSel ? '#ffffff' : '#f8fafc',
+                                cursor: 'pointer',
                                 fontSize: '0.82rem',
                                 fontWeight: isSel ? 700 : 500,
                                 display: 'flex',
@@ -821,7 +816,6 @@ export default function SettingsView() {
                               }}
                             >
                               <span>:{String(m).padStart(2, '0')}</span>
-                              {isPast && <span style={{ fontSize: '0.68rem', color: '#64748b' }}>Past</span>}
                               {isSel && <Check size={14} color="#ffffff" />}
                             </div>
                           );
