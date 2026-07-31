@@ -68,7 +68,7 @@ export default function CustomDatePicker({
   const validSet = new Set(validTaskDates);
 
   return (
-    <div ref={popoverRef} style={{ position: 'relative', display: 'inline-flex' }}>
+    <div ref={popoverRef} style={{ position: 'relative', display: 'inline-flex', zIndex: 105 }}>
       {/* Trigger Button */}
       <button
         type="button"

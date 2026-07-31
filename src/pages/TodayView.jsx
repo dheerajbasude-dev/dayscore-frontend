@@ -1156,7 +1156,7 @@ export default function TodayView() {
       ) : (
         <>
           {/* Date Navigation & View Mode Header */}
-          <div className="card-glass date-nav-card" style={{ padding: '12px 18px', marginBottom: '20px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+          <div className="card-glass date-nav-card" style={{ padding: '12px 18px', marginBottom: '20px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', position: 'relative', zIndex: 100 }}>
             {viewMode === 'date' ? (
               <div className="date-nav-left" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                 <button
