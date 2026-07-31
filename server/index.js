@@ -48,7 +48,7 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 
-// Ensure MongoDB Connection
+// Ensure MongoDB Connection for every API request
 app.use(async (req, res, next) => {
   try {
     await connectDB();
@@ -58,6 +58,8 @@ app.use(async (req, res, next) => {
     return res.status(500).json({ error: 'Database connection failed' });
   }
 });
+
+
 
 const formatDoc = (doc) => {
   if (!doc) return doc;
