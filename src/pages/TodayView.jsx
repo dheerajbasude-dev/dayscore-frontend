@@ -1303,18 +1303,18 @@ export default function TodayView() {
             <div className="total-tasks-summary-bar">
               <div className="total-tasks-badge">
                 <Layers size={16} style={{ color: 'var(--accent-primary)' }} />
-                <span>Total Tasks: <strong>{filteredTasks.length}</strong></span>
+                <span>Total Tasks: <strong>{displayTasksList.length}</strong></span>
               </div>
               <div className="total-tasks-stat-group">
                 <span className="task-stat-chip chip-pending" title="Pending Tasks">
-                  <Clock size={13} /> <strong>{filteredTasks.filter(t => !t.completed && !t.missed).length}</strong> Pending
+                  <Clock size={13} /> <strong>{displayTasksList.filter(t => t.status !== 'done' && t.status !== 'missed').length}</strong> Pending
                 </span>
                 <span className="task-stat-chip chip-done" title="Completed Tasks">
-                  <Check size={13} /> <strong>{filteredTasks.filter(t => t.completed).length}</strong> Done
+                  <Check size={13} /> <strong>{displayTasksList.filter(t => t.status === 'done' || t.completed === true).length}</strong> Done
                 </span>
-                {filteredTasks.filter(t => t.missed).length > 0 && (
+                {displayTasksList.filter(t => t.status === 'missed' || t.missed === true).length > 0 && (
                   <span className="task-stat-chip chip-missed" title="Missed Tasks">
-                    <AlertTriangle size={13} /> <strong>{filteredTasks.filter(t => t.missed).length}</strong> Missed
+                    <AlertTriangle size={13} /> <strong>{displayTasksList.filter(t => t.status === 'missed' || t.missed === true).length}</strong> Missed
                   </span>
                 )}
               </div>
