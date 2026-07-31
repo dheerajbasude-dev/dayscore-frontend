@@ -1318,20 +1318,20 @@ export default function TodayView() {
               </div>
 
               {/* Inline Sort Selection */}
-              <select
-                className="task-sort-inline-select"
+              <CustomSelect
                 value={sortOption}
-                onChange={e => setSortOption(e.target.value)}
-                title="Sort Tasks"
-              >
-                <option value="default">⚡ Sort: Default</option>
-                <option value="urgency">⏰ Sort: Due Time</option>
-                <option value="rating_desc">★ Sort: High Rating</option>
-                <option value="rating_asc">★ Sort: Low Rating</option>
-                <option value="title_asc">🔤 Sort: Title (A-Z)</option>
-                <option value="category">📁 Sort: Category</option>
-                <option value="created_desc">🆕 Sort: Newest</option>
-              </select>
+                onChange={val => setSortOption(val)}
+                options={[
+                  { label: '⚡ Sort: Default', value: 'default' },
+                  { label: '⏰ Sort: Due Time', value: 'urgency' },
+                  { label: '★ Sort: High Rating', value: 'rating_desc' },
+                  { label: '★ Sort: Low Rating', value: 'rating_asc' },
+                  { label: '🔤 Sort: Title (A-Z)', value: 'title_asc' },
+                  { label: '📁 Sort: Category', value: 'category' },
+                  { label: '🆕 Sort: Newest', value: 'created_desc' }
+                ]}
+                style={{ minWidth: '170px' }}
+              />
 
               <button
                 type="button"
