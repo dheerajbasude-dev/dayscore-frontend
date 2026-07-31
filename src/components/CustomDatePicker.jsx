@@ -95,47 +95,69 @@ export default function CustomDatePicker({
       {/* Popover Calendar Grid */}
       {isOpen && (
         <div
-          className="animate-pop-in card-glass"
+          className="animate-pop-in"
           style={{
             position: 'absolute',
             top: 'calc(100% + 8px)',
             left: 0,
-            zIndex: 9999,
-            width: '280px',
-            padding: '14px',
-            borderRadius: 'var(--radius-md)',
-            boxShadow: '0 12px 32px rgba(0, 0, 0, 0.4)',
-            background: 'var(--bg-card)',
-            border: '1px solid var(--border-glass-hover)'
+            zIndex: 99999,
+            width: '290px',
+            padding: '16px',
+            borderRadius: '16px',
+            background: '#121426',
+            border: '1px solid rgba(99, 102, 241, 0.35)',
+            boxShadow: '0 20px 48px rgba(0, 0, 0, 0.8)',
+            backdropFilter: 'blur(20px)',
+            color: '#ffffff'
           }}
         >
           {/* Header Month Nav */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
             <button
               type="button"
-              className="btn-icon"
               onClick={handlePrevMonth}
-              style={{ padding: '4px', color: 'var(--text-primary)' }}
+              style={{
+                width: '30px',
+                height: '30px',
+                borderRadius: '8px',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                background: 'rgba(255, 255, 255, 0.06)',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer'
+              }}
             >
               <ChevronLeft size={16} />
             </button>
-            <strong style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+            <strong style={{ fontSize: '0.95rem', color: '#ffffff', fontWeight: 700, letterSpacing: '0.3px' }}>
               {format(viewDate, 'MMMM yyyy')}
             </strong>
             <button
               type="button"
-              className="btn-icon"
               onClick={handleNextMonth}
-              style={{ padding: '4px', color: 'var(--text-primary)' }}
+              style={{
+                width: '30px',
+                height: '30px',
+                borderRadius: '8px',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                background: 'rgba(255, 255, 255, 0.06)',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer'
+              }}
             >
               <ChevronRight size={16} />
             </button>
           </div>
 
           {/* Days of Week Row */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', textAlign: 'center', marginBottom: '6px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', textAlign: 'center', marginBottom: '8px' }}>
             {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day) => (
-              <span key={day} style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-muted)' }}>
+              <span key={day} style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8' }}>
                 {day}
               </span>
             ))}
@@ -167,26 +189,29 @@ export default function CustomDatePicker({
                     }
                   }}
                   style={{
-                    height: '32px',
-                    borderRadius: '6px',
-                    border: isSelected ? '1px solid var(--accent-primary)' : '1px solid transparent',
+                    height: '34px',
+                    borderRadius: '8px',
+                    border: isSelected
+                      ? '1px solid #818cf8'
+                      : (hasData ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid transparent'),
                     background: isSelected
-                      ? 'var(--accent-primary)'
-                      : (isToday ? 'rgba(99, 102, 241, 0.15)' : 'transparent'),
+                      ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)'
+                      : (isToday ? 'rgba(99, 102, 241, 0.18)' : (hasData ? 'rgba(255, 255, 255, 0.04)' : 'transparent')),
                     color: isSelected
                       ? '#ffffff'
-                      : (hasData ? 'var(--text-primary)' : 'var(--text-muted)'),
-                    opacity: hasData ? 1 : 0.22,
+                      : (hasData ? '#f8fafc' : '#475569'),
+                    opacity: hasData ? 1 : 0.25,
                     cursor: hasData ? 'pointer' : 'not-allowed',
                     pointerEvents: hasData ? 'auto' : 'none',
-                    fontSize: '0.82rem',
+                    fontSize: '0.85rem',
                     fontWeight: isSelected || isToday ? 700 : 500,
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
                     position: 'relative',
-                    transition: 'all 0.15s ease'
+                    transition: 'all 0.15s ease',
+                    boxShadow: isSelected ? '0 4px 12px rgba(99, 102, 241, 0.4)' : 'none'
                   }}
                   title={hasData ? (isToday ? "Today" : `Tasks recorded for ${dayStr}`) : "No task data available on this date"}
                 >
