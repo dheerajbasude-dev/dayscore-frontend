@@ -4617,7 +4617,19 @@ body {
    Inside modals, popovers float directly above the trigger button
    ========================================================================== */
 
-.modal-content .date-picker-popover,
+.modal-content .date-picker-popover {
+  position: absolute !important;
+  top: auto !important;
+  bottom: calc(100% + 6px) !important;
+  left: 50% !important;
+  right: auto !important;
+  transform: translateX(-50%) !important;
+  width: 280px !important;
+  max-width: 92vw !important;
+  z-index: 999999 !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.95) !important;
+}
+
 .modal-content .glass-popover-time,
 .modal-content .custom-select-popover {
   position: absolute !important;
@@ -4635,12 +4647,6 @@ body {
 }
 
 @media (max-width: 480px) {
-  .modal-content .date-picker-popover {
-    left: 50% !important;
-    transform: translateX(-50%) !important;
-    width: 270px !important;
-  }
-
   .modal-content .glass-popover-time {
     left: auto !important;
     right: 0 !important;

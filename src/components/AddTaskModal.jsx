@@ -402,10 +402,10 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
               </div>
 
               {/* Glassmorphic Date & Time Triggers Grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr', gap: '8px', overflow: 'visible' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr', gap: '8px', position: 'relative', overflow: 'visible' }}>
                 
                 {/* 1. Glassmorphic Date Picker */}
-                <div style={{ position: 'relative' }} ref={datePickerRef}>
+                <div style={{ position: 'static' }} ref={datePickerRef}>
                   <button
                     type="button"
                     onClick={() => {
