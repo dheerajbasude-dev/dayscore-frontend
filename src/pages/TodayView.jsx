@@ -594,8 +594,6 @@ export default function TodayView() {
       if (punishments && punishments.length > 0) {
         const randomPunishment = punishments[Math.floor(Math.random() * punishments.length)]
         taskPenalty = randomPunishment
-        store.setActivePunishment(randomPunishment)
-        setActivePunishment(store.getActivePunishment())
         shouldTriggerPenalty = true
       }
     }
@@ -609,7 +607,6 @@ export default function TodayView() {
         ? rewards[Math.floor(Math.random() * rewards.length)]
         : "Treat yourself!"
 
-      setTodaysReward(taskReward)
       shouldTriggerReward = true
     }
 
@@ -633,18 +630,30 @@ export default function TodayView() {
     await store.fetchAllTasksApi()
     setTasks(store.getTasks(currentDateStr))
     setArchives(store.getAllArchives())
+
+    // Close the rating modal FIRST so UI resets
     setRatingTask(null)
 
-    // Trigger celebrations ONLY after saving completes and modal closes
-    if (shouldTriggerPenalty) {
-      setShowConfetti(false)
-      setShowPenaltyFlash(true)
-      setTimeout(() => setShowPenaltyFlash(false), 3000)
-    } else if (shouldTriggerReward) {
-      setShowPenaltyFlash(false)
-      setShowConfetti(true)
-      setTimeout(() => setShowConfetti(false), 3000)
-    }
+    // After modal closes, trigger rewards/penalties banner & animations
+    const pendingPenalty = taskPenalty;
+    const pendingReward = taskReward;
+    const pendingTriggerPenalty = shouldTriggerPenalty;
+    const pendingTriggerReward = shouldTriggerReward;
+
+    setTimeout(() => {
+      if (pendingTriggerPenalty && pendingPenalty) {
+        store.setActivePunishment(pendingPenalty)
+        setActivePunishment(store.getActivePunishment())
+        setShowConfetti(false)
+        setShowPenaltyFlash(true)
+        setTimeout(() => setShowPenaltyFlash(false), 3000)
+      } else if (pendingTriggerReward && pendingReward) {
+        setTodaysReward(pendingReward)
+        setShowPenaltyFlash(false)
+        setShowConfetti(true)
+        setTimeout(() => setShowConfetti(false), 3000)
+      }
+    }, 150)
   }
 
   const handleRatingCancel = () => {

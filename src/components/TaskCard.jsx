@@ -77,9 +77,18 @@ export default function TaskCard({ index, task, onStatusChange, onDelete, onRequ
   const isDone = task.status === 'done';
   const isMissed = task.status === 'missed';
 
+  const isRewardClaimed = task.rewardClaimed === true || task.rewardClaimed === 1 || task.rewardClaimed === '1' ||
+                    task.reward_claimed === true || task.reward_claimed === 1 || task.reward_claimed === '1';
+  const isPenaltyAccepted = task.penaltyAccepted === true || task.penaltyAccepted === 1 || task.penaltyAccepted === '1' ||
+                     task.penalty_accepted === true || task.penalty_accepted === 1 || task.penalty_accepted === '1';
+
+  const hasUnclaimedReward = Boolean(task.reward && !isRewardClaimed);
+  const hasUnacknowledgedPenalty = Boolean(task.penalty && !isPenaltyAccepted);
+  const hasPendingAction = hasUnclaimedReward || hasUnacknowledgedPenalty;
+
   return (
     <div 
-      className={`task-card ${task.status} ${isDeleting ? 'task-exit' : 'task-enter'}`}
+      className={`task-card ${task.status} ${hasPendingAction ? 'has-pending-action' : ''} ${isDeleting ? 'task-exit' : 'task-enter'}`}
       style={{ animationDelay: isDeleting ? '0s' : `${animDelay}s` }}
     >
       {/* Checkbox */}
@@ -103,7 +112,7 @@ export default function TaskCard({ index, task, onStatusChange, onDelete, onRequ
                 #{index}
               </span>
             )}
-            <span className={`task-title ${isDone ? 'strikethrough' : ''}`}>
+            <span className={`task-title ${isDone && !hasPendingAction ? 'strikethrough' : ''}`}>
               {task.title}
             </span>
           </div>
