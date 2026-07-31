@@ -1330,7 +1330,7 @@ export default function TodayView() {
                   { label: '📁 Sort: Category', value: 'category' },
                   { label: '🆕 Sort: Newest', value: 'created_desc' }
                 ]}
-                style={{ minWidth: '170px' }}
+                style={{ width: 'auto', minWidth: '160px' }}
               />
 
               <button
