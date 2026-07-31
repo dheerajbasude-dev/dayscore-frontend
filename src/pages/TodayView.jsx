@@ -1308,6 +1308,7 @@ export default function TodayView() {
         onClick={handleOpenAddModal}
         aria-label="Add Task"
         title="Add New Task"
+        style={{ position: 'sticky', bottom: '24px', float: 'right', right: '20px' }}
       >
         <Plus size={28} />
       </button>
