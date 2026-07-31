@@ -610,6 +610,21 @@ export default function TodayView() {
       shouldTriggerReward = true
     }
 
+    const isCarriedOver = Boolean(
+      targetTask?.carriedOver ||
+      targetTask?.carried_over ||
+      targetTask?.originalDate ||
+      targetTask?.original_date
+    );
+
+    // Carried over missed tasks do NOT trigger rewards or penalties
+    if (isCarriedOver) {
+      taskReward = null;
+      taskPenalty = null;
+      shouldTriggerPenalty = false;
+      shouldTriggerReward = false;
+    }
+
     const updates = {
       status: 'done',
       completedAt: now.toISOString(),

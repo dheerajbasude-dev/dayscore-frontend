@@ -71,11 +71,19 @@ export default function TaskCard({ index, task, onStatusChange, onDelete, onRequ
 
   const maxR = task.maxRating || task.max_rating || 10;
   const ratingDisplay = task.status === 'done' && task.rating != null;
-  const createdFormatted = formatDateSafe(task.createdAt || task.created_at);
+  const getStartDateISO = () => {
+    if (task.createdAt || task.created_at) return task.createdAt || task.created_at;
+    if (task.date) return `${task.date}T00:00:00`;
+    return null;
+  };
+
+  const createdFormatted = formatDateSafe(getStartDateISO());
   const completedFormatted = formatDateSafe(task.completedAt || task.completed_at);
   const dueFormatted = formatDateSafe(task.dueDateTime || task.due_date_time);
   const isDone = task.status === 'done';
   const isMissed = task.status === 'missed';
+  const isCarriedOver = Boolean(task.carriedOver || task.carried_over || task.originalDate || task.original_date);
+  const origDateDisplay = task.originalDate || task.original_date;
 
   const isRewardClaimed = task.rewardClaimed === true || task.rewardClaimed === 1 || task.rewardClaimed === '1' ||
                     task.reward_claimed === true || task.reward_claimed === 1 || task.reward_claimed === '1';
@@ -145,12 +153,14 @@ export default function TaskCard({ index, task, onStatusChange, onDelete, onRequ
             <>
               <span className="meta-dot">·</span>
               <span className="task-dates-inline">
-                {createdFormatted && <span>{createdFormatted}</span>}
-                {createdFormatted && dueFormatted && <span className="dates-arrow">→</span>}
+                {createdFormatted ? <span>{createdFormatted}</span> : <span>{task.date || 'Today'}</span>}
                 {dueFormatted && (
-                  <span className={isMissed ? 'task-date-missed' : 'task-date-due'}>
-                    {dueFormatted}
-                  </span>
+                  <>
+                    <span className="dates-arrow">→</span>
+                    <span className={isMissed ? 'task-date-missed' : 'task-date-due'}>
+                      {dueFormatted}
+                    </span>
+                  </>
                 )}
               </span>
             </>
@@ -159,6 +169,25 @@ export default function TaskCard({ index, task, onStatusChange, onDelete, onRequ
             <>
               <span className="meta-dot">·</span>
               <span className="task-date-completed">✔ {completedFormatted}</span>
+            </>
+          )}
+          {isCarriedOver && (
+            <>
+              <span className="meta-dot">·</span>
+              <span className="carried-over-badge" style={{
+                fontSize: '0.72rem',
+                fontWeight: 600,
+                padding: '1px 7px',
+                borderRadius: '4px',
+                background: 'rgba(99, 102, 241, 0.18)',
+                color: '#a5b4fc',
+                border: '1px solid rgba(99, 102, 241, 0.35)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '3px'
+              }}>
+                🔄 Carried Over {origDateDisplay ? `(from ${origDateDisplay})` : ''}
+              </span>
             </>
           )}
         </div>
