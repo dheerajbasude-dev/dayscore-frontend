@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { PenLine, Sparkles, CheckCircle2 } from 'lucide-react';
 
 const QUICK_TAGS = [
@@ -27,6 +27,17 @@ const QUICK_TAGS = [
 export default function ReflectionBox({ value, onChange, isModal = false, onClose }) {
   const [isFocused, setIsFocused] = useState(false);
   const [savedToast, setSavedToast] = useState(false);
+  const textareaRef = useRef(null);
+
+  // Auto-expand textarea to show complete text without scrolling
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      const minH = isModal ? 80 : 36;
+      const calculatedH = Math.max(minH, textareaRef.current.scrollHeight);
+      textareaRef.current.style.height = `${calculatedH}px`;
+    }
+  }, [value, isModal]);
 
   const handleAddTag = (sentence) => {
     const current = value || '';
@@ -78,13 +89,14 @@ export default function ReflectionBox({ value, onChange, isModal = false, onClos
 
       <div className="reflection-content">
         <textarea
+          ref={textareaRef}
           value={value || ''}
           onChange={e => handleChange(e.target.value)}
           placeholder="What went well today? Click a prompt above or type your reflection..."
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
-          rows={isModal ? 3 : (isFocused || value ? 2 : 1)}
-          style={{ minHeight: isModal ? '80px' : (isFocused || value ? '54px' : '36px') }}
+          rows={1}
+          style={{ overflowY: 'hidden', resize: 'none' }}
         />
         {isModal && onClose && (
           <div className="reflection-footer-modal" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
