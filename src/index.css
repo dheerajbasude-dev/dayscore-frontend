@@ -2644,11 +2644,11 @@ body {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08));
-  border-radius: var(--radius-lg, 16px);
-  padding: 16px;
+  border-radius: var(--radius-md, 12px);
+  padding: 10px 14px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
   transition: all 0.25s ease;
 }
 
@@ -2661,11 +2661,11 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
 }
 
 .reflection-saved-tag {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: #86efac;
   display: inline-flex;
   align-items: center;
@@ -2678,58 +2678,59 @@ body {
 
 .reflection-tags {
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: 6px;
+  flex-wrap: wrap;
 }
 
 .reflection-tags-label {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   color: var(--text-muted);
   font-weight: 600;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
+  white-space: nowrap;
 }
 
 .reflection-tags-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 4px;
 }
 
 .reflection-chip {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   color: var(--text-secondary);
-  font-size: 0.75rem;
-  padding: 3px 10px;
-  border-radius: 14px;
+  font-size: 0.72rem;
+  padding: 2px 8px;
+  border-radius: 12px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .reflection-chip:hover {
   background: rgba(99, 102, 241, 0.2);
   border-color: rgba(99, 102, 241, 0.4);
   color: #a5b4fc;
-  transform: translateY(-1px);
 }
 
 .reflection-content {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .reflection-content textarea {
   width: 100%;
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.25);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  padding: 10px 14px;
+  border-radius: 8px;
+  padding: 6px 10px;
   color: var(--text-primary);
-  font-size: 0.9rem;
-  line-height: 1.5;
+  font-size: 0.85rem;
+  line-height: 1.4;
   resize: vertical;
   font-family: inherit;
   transition: border-color 0.2s ease;

@@ -49,18 +49,18 @@ export default function ReflectionBox({ value, onChange, isModal = false, onClos
     <div className={`reflection-box ${isFocused ? 'focused' : ''} ${isModal ? 'reflection-modal-body' : ''}`}>
       <div className="reflection-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <PenLine size={18} color="var(--accent-primary)" />
-          <span style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)' }}>Daily Reflection Journal</span>
+          <PenLine size={16} color="var(--accent-primary)" />
+          <span style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-primary)' }}>Daily Reflection Journal</span>
         </div>
         {savedToast && (
           <span className="reflection-saved-tag animate-fade-in">
-            <CheckCircle2 size={14} color="#86efac" /> Saved
+            <CheckCircle2 size={13} color="#86efac" /> Saved
           </span>
         )}
       </div>
 
       <div className="reflection-tags">
-        <span className="reflection-tags-label"><Sparkles size={13} color="var(--accent-warning)" /> Click to Auto-fill Sentence:</span>
+        <span className="reflection-tags-label"><Sparkles size={12} color="var(--accent-warning)" /> Prompts:</span>
         <div className="reflection-tags-list">
           {QUICK_TAGS.map((tag) => (
             <button
@@ -79,13 +79,14 @@ export default function ReflectionBox({ value, onChange, isModal = false, onClos
         <textarea
           value={value || ''}
           onChange={e => handleChange(e.target.value)}
-          placeholder="What went well today? What obstacles blocked your progress? Click a prompt above to auto-fill or write your thoughts..."
+          placeholder="What went well today? Click a prompt above or type your reflection..."
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
-          rows={isModal ? 5 : (isFocused || value ? 4 : 3)}
+          rows={isModal ? 4 : (isFocused || value ? 3 : 2)}
+          style={{ minHeight: isModal ? '90px' : (isFocused || value ? '72px' : '50px') }}
         />
         <div className="reflection-footer">
-          <span className="char-count">{value?.length || 0} characters</span>
+          <span className="char-count" style={{ fontSize: '0.72rem' }}>{value?.length || 0} characters</span>
           {isModal && onClose && (
             <button className="btn btn-primary btn-sm" onClick={onClose}>
               Done & Save
