@@ -85,6 +85,8 @@ export default function RatingSliderModal({ task, onConfirm, onCancel }) {
           <button className="btn-icon" onClick={onCancel} aria-label="Close">
             <X size={20} />
           </button>
+        </div>
+
         <div className="modal-form-body">
           <div className="modal-form-scroll">
           <div className="rating-task-info">
