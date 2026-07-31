@@ -18,6 +18,17 @@ export default function SettingsView() {
   const [deletingTemplateId, setDeletingTemplateId] = useState(null)
   const fileInputRef = useRef(null)
 
+  // Lock body scroll when template modal is open
+  useEffect(() => {
+    if (showAddTemplate) {
+      document.body.classList.add('modal-open')
+    } else {
+      document.body.classList.remove('modal-open')
+    }
+    return () => document.body.classList.remove('modal-open')
+  }, [showAddTemplate])
+
+
   const [tTitle, setTTitle] = useState('')
   const [tCategory, setTCategory] = useState('Work')
   const [tPriority, setTPriority] = useState('Med')
@@ -432,7 +443,7 @@ export default function SettingsView() {
                 <X size={18} />
               </button>
             </div>
-            <form onSubmit={handleSaveTemplate} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <form onSubmit={handleSaveTemplate} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <div className="form-group">
                 <label className="form-label">Title</label>
                 <input required type="text" className="input" value={tTitle} onChange={e => setTTitle(e.target.value)} placeholder="Task title" autoFocus disabled={isSavingTemplate} />

@@ -114,6 +114,17 @@ export default function TodayView() {
   const [showPenaltyFlash, setShowPenaltyFlash] = useState(false)
   const [ratingTask, setRatingTask] = useState(null)
 
+  // Lock body scroll when any modal is open
+  useEffect(() => {
+    const anyModalOpen = showAddModal || showAuthModal || showReflectionModal || showFilterModal || !!ratingTask
+    if (anyModalOpen) {
+      document.body.classList.add('modal-open')
+    } else {
+      document.body.classList.remove('modal-open')
+    }
+    return () => document.body.classList.remove('modal-open')
+  }, [showAddModal, showAuthModal, showReflectionModal, showFilterModal, ratingTask])
+
   const [archives, setArchives] = useState([])
   const [scoreResult, setScoreResult] = useState({ score: 0, baseScore: 0, bonus1: 0, bonus2: 0, penalty: 0 })
   const [streak, setStreak] = useState({ current: 0, isActive: false })
@@ -1351,7 +1362,7 @@ export default function TodayView() {
               </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '12px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '6px' }}>
               <div className="filter-modal-grid">
                 {/* Category Filter */}
                 <div className="form-group">
@@ -1439,7 +1450,7 @@ export default function TodayView() {
                 </div>
               </div>
 
-              <div className="modal-footer" style={{ marginTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div className="modal-footer" style={{ marginTop: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <button type="button" className="btn btn-secondary btn-sm" onClick={resetAllFilters} style={{ gap: '4px' }}>
                   <RotateCcw size={14} /> Reset All
                 </button>

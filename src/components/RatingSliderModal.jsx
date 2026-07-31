@@ -111,7 +111,7 @@ export default function RatingSliderModal({ task, onConfirm, onCancel }) {
             </div>
           )}
 
-          <div className="rating-display" style={{ margin: '12px 0 8px 0' }}>
+          <div className="rating-display" style={{ margin: '8px 0 4px 0' }}>
             <span className="rating-emoji">{getEmoji()}</span>
             <span className="rating-value" style={{ color: getRatingColor(), fontSize: '2.4rem', fontWeight: '800' }}>
               {activeRating % 1 === 0 ? activeRating.toFixed(0) : activeRating.toFixed(1)}
@@ -150,12 +150,12 @@ export default function RatingSliderModal({ task, onConfirm, onCancel }) {
               display: 'flex', 
               justifyContent: 'center', 
               alignItems: 'center', 
-              gap: isOverdue ? '12px' : '6px', 
-              padding: '12px 8px',
+              gap: isOverdue ? '10px' : '4px', 
+              padding: '8px 6px',
               background: 'var(--bg-glass-light)',
               borderRadius: 'var(--radius-lg)',
               border: '1px solid var(--border-glass)',
-              margin: '4px 0 8px 0',
+              margin: '2px 0 4px 0',
               flexWrap: 'wrap'
             }}
           >

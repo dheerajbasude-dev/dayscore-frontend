@@ -23,6 +23,7 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
 
   useEffect(() => {
     if (isOpen) {
+      document.body.classList.add('modal-open');
       const initialDate = format(new Date(), 'yyyy-MM-dd');
       const initialDue = addHours(new Date(), 2);
       setSelectedDate(initialDate);
@@ -33,7 +34,10 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
       setPriority('Med');
       setSelectedTemplateId('');
       setIsTemplateMenuOpen(false);
+    } else {
+      document.body.classList.remove('modal-open');
     }
+    return () => document.body.classList.remove('modal-open');
   }, [isOpen]);
 
   // Close dropdown on click outside
