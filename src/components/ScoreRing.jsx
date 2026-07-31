@@ -7,8 +7,8 @@ export default function ScoreRing({
   details = {},
   label = 'Daily Score'
 }) {
-  const radius = 80;
-  const strokeWidth = 12;
+  const radius = 58;
+  const strokeWidth = 9;
   const circumference = 2 * Math.PI * radius;
   const safeScore = Math.max(0, Math.min(10, score));
   const offset = circumference - (safeScore / 10) * circumference;
