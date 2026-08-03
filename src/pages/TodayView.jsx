@@ -554,6 +554,7 @@ export default function TodayView() {
   const handleAddDailyNote = async (targetTask, noteText) => {
     if (!targetTask || !noteText || !noteText.trim()) return;
     if (currentDateStr < todayStr) return; // Daily progress notes addition only works on Today's date
+    if (targetTask.status === 'done' || targetTask.status === 'missed') return; // Cannot add notes to completed/missed tasks
 
     const targetId = targetTask.id || targetTask._id;
     const taskDate = targetTask.date || targetTask.dateLabel || currentDateStr;

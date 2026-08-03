@@ -46,7 +46,7 @@ export default function TaskCard({
 
   const handleNoteSubmit = async (e) => {
     e.preventDefault();
-    if (!newNoteText.trim() || submittingNote || !onAddDailyNote || !isToday) return;
+    if (!newNoteText.trim() || submittingNote || !onAddDailyNote || !isToday || isDone || isMissed) return;
     setSubmittingNote(true);
     try {
       await onAddDailyNote(task, newNoteText.trim());
@@ -303,11 +303,15 @@ export default function TaskCard({
                 <FileText size={13} style={{ color: 'var(--accent-primary)' }} />
                 Daily Progress Notes {notesList.length > 0 && `(${notesList.length})`}
               </span>
-              {!isToday && (
+              {!isToday ? (
                 <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
                   (Read-only on past dates)
                 </span>
-              )}
+              ) : (isDone || isMissed) ? (
+                <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                  (Read-only for {isDone ? 'completed' : 'missed'} task)
+                </span>
+              ) : null}
             </div>
 
             {/* Existing Notes List */}
