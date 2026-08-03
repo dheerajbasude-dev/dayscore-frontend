@@ -253,8 +253,16 @@ export async function updateTask(dateStr, taskId, updates) {
       cleanUpdates.completed_at !== undefined
     );
     if (isAttemptingEditOrComplete) {
-      console.warn('Missed tasks cannot be edited or marked as completed.');
-      return getTasks(dateStr);
+      if (cleanUpdates.status === 'done') {
+        cleanUpdates.wasMissed = true;
+        cleanUpdates.was_missed = 1;
+        if (cleanUpdates.rating !== undefined && cleanUpdates.rating !== null) {
+          cleanUpdates.rating = Math.min(Number(cleanUpdates.rating) || 1, 3);
+        }
+      } else {
+        console.warn('Missed tasks cannot be edited. They can only be marked as completed with a maximum rating of 3.');
+        return getTasks(dateStr);
+      }
     }
   }
 
