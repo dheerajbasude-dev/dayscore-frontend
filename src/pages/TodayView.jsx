@@ -930,17 +930,22 @@ export default function TodayView() {
       return tierA - tierB;
     }
 
-    // Within each tier: Sort from latest datetime to oldest (newest timestamp FIRST)
+    // Within each tier: Sort by nearest date with time FIRST (ascending order)
     const getTaskTimestamp = (t) => {
-      const isoStr = t.completedAt || t.completed_at || t.updatedAt || t.updated_at || t.createdAt || t.created_at || t.dueDateTime || t.due_date_time || t.date || t.originalDate || t.original_date;
-      if (!isoStr) return 0;
+      const dueStr = t.dueDateTime || t.due_date_time;
+      if (dueStr) {
+        const ms = new Date(dueStr).getTime();
+        if (!isNaN(ms)) return ms;
+      }
+      const isoStr = t.completedAt || t.completed_at || t.updatedAt || t.updated_at || t.createdAt || t.created_at || t.date || t.originalDate || t.original_date;
+      if (!isoStr) return 9999999999999;
       const ms = new Date(isoStr).getTime();
-      return isNaN(ms) ? 0 : ms;
+      return isNaN(ms) ? 9999999999999 : ms;
     };
 
     const timeA = getTaskTimestamp(a);
     const timeB = getTaskTimestamp(b);
-    return timeB - timeA; // Latest (newest) to oldest
+    return timeA - timeB; // Nearest date with time FIRST
   };
 
   const displayTasksList = useMemo(() => {
