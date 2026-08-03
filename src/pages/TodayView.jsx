@@ -132,52 +132,65 @@ export default function TodayView() {
     return () => document.body.classList.remove('modal-open')
   }, [showAddModal, showAuthModal, showReflectionModal, showFilterModal, ratingTask])
 
-  // --- Scroll Position Persistence across Refresh ---
+  // --- Dual-Container Scroll Management (Window & .main-content) ---
+  const [showScrollTopBtn, setShowScrollTopBtn] = useState(false);
   const hasRestoredScrollRef = useRef(false);
 
+  // Disable browser auto scroll restoration to avoid scroll jumps on refresh
   useEffect(() => {
-    const handleSaveScroll = () => {
-      const currentY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
+  }, []);
+
+  const getScrollTop = () => {
+    const mainEl = document.querySelector('.main-content');
+    const mainScroll = mainEl ? mainEl.scrollTop : 0;
+    const winScroll = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+    return Math.max(mainScroll, winScroll);
+  };
+
+  const setScrollTop = (targetY, behavior = 'instant') => {
+    const mainEl = document.querySelector('.main-content');
+    if (mainEl && mainEl.scrollHeight > mainEl.clientHeight) {
+      mainEl.scrollTo({ top: targetY, behavior });
+    }
+    window.scrollTo({ top: targetY, behavior });
+  };
+
+  const scrollToTop = () => {
+    setScrollTop(0, 'smooth');
+  };
+
+  // Track scroll position for persistence and "Scroll to Top" button
+  useEffect(() => {
+    const handleScrollTracking = () => {
+      const currentY = getScrollTop();
       if (currentY > 0) {
         sessionStorage.setItem('dayscore_today_scroll_pos', currentY.toString());
       }
+      setShowScrollTopBtn(currentY > 200);
     };
 
-    window.addEventListener('beforeunload', handleSaveScroll);
-    window.addEventListener('pagehide', handleSaveScroll);
+    const mainEl = document.querySelector('.main-content');
 
-    let scrollTimeout;
-    const onScroll = () => {
-      if (scrollTimeout) clearTimeout(scrollTimeout);
-      scrollTimeout = setTimeout(handleSaveScroll, 150);
-    };
+    window.addEventListener('beforeunload', handleScrollTracking);
+    window.addEventListener('pagehide', handleScrollTracking);
+    window.addEventListener('scroll', handleScrollTracking, { passive: true });
 
-    window.addEventListener('scroll', onScroll, { passive: true });
+    if (mainEl) {
+      mainEl.addEventListener('scroll', handleScrollTracking, { passive: true });
+    }
 
     return () => {
-      window.removeEventListener('beforeunload', handleSaveScroll);
-      window.removeEventListener('pagehide', handleSaveScroll);
-      window.removeEventListener('scroll', onScroll);
-      if (scrollTimeout) clearTimeout(scrollTimeout);
+      window.removeEventListener('beforeunload', handleScrollTracking);
+      window.removeEventListener('pagehide', handleScrollTracking);
+      window.removeEventListener('scroll', handleScrollTracking);
+      if (mainEl) {
+        mainEl.removeEventListener('scroll', handleScrollTracking);
+      }
     };
   }, []);
-
-  // Floating "Scroll to Top" button state & listener
-  const [showScrollTopBtn, setShowScrollTopBtn] = useState(false);
-
-  useEffect(() => {
-    const handleCheckScrollTop = () => {
-      const currentY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
-      setShowScrollTopBtn(currentY > 250);
-    };
-
-    window.addEventListener('scroll', handleCheckScrollTop, { passive: true });
-    return () => window.removeEventListener('scroll', handleCheckScrollTop);
-  }, []);
-
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
 
   const [archives, setArchives] = useState([])
   const [scoreResult, setScoreResult] = useState({ score: 0, baseScore: 0, bonus1: 0, bonus2: 0, penalty: 0 })
@@ -1132,7 +1145,7 @@ export default function TodayView() {
 
   // Restore scroll position after tasks render
   useEffect(() => {
-    if (displayTasksList.length > 0 && !hasRestoredScrollRef.current) {
+    if (displayTasksList.length > 0 && !hasRestoredScrollRef.current && !loading) {
       const savedPos = sessionStorage.getItem('dayscore_today_scroll_pos');
       if (savedPos != null) {
         const targetScroll = parseInt(savedPos, 10);
@@ -1140,13 +1153,13 @@ export default function TodayView() {
           hasRestoredScrollRef.current = true;
           requestAnimationFrame(() => {
             setTimeout(() => {
-              window.scrollTo({ top: targetScroll, behavior: 'instant' });
-            }, 100);
+              setScrollTop(targetScroll);
+            }, 120);
           });
         }
       }
     }
-  }, [displayTasksList]);
+  }, [displayTasksList, loading]);
 
   // Get punishment text safely
   const punishmentText = activePunishment && typeof activePunishment === 'object' && !activePunishment.acknowledged
