@@ -777,28 +777,29 @@ body {
   align-items: center;
   justify-content: center;
   gap: 3px;
-  font-size: 0.65rem;
+  font-size: 0.68rem;
   font-weight: 700;
-  padding: 2px 7px;
-  border-radius: 12px;
+  padding: 0;
+  background: transparent;
+  border: none;
   margin-top: 3px;
-  max-width: 78%;
+  max-width: 90%;
   white-space: nowrap;
   transition: all 0.3s ease;
 }
 
 .streak-badge-active {
   color: #fbbf24;
-  background: rgba(251, 191, 36, 0.15);
-  border: 1px solid rgba(251, 191, 36, 0.35);
-  box-shadow: 0 0 12px rgba(251, 191, 36, 0.25);
-  animation: pulseGlow 2s infinite ease-in-out;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  text-shadow: 0 0 8px rgba(251, 191, 36, 0.4);
 }
 
 .streak-badge-inactive {
   color: var(--text-muted);
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-glass);
+  background: transparent;
+  border: none;
 }
 
 .score-averages {
