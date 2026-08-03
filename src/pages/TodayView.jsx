@@ -830,6 +830,19 @@ export default function TodayView() {
     setActivePunishment(null)
   }
 
+  const handleSaveTaskDailyNote = async (task, dailyNotesArray) => {
+    if (!isToday) return; // Daily note editing is strictly restricted to Today's date
+    const targetId = task.id || task._id;
+    const taskDate = task.date || task.dateLabel || currentDateStr;
+    await store.updateTask(taskDate, targetId, {
+      dailyNotes: dailyNotesArray,
+      daily_notes: dailyNotesArray
+    });
+    await store.fetchAllTasksApi();
+    setTasks(store.getTasks(currentDateStr));
+    setArchives(store.getAllArchives());
+  };
+
   const sortTasksByUrgency = (a, b) => {
     // Status Tier Grouping:
     // Tier 1: Missed tasks (Top of list)
@@ -1482,6 +1495,7 @@ export default function TodayView() {
                     key={task.id || task._id}
                     index={idx + 1}
                     task={task}
+                    isToday={isToday}
                     animDelay={Math.min(idx * 0.04, 0.3)}
                     isDeleting={deletingTaskIds.has(task.id || task._id)}
                     onStatusChange={(taskId, newStatus) => handleStatusChange(taskId, newStatus)}
@@ -1489,6 +1503,7 @@ export default function TodayView() {
                     onRequestComplete={handleRequestComplete}
                     onClaimReward={handleClaimTaskReward}
                     onAcceptPenalty={handleAcceptTaskPenalty}
+                    onSaveDailyNote={handleSaveTaskDailyNote}
                   />
                 ))}
               </div>

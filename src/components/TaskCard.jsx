@@ -1,12 +1,72 @@
-import React, { useState } from 'react';
-import { X, Loader2, Check, AlertTriangle, Clock } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Loader2, Check, AlertTriangle, Clock, FileText, Save } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useTimer } from '../hooks/useTimer';
 
-export default function TaskCard({ index, task, onStatusChange, onDelete, onRequestComplete, onClaimReward, onAcceptPenalty, isDeleting, animDelay = 0 }) {
+export default function TaskCard({
+  index,
+  task,
+  onStatusChange,
+  onDelete,
+  onRequestComplete,
+  onClaimReward,
+  onAcceptPenalty,
+  isDeleting,
+  animDelay = 0,
+  isToday = true,
+  onSaveDailyNote
+}) {
   const { timeLeft, urgencyClass, isOverdue } = useTimer(task.dueDateTime);
   const [claiming, setClaiming] = useState(false);
   const [accepting, setAccepting] = useState(false);
+
+  const notesArr = Array.isArray(task.dailyNotes)
+    ? task.dailyNotes
+    : (Array.isArray(task.daily_notes) ? task.daily_notes : []);
+
+  const getLatestNoteText = (arr) => {
+    if (!arr || arr.length === 0) {
+      if (typeof task.dailyNotes === 'string') return task.dailyNotes;
+      if (typeof task.daily_notes === 'string') return task.daily_notes;
+      return '';
+    }
+    const last = arr[arr.length - 1];
+    return typeof last === 'string' ? last : (last?.note || '');
+  };
+
+  const [existingNote, setExistingNote] = useState(() => getLatestNoteText(notesArr));
+  const [noteText, setNoteText] = useState(() => getLatestNoteText(notesArr));
+  const [isEditingNote, setIsEditingNote] = useState(false);
+  const [savingNote, setSavingNote] = useState(false);
+
+  useEffect(() => {
+    const freshNote = getLatestNoteText(notesArr);
+    setExistingNote(freshNote);
+    if (!isEditingNote) {
+      setNoteText(freshNote);
+    }
+  }, [task.dailyNotes, task.daily_notes]);
+
+  const handleSaveNote = async (e) => {
+    if (e) e.stopPropagation();
+    if (savingNote || !onSaveDailyNote) return;
+    setSavingNote(true);
+    try {
+      const todayDateStr = format(new Date(), 'yyyy-MM-dd');
+      const cleanNoteText = noteText.trim();
+      const updatedNotes = [
+        ...notesArr.filter(n => n && typeof n === 'object' && n.date !== todayDateStr),
+        { date: todayDateStr, note: cleanNoteText, rating: task.rating || null, created_at: new Date().toISOString() }
+      ];
+      await onSaveDailyNote(task, updatedNotes);
+      setExistingNote(cleanNoteText);
+      setIsEditingNote(false);
+    } catch (err) {
+      console.error('Save daily note error:', err);
+    } finally {
+      setSavingNote(false);
+    }
+  };
 
   const handleClaim = async (e) => {
     e.stopPropagation();
@@ -254,6 +314,96 @@ export default function TaskCard({ index, task, onStatusChange, onDelete, onRequ
                 </div>
               );
             })()}
+          </div>
+        )}
+
+        {/* Row 4: Carried Over Task Daily Rating Note Section */}
+        {isCarriedOver && (
+          <div className="carried-over-note-container" style={{
+            marginTop: '8px',
+            paddingTop: '8px',
+            borderTop: '1px dashed rgba(255, 255, 255, 0.1)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '4px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '0.74rem', fontWeight: 600, color: '#a5b4fc', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                <FileText size={13} color="#818cf8" /> Daily Rating Note
+              </span>
+              {isToday ? (
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={(e) => { e.stopPropagation(); setIsEditingNote(!isEditingNote); }}
+                  style={{ fontSize: '0.72rem', padding: '2px 8px', height: '22px', borderRadius: '4px', color: 'var(--text-secondary)' }}
+                >
+                  {existingNote ? (isEditingNote ? 'Cancel' : '✏️ Edit Note') : (isEditingNote ? 'Cancel' : '＋ Add Daily Note')}
+                </button>
+              ) : (
+                <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                  (Read-only on past dates)
+                </span>
+              )}
+            </div>
+
+            {/* Editing Box vs Display */}
+            {isEditingNote && isToday ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '4px' }} onClick={(e) => e.stopPropagation()}>
+                <textarea
+                  className="task-note-input"
+                  placeholder="Add a daily progress note for this carried over task..."
+                  value={noteText}
+                  onChange={(e) => setNoteText(e.target.value)}
+                  rows={2}
+                  style={{
+                    width: '100%',
+                    padding: '6px 10px',
+                    fontSize: '0.78rem',
+                    borderRadius: 'var(--radius-sm, 6px)',
+                    background: 'rgba(0, 0, 0, 0.35)',
+                    border: '1px solid rgba(99, 102, 241, 0.4)',
+                    color: 'var(--text-primary)',
+                    resize: 'vertical',
+                    fontFamily: 'inherit'
+                  }}
+                />
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    onClick={handleSaveNote}
+                    disabled={savingNote}
+                    style={{ fontSize: '0.72rem', padding: '3px 10px', height: '24px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                  >
+                    {savingNote ? <Loader2 size={12} className="btn-spinner" /> : <Save size={12} />}
+                    {savingNote ? 'Saving...' : 'Save Note'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              existingNote ? (
+                <div style={{
+                  fontSize: '0.78rem',
+                  color: 'var(--text-secondary)',
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: 'var(--radius-sm, 6px)',
+                  padding: '6px 10px',
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                  marginTop: '2px'
+                }}>
+                  {existingNote}
+                </div>
+              ) : (
+                !isEditingNote && isToday && (
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontStyle: 'italic', marginTop: '2px' }}>
+                    No daily note added yet. Click "+ Add Daily Note" above to reflect on today's progress.
+                  </span>
+                )
+              )
+            )}
           </div>
         )}
       </div>
