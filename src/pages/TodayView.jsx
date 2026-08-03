@@ -883,17 +883,44 @@ export default function TodayView() {
   }
 
   const sortTasksByDefaultHierarchy = (a, b) => {
-    // Default Status Tier Hierarchy:
-    // Tier 1: Missed tasks (status === 'missed')
-    // Tier 2: Carried-over tasks (not completed, has carried over flag/original date)
-    // Tier 3: Pending / In-progress tasks (status === 'pending' || 'inprogress')
-    // Tier 4: Completed / Done tasks (status === 'done')
+    // Status Group Tier Hierarchy (Top to Bottom):
+    // Tier 1: 🔴 Missed Tasks (status: 'missed')
+    // Tier 2: ⏩ Carried-over Tasks (carriedOver, carried_over, originalDate, original_date)
+    // Tier 3: ⏳ Pending / Active Tasks (status: 'pending' / 'inprogress')
+    // Tier 4: 🟢 Completed Tasks (status: 'done') with pending claim / acknowledge
+    // Tier 5: 🟢 Completed Tasks (status: 'done')
     const getStatusTier = (t) => {
+      // Tier 1: Missed Tasks
       if (t.status === 'missed') return 1;
+
       const isCarried = Boolean(t.carriedOver || t.carried_over || t.originalDate || t.original_date || t.wasCarried || t.isCarried);
+
+      // Tier 2: Carried-over Tasks (uncompleted)
       if (t.status !== 'done' && isCarried) return 2;
-      if (t.status === 'done') return 4;
-      return 3; // pending / inprogress
+
+      // Tier 3: Pending / Active Tasks (uncompleted)
+      if (t.status !== 'done') return 3;
+
+      // For Completed / Done Tasks (t.status === 'done'):
+      const isRewardClaimed = t.rewardClaimed === true || t.rewardClaimed === 1 || t.rewardClaimed === '1' ||
+                        t.reward_claimed === true || t.reward_claimed === 1 || t.reward_claimed === '1';
+      const isPenaltyAccepted = t.penaltyAccepted === true || t.penaltyAccepted === 1 || t.penaltyAccepted === '1' ||
+                         t.penalty_accepted === true || t.penalty_accepted === 1 || t.penalty_accepted === '1';
+
+      const ratingNum = t.rating != null && !isNaN(Number(t.rating)) ? Number(t.rating) : null;
+      const hasLowRatingPenalty = ratingNum != null && ratingNum <= 4.0;
+      const hasHighRatingReward = ratingNum != null && ratingNum > 4.0;
+
+      const hasUnclaimedReward = Boolean(t.reward && hasHighRatingReward && !isRewardClaimed);
+      const hasUnacknowledgedPenalty = Boolean(t.penalty && hasLowRatingPenalty && !isPenaltyAccepted);
+
+      // Tier 4: Completed Tasks with pending claim / acknowledge
+      if (hasUnclaimedReward || hasUnacknowledgedPenalty) {
+        return 4;
+      }
+
+      // Tier 5: Completed Tasks (fully claimed/acknowledged or no reward/penalty)
+      return 5;
     };
 
     const tierA = getStatusTier(a);
