@@ -553,21 +553,41 @@ export async function deletePunishmentApi(text) {
 export function getActivePunishment() {
   const uid = getUserId();
   const data = localStorage.getItem(`dayscore_${uid}_active_punishment`);
-  return data ? JSON.parse(data) : null;
+  if (!data) return null;
+  try {
+    const parsed = JSON.parse(data);
+    if (typeof parsed === 'string') {
+      return { text: parsed, acknowledged: false };
+    }
+    if (parsed && typeof parsed === 'object') {
+      return parsed;
+    }
+    return { text: String(parsed), acknowledged: false };
+  } catch (e) {
+    return { text: data, acknowledged: false };
+  }
 }
 
 export function setActivePunishment(text) {
   const uid = getUserId();
-  const val = typeof text === 'string' ? { text, acknowledged: false } : text;
+  if (!text) {
+    localStorage.removeItem(`dayscore_${uid}_active_punishment`);
+    return;
+  }
+  const val = typeof text === 'string' 
+    ? { text, acknowledged: false } 
+    : (text && typeof text === 'object' ? { acknowledged: false, ...text } : { text: String(text), acknowledged: false });
   localStorage.setItem(`dayscore_${uid}_active_punishment`, JSON.stringify(val));
 }
 
 export function acknowledgePunishment() {
+  const uid = getUserId();
   const active = getActivePunishment();
-  if (active) {
-    const uid = getUserId();
+  if (active && typeof active === 'object') {
     active.acknowledged = true;
     localStorage.setItem(`dayscore_${uid}_active_punishment`, JSON.stringify(active));
+  } else {
+    localStorage.removeItem(`dayscore_${uid}_active_punishment`);
   }
 }
 

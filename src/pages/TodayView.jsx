@@ -751,6 +751,7 @@ export default function TodayView() {
 
       const freshTasks = await store.fetchTasksApi(currentDateStr);
       setTasks(freshTasks);
+      setActivePunishment(null);
     } finally {
       setAckPunishmentLoading(false);
     }
@@ -1015,9 +1016,9 @@ export default function TodayView() {
   ]);
 
   // Get punishment text safely
-  const punishmentText = activePunishment && !activePunishment.acknowledged
-    ? (typeof activePunishment === 'string' ? activePunishment : activePunishment.text)
-    : null
+  const punishmentText = activePunishment && typeof activePunishment === 'object' && !activePunishment.acknowledged
+    ? activePunishment.text
+    : null;
 
   const displayScore = useMemo(() => {
     if (viewMode === 'all') {
