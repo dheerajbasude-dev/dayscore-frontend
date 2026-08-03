@@ -1373,7 +1373,7 @@ export default function TodayView() {
                   )}
                   {displayTasksList.filter(t => Boolean(t.carriedOver || t.carried_over || t.originalDate || t.original_date)).length > 0 && (
                     <span className="task-stat-chip chip-carried" title="Carried Over Tasks">
-                      <RotateCcw size={12} /> <strong>{displayTasksList.filter(t => Boolean(t.carriedOver || t.carried_over || t.originalDate || t.original_date)).length}</strong> Carried Over
+                      <RotateCcw size={12} /> <strong>{displayTasksList.filter(t => Boolean(t.carriedOver || t.carried_over || t.originalDate || t.original_date)).length}</strong> Carried
                     </span>
                   )}
                 </div>
