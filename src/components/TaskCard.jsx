@@ -465,21 +465,17 @@ export default function TaskCard({
             {isToday && !isDone && !isMissed && (
               hasNoteForToday ? (
                 <div style={{
-                  position: 'relative',
-                  flex: 1,
                   display: 'flex',
                   alignItems: 'center',
-                  background: 'rgba(16, 185, 129, 0.08)',
-                  border: '1px solid rgba(16, 185, 129, 0.25)',
-                  borderRadius: '8px',
-                  padding: '6px 12px',
-                  height: '34px',
-                  fontSize: '0.78rem',
+                  gap: '4px',
+                  fontSize: '0.72rem',
                   color: '#34d399',
-                  fontWeight: 600
+                  fontWeight: 600,
+                  marginTop: effectiveNotesList.length > 0 ? '4px' : '0',
+                  padding: '0 2px'
                 }}>
-                  <Check size={14} style={{ marginRight: '6px', flexShrink: 0, color: '#34d399' }} />
-                  <span>Daily note & rating submitted for today ✓</span>
+                  <Check size={12} strokeWidth={2.5} style={{ color: '#34d399' }} />
+                  <span>Today's note & rating submitted</span>
                 </div>
               ) : (
                 <form onSubmit={handleNoteSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
