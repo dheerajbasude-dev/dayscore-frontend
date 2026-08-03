@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { format, subDays, addDays, parseISO } from 'date-fns'
 import ScoreRing from '../components/ScoreRing'
 import TaskCard from '../components/TaskCard'
@@ -131,6 +131,36 @@ export default function TodayView() {
     }
     return () => document.body.classList.remove('modal-open')
   }, [showAddModal, showAuthModal, showReflectionModal, showFilterModal, ratingTask])
+
+  // --- Scroll Position Persistence across Refresh ---
+  const hasRestoredScrollRef = useRef(false);
+
+  useEffect(() => {
+    const handleSaveScroll = () => {
+      const currentY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
+      if (currentY > 0) {
+        sessionStorage.setItem('dayscore_today_scroll_pos', currentY.toString());
+      }
+    };
+
+    window.addEventListener('beforeunload', handleSaveScroll);
+    window.addEventListener('pagehide', handleSaveScroll);
+
+    let scrollTimeout;
+    const onScroll = () => {
+      if (scrollTimeout) clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(handleSaveScroll, 150);
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener('beforeunload', handleSaveScroll);
+      window.removeEventListener('pagehide', handleSaveScroll);
+      window.removeEventListener('scroll', onScroll);
+      if (scrollTimeout) clearTimeout(scrollTimeout);
+    };
+  }, []);
 
   const [archives, setArchives] = useState([])
   const [scoreResult, setScoreResult] = useState({ score: 0, baseScore: 0, bonus1: 0, bonus2: 0, penalty: 0 })
@@ -1082,6 +1112,24 @@ export default function TodayView() {
     filterDateTo,
     currentDateStr
   ]);
+
+  // Restore scroll position after tasks render
+  useEffect(() => {
+    if (displayTasksList.length > 0 && !hasRestoredScrollRef.current) {
+      const savedPos = sessionStorage.getItem('dayscore_today_scroll_pos');
+      if (savedPos != null) {
+        const targetScroll = parseInt(savedPos, 10);
+        if (!isNaN(targetScroll) && targetScroll > 0) {
+          hasRestoredScrollRef.current = true;
+          requestAnimationFrame(() => {
+            setTimeout(() => {
+              window.scrollTo({ top: targetScroll, behavior: 'instant' });
+            }, 100);
+          });
+        }
+      }
+    }
+  }, [displayTasksList]);
 
   // Get punishment text safely
   const punishmentText = activePunishment && typeof activePunishment === 'object' && !activePunishment.acknowledged
