@@ -1200,7 +1200,7 @@ export default function TodayView() {
       ) : (
         <>
           {/* Date Navigation & View Mode Header */}
-          <div className="card-glass date-nav-card" style={{ padding: '6px 12px', marginBottom: '10px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '8px', position: 'relative', zIndex: 100 }}>
+          <div className="card-glass date-nav-card" style={{ padding: '6px 12px', marginBottom: '16px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '8px', position: 'relative', zIndex: 100 }}>
             {viewMode === 'date' ? (
               <div className="date-nav-left" style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                 <button
@@ -1335,7 +1335,7 @@ export default function TodayView() {
           )}
 
           {/* Daily Reflection Section */}
-          <div className="reflection-section-top" style={{ marginBottom: '8px' }}>
+          <div className="reflection-section-top" style={{ marginBottom: '16px' }}>
             <ReflectionBox 
               value={reflection} 
               onChange={(val) => {
@@ -1346,7 +1346,7 @@ export default function TodayView() {
           </div>
 
           {/* Filter, Sort & Search Control Bar */}
-          <div className="card-glass task-controls-card">
+          <div className="card-glass task-controls-card" style={{ marginBottom: '16px' }}>
             <div className="compact-task-toolbar">
               
               {/* Left Group: Total Tasks Badge & Stat Chips */}
