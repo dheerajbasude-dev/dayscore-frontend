@@ -171,19 +171,21 @@ export default function TaskCard({
             </span>
           </div>
           <div className="task-actions-right">
-            {isToday && !isDone && !isMissed && (
+            {(notesList.length > 0 || (isToday && !isDone && !isMissed)) && (
               <button
+                type="button"
                 className="delete-btn"
                 onClick={() => setShowNotesInput(prev => !prev)}
-                title="Add / View Daily Notes"
+                title={isToday && !isDone && !isMissed ? "Add / View Daily Notes" : "View Daily Notes"}
                 style={{
-                  color: showNotesInput || notesList.length > 0 ? 'var(--accent-primary)' : 'var(--text-muted)',
+                  color: showNotesInput || notesList.length > 0 ? '#fffdd0' : 'var(--text-muted)',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '3px',
-                  padding: '2px 5px',
+                  padding: '2px 6px',
                   borderRadius: '4px',
-                  background: showNotesInput ? 'rgba(129, 140, 248, 0.15)' : 'transparent'
+                  background: showNotesInput ? 'rgba(255, 253, 208, 0.15)' : 'transparent',
+                  border: showNotesInput ? '1px solid rgba(255, 253, 208, 0.3)' : '1px solid transparent'
                 }}
               >
                 <FileText size={14} />
@@ -314,8 +316,8 @@ export default function TaskCard({
           </div>
         )}
 
-        {/* Row 4: Ultra Compact Daily Notes Section */}
-        {(notesList.length > 0 || (isToday && !isDone && !isMissed && showNotesInput)) && (
+        {/* Row 4: Ultra Compact Daily Notes Section (Only rendered when showNotesInput is true) */}
+        {showNotesInput && (notesList.length > 0 || (isToday && !isDone && !isMissed)) && (
           <div className="task-daily-notes-container-compact" style={{
             marginTop: '6px',
             padding: '6px 10px',
@@ -325,7 +327,7 @@ export default function TaskCard({
           }}>
             {/* Existing Notes List */}
             {notesList.length > 0 && (
-              <div className="daily-notes-list" style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: (isToday && !isDone && !isMissed && showNotesInput) ? '6px' : '0' }}>
+              <div className="daily-notes-list" style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: (isToday && !isDone && !isMissed) ? '6px' : '0' }}>
                 {notesList.map((n, idx) => (
                   <div key={n.id || idx} style={{
                     fontSize: '0.74rem',
@@ -353,8 +355,8 @@ export default function TaskCard({
               </div>
             )}
 
-            {/* Note Input Form: ONLY ON TODAY & WHEN TOGGLED */}
-            {isToday && !isDone && !isMissed && showNotesInput && (
+            {/* Note Input Form: ONLY ON TODAY & WHEN TASK IS ACTIVE */}
+            {isToday && !isDone && !isMissed && (
               <form onSubmit={handleNoteSubmit} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <input
                   type="text"
