@@ -4808,3 +4808,28 @@ body {
     max-width: 100%;
   }
 }
+
+@keyframes carriedOverBlink {
+  0%, 100% {
+    opacity: 1;
+    text-shadow: 0 0 6px rgba(255, 253, 208, 0.6);
+  }
+  50% {
+    opacity: 0.35;
+    text-shadow: none;
+  }
+}
+
+.carried-over-badge-cream {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 4px;
+  background: rgba(255, 253, 208, 0.12);
+  color: #fffdd0;
+  border: 1px solid rgba(255, 253, 208, 0.35);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  animation: carriedOverBlink 1.8s ease-in-out infinite;
+}
