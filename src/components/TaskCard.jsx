@@ -201,23 +201,18 @@ export default function TaskCard({
             {isMultiDayOrCarried && (notesList.length > 0 || (isToday && !isDone && !isMissed)) && (
               <button
                 type="button"
-                className="delete-btn"
+                className={`task-note-toggle-btn ${showNotesInput ? 'active' : ''} ${notesList.length > 0 ? 'has-notes' : ''}`}
                 onClick={() => setShowNotesInput(prev => !prev)}
                 title={isToday && !isDone && !isMissed ? "Add / View Daily Notes" : "View Daily Notes"}
                 style={{
-                  color: showNotesInput || notesList.length > 0 ? '#fffdd0' : 'var(--text-muted)',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '3px',
-                  padding: '2px 6px',
-                  borderRadius: '4px',
-                  background: showNotesInput ? 'rgba(255, 253, 208, 0.15)' : 'transparent',
-                  border: showNotesInput ? '1px solid rgba(255, 253, 208, 0.3)' : '1px solid transparent'
+                  color: showNotesInput || notesList.length > 0 ? '#fffdd0' : undefined,
+                  background: showNotesInput ? 'rgba(255, 253, 208, 0.15)' : undefined,
+                  border: showNotesInput ? '1px solid rgba(255, 253, 208, 0.3)' : undefined
                 }}
               >
                 <FileText size={14} />
                 {notesList.length > 0 && (
-                  <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#fffdd0' }}>
+                  <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'inherit' }}>
                     {notesList.length}
                   </span>
                 )}
