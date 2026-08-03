@@ -5043,7 +5043,7 @@ body {
    ========================================================================== */
 
 .scroll-to-top-btn {
-  position: fixed;
+  position: sticky;
   bottom: 24px;
   left: 50%;
   transform: translateX(-50%);
