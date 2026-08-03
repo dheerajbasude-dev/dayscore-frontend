@@ -105,16 +105,18 @@ export default function TodayView() {
   const isToday = currentDateStr === todayStr
 
   const handleOpenAddModal = () => {
+    if (currentDateStr < todayStr) return
     setShowAddModal(true)
   }
 
   useEffect(() => {
     const handleOpenModalEvent = () => {
+      if (currentDateStr < todayStr) return
       setShowAddModal(true)
     }
     window.addEventListener('open-add-task-modal', handleOpenModalEvent)
     return () => window.removeEventListener('open-add-task-modal', handleOpenModalEvent)
-  }, [])
+  }, [currentDateStr, todayStr])
 
   const [showPenaltyFlash, setShowPenaltyFlash] = useState(false)
   const [ratingTask, setRatingTask] = useState(null)
@@ -1494,16 +1496,19 @@ export default function TodayView() {
         </>
       )}
 
-      <button
-        className="fab"
-        onClick={handleOpenAddModal}
-        aria-label="Add Task"
-        title="Add New Task"
-      >
-        <Plus size={28} />
-      </button>
+      {/* Floating Action Button (Only show when visiting Today or Future dates) */}
+      {(!currentDateStr || currentDateStr >= todayStr) && (
+        <button
+          className="fab"
+          onClick={handleOpenAddModal}
+          aria-label="Add Task"
+          title="Add New Task"
+        >
+          <Plus size={28} />
+        </button>
+      )}
 
-      {showAddModal && (
+      {showAddModal && currentDateStr >= todayStr && (
         <AddTaskModal
           isOpen={showAddModal}
           onClose={() => setShowAddModal(false)}
