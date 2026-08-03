@@ -260,11 +260,15 @@ export default function TaskCard({
   const isPenaltyAccepted = task.penaltyAccepted === true || task.penaltyAccepted === 1 || task.penaltyAccepted === '1' ||
                      task.penalty_accepted === true || task.penalty_accepted === 1 || task.penalty_accepted === '1';
 
-  const hasReward = Boolean(task.reward);
-  const hasPenalty = Boolean(task.penalty);
+  const ratingNum = task.rating != null && !isNaN(Number(task.rating)) ? Number(task.rating) : null;
+  const hasLowRatingPenalty = isDone && ratingNum != null && ratingNum <= 4.0;
+  const hasHighRatingReward = isDone && ratingNum != null && ratingNum > 4.0;
 
-  const hasUnclaimedReward = Boolean(task.reward && !isRewardClaimed);
-  const hasUnacknowledgedPenalty = Boolean(task.penalty && !isPenaltyAccepted);
+  const hasReward = Boolean(task.reward && hasHighRatingReward);
+  const hasPenalty = Boolean(task.penalty && hasLowRatingPenalty);
+
+  const hasUnclaimedReward = Boolean(hasReward && !isRewardClaimed);
+  const hasUnacknowledgedPenalty = Boolean(hasPenalty && !isPenaltyAccepted);
 
   const isCheckboxLocked = isDone || (isMissed && !isToday);
 
