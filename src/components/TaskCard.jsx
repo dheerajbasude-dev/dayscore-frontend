@@ -422,21 +422,32 @@ export default function TaskCard({
                         {formatNoteDate(n.date)}:
                       </span>
 
-                      <span style={{
-                        fontSize: '0.68rem',
-                        fontWeight: 700,
-                        color: itemTheme.color,
-                        background: itemTheme.bg,
-                        border: `1px solid ${itemTheme.border}`,
-                        borderRadius: '4px',
-                        padding: '1px 6px',
-                        flexShrink: 0,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '3px'
-                      }}>
-                        {isMissedDay ? `✕ Missed (${ratingVal.toFixed(1)})` : `★ ${ratingVal.toFixed(1)}`}
-                      </span>
+                      {isMissedDay ? (
+                        <span style={{
+                          fontSize: '0.74rem',
+                          fontWeight: 600,
+                          color: '#f87171',
+                          flexShrink: 0
+                        }}>
+                          Missed
+                        </span>
+                      ) : (
+                        <span style={{
+                          fontSize: '0.68rem',
+                          fontWeight: 700,
+                          color: itemTheme.color,
+                          background: itemTheme.bg,
+                          border: `1px solid ${itemTheme.border}`,
+                          borderRadius: '4px',
+                          padding: '1px 6px',
+                          flexShrink: 0,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '3px'
+                        }}>
+                          ★ {ratingVal.toFixed(1)}
+                        </span>
+                      )}
 
                       <span style={{
                         wordBreak: 'break-word',
