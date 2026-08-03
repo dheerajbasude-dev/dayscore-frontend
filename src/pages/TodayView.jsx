@@ -11,7 +11,7 @@ import ReflectionBox from '../components/ReflectionBox'
 import ConfettiCelebration from '../components/ConfettiCelebration'
 import PenaltyCelebration from '../components/PenaltyCelebration'
 import AuthModal from '../components/AuthModal'
-import { Plus, AlertTriangle, Gift, PenLine, ChevronLeft, ChevronRight, Calendar, Layers, Search, SlidersHorizontal, Filter, RotateCcw, X, Clock, Zap, Check } from 'lucide-react'
+import { Plus, AlertTriangle, Gift, PenLine, ChevronLeft, ChevronRight, ChevronUp, Calendar, Layers, Search, SlidersHorizontal, Filter, RotateCcw, X, Clock, Zap, Check } from 'lucide-react'
 import * as store from '../store/store'
 import * as scoring from '../store/scoring'
 import { useDayRollover } from '../hooks/useDayRollover'
@@ -161,6 +161,23 @@ export default function TodayView() {
       if (scrollTimeout) clearTimeout(scrollTimeout);
     };
   }, []);
+
+  // Floating "Scroll to Top" button state & listener
+  const [showScrollTopBtn, setShowScrollTopBtn] = useState(false);
+
+  useEffect(() => {
+    const handleCheckScrollTop = () => {
+      const currentY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
+      setShowScrollTopBtn(currentY > 250);
+    };
+
+    window.addEventListener('scroll', handleCheckScrollTop, { passive: true });
+    return () => window.removeEventListener('scroll', handleCheckScrollTop);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const [archives, setArchives] = useState([])
   const [scoreResult, setScoreResult] = useState({ score: 0, baseScore: 0, bonus1: 0, bonus2: 0, penalty: 0 })
@@ -1834,6 +1851,19 @@ export default function TodayView() {
           <AlertTriangle size={16} color="#fff" />
           {dateWarningToast}
         </div>
+      )}
+
+      {showScrollTopBtn && (
+        <button
+          type="button"
+          className="scroll-to-top-btn"
+          onClick={scrollToTop}
+          title="Scroll to Top"
+          aria-label="Scroll to Top"
+        >
+          <ChevronUp size={16} strokeWidth={2.5} />
+          <span>Top</span>
+        </button>
       )}
 
       <ConfettiCelebration trigger={showConfetti} />

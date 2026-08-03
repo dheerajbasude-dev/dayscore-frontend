@@ -5037,20 +5037,63 @@ body {
   animation: completionGlowPulse 2.5s ease-in-out forwards !important;
 }
 
-@keyframes completionGlowPulse {
+/* ==========================================================================
+   Floating Center "Scroll to Top" Button
+   ========================================================================== */
+
+.scroll-to-top-btn {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 14px;
+  height: 32px;
+  border-radius: 20px;
+  background: rgba(15, 23, 42, 0.88);
+  border: 1px solid rgba(99, 102, 241, 0.45);
+  color: #a5b4fc;
+  font-size: 0.75rem;
+  font-weight: 700;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45), 0 0 15px rgba(99, 102, 241, 0.3);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: floatInUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.scroll-to-top-btn:hover {
+  transform: translateX(-50%) translateY(-2px);
+  background: rgba(99, 102, 241, 0.95);
+  color: #ffffff;
+  border-color: rgba(165, 180, 252, 0.7);
+  box-shadow: 0 6px 24px rgba(99, 102, 241, 0.55), 0 0 20px rgba(99, 102, 241, 0.4);
+}
+
+.scroll-to-top-btn:active {
+  transform: translateX(-50%) translateY(0);
+}
+
+@keyframes floatInUp {
   0% {
-    border-color: #34d399;
-    box-shadow: 0 0 25px rgba(52, 211, 153, 0.6), inset 0 0 15px rgba(52, 211, 153, 0.2);
-    transform: scale(1.01);
-  }
-  50% {
-    border-color: #34d399;
-    box-shadow: 0 0 35px rgba(52, 211, 153, 0.8), inset 0 0 20px rgba(52, 211, 153, 0.3);
-    transform: scale(1.015);
+    opacity: 0;
+    transform: translateX(-50%) translateY(15px) scale(0.9);
   }
   100% {
-    border-color: rgba(255, 255, 255, 0.08);
-    box-shadow: none;
-    transform: scale(1);
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 640px) {
+  .scroll-to-top-btn {
+    bottom: 18px;
+    padding: 4px 12px;
+    height: 28px;
+    font-size: 0.7rem;
+    gap: 4px;
   }
 }
