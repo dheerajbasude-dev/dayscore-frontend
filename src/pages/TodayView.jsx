@@ -882,15 +882,18 @@ export default function TodayView() {
     setActivePunishment(null)
   }
 
-  const sortTasksByUrgency = (a, b) => {
-    // Status Tier Grouping:
-    // Tier 1: Missed tasks (Top of list)
-    // Tier 2: Pending / In-progress tasks (Middle of list)
-    // Tier 3: Completed / Done tasks (Bottom of list)
+  const sortTasksByDefaultHierarchy = (a, b) => {
+    // Default Status Tier Hierarchy:
+    // Tier 1: Missed tasks
+    // Tier 2: Carried-over tasks
+    // Tier 3: Pending / In-progress tasks
+    // Tier 4: Completed / Done tasks
     const getStatusTier = (t) => {
       if (t.status === 'missed') return 1;
-      if (t.status === 'done') return 3;
-      return 2;
+      const isCarried = Boolean(t.carriedOver || t.carried_over);
+      if (t.status !== 'done' && isCarried) return 2;
+      if (t.status === 'done') return 4;
+      return 3; // pending / inprogress
     };
 
     const tierA = getStatusTier(a);
@@ -900,36 +903,17 @@ export default function TodayView() {
       return tierA - tierB;
     }
 
-    // Within Tier 1 (Missed Tasks): Most recent missed date / creation time FIRST
-    if (tierA === 1) {
-      const timeA = new Date(a.date || a.dateLabel || a.createdAt || a.created_at || 0).getTime();
-      const timeB = new Date(b.date || b.dateLabel || b.createdAt || b.created_at || 0).getTime();
-      return timeB - timeA;
-    }
+    // Within each tier: Sort from latest datetime to oldest (newest timestamp FIRST)
+    const getTaskTimestamp = (t) => {
+      const isoStr = t.completedAt || t.completed_at || t.dueDateTime || t.due_date_time || t.createdAt || t.created_at || t.date;
+      if (!isoStr) return 0;
+      const ms = new Date(isoStr).getTime();
+      return isNaN(ms) ? 0 : ms;
+    };
 
-    // Within Tier 3 (Completed / Done Tasks): Most recent completed time FIRST
-    if (tierA === 3) {
-      const timeA = new Date(a.completedAt || a.completed_at || a.createdAt || a.created_at || 0).getTime();
-      const timeB = new Date(b.completedAt || b.completed_at || b.createdAt || b.created_at || 0).getTime();
-      return timeB - timeA;
-    }
-
-    // Within Tier 2 (Pending / In-Progress Tasks): Near ending due time OR newly created FIRST
-    const dueA = a.dueDateTime || a.due_date_time;
-    const dueB = b.dueDateTime || b.due_date_time;
-
-    if (dueA && dueB) {
-      const diff = new Date(dueA).getTime() - new Date(dueB).getTime();
-      if (diff !== 0) return diff;
-    } else if (dueA) {
-      return -1;
-    } else if (dueB) {
-      return 1;
-    }
-
-    const createdA = new Date(a.createdAt || a.created_at || 0).getTime();
-    const createdB = new Date(b.createdAt || b.created_at || 0).getTime();
-    return createdB - createdA;
+    const timeA = getTaskTimestamp(a);
+    const timeB = getTaskTimestamp(b);
+    return timeB - timeA; // Latest to oldest
   };
 
   const displayTasksList = useMemo(() => {
@@ -1047,8 +1031,8 @@ export default function TodayView() {
         if (cA !== cB) return cB - cA;
       }
 
-      // Default sort: Tier 1 Missed Most Recent -> Tier 2 Active/Pending Near Ending -> Tier 3 Completed Most Recent
-      return sortTasksByUrgency(a, b);
+      // Default sort: Missed -> Carried -> Pending -> Complete (latest datetime to oldest)
+      return sortTasksByDefaultHierarchy(a, b);
     });
 
     return list;
