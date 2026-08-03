@@ -551,6 +551,35 @@ export default function TodayView() {
     }
   }
 
+  const handleAddDailyNote = async (targetTask, noteText) => {
+    if (!targetTask || !noteText || !noteText.trim()) return;
+    if (currentDateStr < todayStr) return; // Daily progress notes addition only works on Today's date
+
+    const targetId = targetTask.id || targetTask._id;
+    const taskDate = targetTask.date || targetTask.dateLabel || currentDateStr;
+    const existingNotes = Array.isArray(targetTask.daily_notes || targetTask.dailyNotes)
+      ? (targetTask.daily_notes || targetTask.dailyNotes)
+      : [];
+
+    const newNote = {
+      id: Date.now().toString(),
+      date: todayStr,
+      note: noteText.trim(),
+      created_at: new Date().toISOString()
+    };
+
+    const updatedNotes = [...existingNotes, newNote];
+
+    await store.updateTask(taskDate, targetId, {
+      daily_notes: updatedNotes,
+      dailyNotes: updatedNotes
+    });
+
+    await store.fetchAllTasksApi();
+    setTasks(store.getTasks(currentDateStr));
+    setArchives(store.getAllArchives());
+  };
+
   const handleStatusChange = async (taskOrId, newStatus) => {
     const isObject = typeof taskOrId === 'object' && taskOrId !== null;
     const taskId = isObject ? (taskOrId.id || taskOrId._id) : taskOrId;
@@ -829,19 +858,6 @@ export default function TodayView() {
     store.acknowledgePunishment()
     setActivePunishment(null)
   }
-
-  const handleSaveTaskDailyNote = async (task, dailyNotesArray) => {
-    if (!isToday) return; // Daily note editing is strictly restricted to Today's date
-    const targetId = task.id || task._id;
-    const taskDate = task.date || task.dateLabel || currentDateStr;
-    await store.updateTask(taskDate, targetId, {
-      dailyNotes: dailyNotesArray,
-      daily_notes: dailyNotesArray
-    });
-    await store.fetchAllTasksApi();
-    setTasks(store.getTasks(currentDateStr));
-    setArchives(store.getAllArchives());
-  };
 
   const sortTasksByUrgency = (a, b) => {
     // Status Tier Grouping:
@@ -1503,7 +1519,7 @@ export default function TodayView() {
                     onRequestComplete={handleRequestComplete}
                     onClaimReward={handleClaimTaskReward}
                     onAcceptPenalty={handleAcceptTaskPenalty}
-                    onSaveDailyNote={handleSaveTaskDailyNote}
+                    onAddDailyNote={handleAddDailyNote}
                   />
                 ))}
               </div>
