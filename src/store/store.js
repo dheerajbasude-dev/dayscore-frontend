@@ -238,6 +238,26 @@ export async function updateTask(dateStr, taskId, updates) {
 
   const cleanUpdates = { ...updates };
 
+  if (existing.status === 'missed') {
+    const isAttemptingEditOrComplete = (
+      cleanUpdates.status === 'done' ||
+      cleanUpdates.status === 'pending' ||
+      cleanUpdates.status === 'inprogress' ||
+      cleanUpdates.title !== undefined ||
+      cleanUpdates.category !== undefined ||
+      cleanUpdates.priority !== undefined ||
+      cleanUpdates.dueDateTime !== undefined ||
+      cleanUpdates.due_date_time !== undefined ||
+      cleanUpdates.rating !== undefined ||
+      cleanUpdates.completedAt !== undefined ||
+      cleanUpdates.completed_at !== undefined
+    );
+    if (isAttemptingEditOrComplete) {
+      console.warn('Missed tasks cannot be edited or marked as completed.');
+      return getTasks(dateStr);
+    }
+  }
+
   // Enforce mutual exclusion between reward and penalty only when new reward/penalty text is explicitly provided
   if (cleanUpdates.reward) {
     cleanUpdates.penaltyAccepted = false;

@@ -31,10 +31,10 @@ export default function TaskCard({ index, task, onStatusChange, onDelete, onRequ
   };
 
   const cycleStatus = () => {
-    // Once a task is completed, it stays completed permanently
-    if (task.status === 'done') return;
+    // Once a task is completed or missed, it cannot be completed or edited
+    if (task.status === 'done' || task.status === 'missed') return;
 
-    if (task.status === 'pending' || task.status === 'inprogress' || task.status === 'missed') {
+    if (task.status === 'pending' || task.status === 'inprogress') {
       if (onRequestComplete) {
         onRequestComplete(task);
       } else {
@@ -101,9 +101,10 @@ export default function TaskCard({ index, task, onStatusChange, onDelete, onRequ
     >
       {/* Checkbox */}
       <div
-        className={`task-checkbox ${getCheckboxClass()} ${isDone ? 'locked' : ''}`}
+        className={`task-checkbox ${getCheckboxClass()} ${isDone || isMissed ? 'locked' : ''}`}
         onClick={cycleStatus}
-        title={isDone ? 'Task completed' : 'Mark as done'}
+        title={isDone ? 'Task completed' : isMissed ? 'Task missed (cannot be completed or edited)' : 'Mark as done'}
+        style={{ cursor: isDone || isMissed ? 'not-allowed' : 'pointer' }}
       >
         {isDone && <Check size={14} strokeWidth={3} />}
         {isMissed && '✕'}

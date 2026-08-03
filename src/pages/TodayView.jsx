@@ -553,6 +553,11 @@ export default function TodayView() {
     const isObject = typeof taskOrId === 'object' && taskOrId !== null;
     const taskId = isObject ? (taskOrId.id || taskOrId._id) : taskOrId;
     const taskDate = isObject ? (taskOrId.date || taskOrId.dateLabel || currentDateStr) : currentDateStr;
+    const currentTask = isObject ? taskOrId : tasks.find(t => t.id === taskId || t._id === taskId);
+
+    if (currentTask && currentTask.status === 'missed' && newStatus !== 'missed') {
+      return;
+    }
 
     const updates = { status: newStatus }
     if (newStatus === 'done') {
@@ -577,11 +582,16 @@ export default function TodayView() {
 
   // Rating flow: open slider modal instead of directly completing
   const handleRequestComplete = (task) => {
+    if (!task || task.status === 'missed') return;
     setRatingTask(task)
   }
 
   const handleRatingConfirm = async (ratingTaskId, rating, maxRating) => {
     const targetTask = ratingTask || tasks.find(t => t.id === ratingTaskId || t._id === ratingTaskId)
+    if (targetTask && targetTask.status === 'missed') {
+      setRatingTask(null);
+      return;
+    }
     const taskDate = targetTask?.date || targetTask?.dateLabel || currentDateStr;
     const targetId = targetTask?.id || targetTask?._id || ratingTaskId;
 
