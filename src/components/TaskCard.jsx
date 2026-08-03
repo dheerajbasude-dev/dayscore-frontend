@@ -548,13 +548,20 @@ export default function TaskCard({
                     borderRadius: '8px',
                     border: '1px solid rgba(255, 255, 255, 0.06)'
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
                       <span style={{
-                        fontSize: '0.75rem',
+                        fontSize: '0.72rem',
                         fontWeight: 800,
                         color: currentTheme.color,
-                        padding: '1px 6px',
-                        borderRadius: '4px',
+                        padding: '0 6px',
+                        height: '22px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '3px',
+                        whiteSpace: 'nowrap',
+                        flexShrink: 0,
+                        borderRadius: '5px',
                         background: currentTheme.bg,
                         border: `1px solid ${currentTheme.border}`
                       }}>
