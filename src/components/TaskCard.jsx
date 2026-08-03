@@ -53,6 +53,8 @@ export default function TaskCard({
   const [dailyRating, setDailyRating] = useState(8.0);
   const [submittingNote, setSubmittingNote] = useState(false);
   const [showNotesInput, setShowNotesInput] = useState(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [isJustCompleted, setIsJustCompleted] = useState(false);
 
   const notesList = Array.isArray(task.daily_notes || task.dailyNotes)
     ? (task.daily_notes || task.dailyNotes)
@@ -148,8 +150,8 @@ export default function TaskCard({
     }
   };
 
-  const cycleStatus = () => {
-    if (task.status === 'done') return;
+  const cycleStatus = async () => {
+    if (task.status === 'done' || isUpdatingStatus) return;
 
     if (task.status === 'missed') {
       if (!isToday) return;
@@ -160,20 +162,33 @@ export default function TaskCard({
     }
 
     if (task.status === 'pending' || task.status === 'inprogress') {
-      const notesWithRating = effectiveNotesList.filter(n => n && n.rating != null && !isNaN(Number(n.rating)));
-      if (notesWithRating.length > 0) {
-        const totalRating = notesWithRating.reduce((sum, n) => sum + Number(n.rating), 0);
-        const calculatedAvg = Number((totalRating / notesWithRating.length).toFixed(1));
-        if (onAutoCompleteWithRating) {
-          onAutoCompleteWithRating(task, calculatedAvg);
-          return;
+      setIsUpdatingStatus(true);
+      try {
+        const notesWithRating = effectiveNotesList.filter(n => n && n.rating != null && !isNaN(Number(n.rating)));
+        if (notesWithRating.length > 0) {
+          const totalRating = notesWithRating.reduce((sum, n) => sum + Number(n.rating), 0);
+          const calculatedAvg = Number((totalRating / notesWithRating.length).toFixed(1));
+          if (onAutoCompleteWithRating) {
+            await onAutoCompleteWithRating(task, calculatedAvg);
+            setIsJustCompleted(true);
+            setTimeout(() => setIsJustCompleted(false), 2500);
+            return;
+          }
         }
-      }
 
-      if (onRequestComplete) {
-        onRequestComplete(task);
-      } else {
-        onStatusChange(task, 'done');
+        if (onRequestComplete) {
+          await onRequestComplete(task);
+          setIsJustCompleted(true);
+          setTimeout(() => setIsJustCompleted(false), 2500);
+        } else if (onStatusChange) {
+          await onStatusChange(task, 'done');
+          setIsJustCompleted(true);
+          setTimeout(() => setIsJustCompleted(false), 2500);
+        }
+      } catch (err) {
+        console.error('Status update error:', err);
+      } finally {
+        setIsUpdatingStatus(false);
       }
     }
   };
@@ -283,11 +298,11 @@ export default function TaskCard({
 
   return (
     <div 
-      className={`task-card ${task.status} ${(hasUnclaimedReward || hasUnacknowledgedPenalty) ? 'has-pending-action' : ''} ${isDeleting ? 'task-exit' : 'task-enter'}`}
+      className={`task-card ${task.status} ${isJustCompleted ? 'just-completed-highlight' : ''} ${(hasUnclaimedReward || hasUnacknowledgedPenalty) ? 'has-pending-action' : ''} ${isDeleting ? 'task-exit' : 'task-enter'}`}
       style={{ animationDelay: isDeleting ? '0s' : `${animDelay}s` }}
     >
       <div
-        className={`task-checkbox ${getCheckboxClass()} ${isCheckboxLocked ? 'locked' : ''}`}
+        className={`task-checkbox ${getCheckboxClass()} ${isUpdatingStatus ? 'is-loading' : ''} ${isCheckboxLocked ? 'locked' : ''}`}
         onClick={cycleStatus}
         title={
           isDone 
@@ -296,11 +311,17 @@ export default function TaskCard({
               ? (isToday ? 'Mark missed task as done (max rating 3)' : 'Missed task on past date (cannot be modified)') 
               : 'Mark as done'
         }
-        style={{ cursor: isCheckboxLocked ? 'not-allowed' : 'pointer' }}
+        style={{ cursor: (isCheckboxLocked || isUpdatingStatus) ? 'not-allowed' : 'pointer' }}
       >
-        {isDone && <Check size={14} strokeWidth={3} />}
-        {isMissed && '✕'}
-        {task.status === 'inprogress' && '⟳'}
+        {isUpdatingStatus ? (
+          <Loader2 size={14} className="task-checkbox-spinner btn-spinner" />
+        ) : (
+          <>
+            {isDone && <Check size={14} strokeWidth={3} />}
+            {isMissed && '✕'}
+            {task.status === 'inprogress' && '⟳'}
+          </>
+        )}
       </div>
 
       <div className="task-info">
