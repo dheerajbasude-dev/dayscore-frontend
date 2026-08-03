@@ -207,19 +207,14 @@ export default function TaskCard({
           {isCarriedOver && (
             <>
               <span className="meta-dot">·</span>
-              <span className="carried-over-badge" style={{
+              <span style={{
                 fontSize: '0.72rem',
-                fontWeight: 600,
-                padding: '1px 7px',
-                borderRadius: '4px',
-                background: 'rgba(99, 102, 241, 0.18)',
-                color: '#a5b4fc',
-                border: '1px solid rgba(99, 102, 241, 0.35)',
+                color: 'rgba(255, 255, 255, 0.45)',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '3px'
               }}>
-                🔄 Carried Over {origDateDisplay ? `(from ${origDateDisplay})` : ''}
+                🔄 Carried
               </span>
             </>
           )}
@@ -289,55 +284,43 @@ export default function TaskCard({
           </div>
         )}
 
-        {/* Row 4: Carried Over Daily Notes Section */}
-        {(isCarriedOver || (notesList && notesList.length > 0)) && (
+        {/* Row 4: Daily Notes Section (Only show if notes exist OR if active on Today) */}
+        {((notesList && notesList.length > 0) || (isToday && !isDone && !isMissed)) && (
           <div className="task-daily-notes-container" style={{
-            marginTop: '10px',
-            padding: '8px 12px',
-            background: 'rgba(255, 255, 255, 0.03)',
-            borderRadius: 'var(--radius-sm, 8px)',
-            border: '1px solid rgba(255, 255, 255, 0.08)'
+            marginTop: '6px',
+            padding: '6px 10px',
+            background: 'rgba(255, 255, 255, 0.02)',
+            borderRadius: '6px',
+            border: '1px solid rgba(255, 255, 255, 0.06)'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: notesList.length > 0 ? '6px' : '4px' }}>
-              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                <FileText size={13} style={{ color: 'var(--accent-primary)' }} />
-                Daily Progress Notes {notesList.length > 0 && `(${notesList.length})`}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: notesList.length > 0 ? '4px' : '2px' }}>
+              <FileText size={12} style={{ color: 'var(--accent-primary)', opacity: 0.8 }} />
+              <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                Daily Notes {notesList.length > 0 && `(${notesList.length})`}
               </span>
-              {!isToday ? (
-                <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                  (Read-only on past dates)
-                </span>
-              ) : (isDone || isMissed) ? (
-                <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                  (Read-only for {isDone ? 'completed' : 'missed'} task)
-                </span>
-              ) : null}
             </div>
 
             {/* Existing Notes List */}
             {notesList.length > 0 && (
-              <div className="daily-notes-list" style={{ display: 'flex', flexDirection: 'column', gap: '5px', marginBottom: (isToday && !isDone && !isMissed) ? '8px' : '0' }}>
+              <div className="daily-notes-list" style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: (isToday && !isDone && !isMissed) ? '6px' : '0' }}>
                 {notesList.map((n, idx) => (
                   <div key={n.id || idx} className="daily-note-chip" style={{
-                    fontSize: '0.76rem',
-                    padding: '4px 8px',
-                    borderRadius: '6px',
-                    background: 'rgba(0, 0, 0, 0.25)',
-                    border: '1px solid rgba(255, 255, 255, 0.06)',
+                    fontSize: '0.74rem',
+                    padding: '3px 7px',
+                    borderRadius: '5px',
+                    background: 'rgba(0, 0, 0, 0.2)',
+                    border: '1px solid rgba(255, 255, 255, 0.05)',
                     color: 'var(--text-primary)',
                     lineHeight: '1.3'
                   }}>
                     <span style={{
-                      fontWeight: 700,
+                      fontWeight: 600,
                       color: '#a5b4fc',
-                      marginRight: '6px',
-                      fontSize: '0.7rem',
-                      background: 'rgba(99, 102, 241, 0.15)',
-                      padding: '1px 5px',
-                      borderRadius: '4px',
-                      border: '1px solid rgba(99, 102, 241, 0.25)'
+                      marginRight: '5px',
+                      fontSize: '0.68rem',
+                      opacity: 0.85
                     }}>
-                      Added on {n.date || 'Today'}
+                      {n.date || 'Today'}:
                     </span>
                     <span>{n.note || n.text}</span>
                   </div>
@@ -347,20 +330,20 @@ export default function TaskCard({
 
             {/* Note Input Form: ONLY WORKS ON TODAY'S DATE & WHEN TASK IS ACTIVE */}
             {isToday && !isDone && !isMissed && (
-              <form onSubmit={handleNoteSubmit} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+              <form onSubmit={handleNoteSubmit} style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '2px' }}>
                 <input
                   type="text"
-                  placeholder="Add a daily progress note..."
+                  placeholder="Add progress note..."
                   value={newNoteText}
                   onChange={(e) => setNewNoteText(e.target.value)}
                   style={{
                     flex: 1,
-                    height: '30px',
-                    fontSize: '0.78rem',
-                    padding: '4px 10px',
-                    borderRadius: '6px',
-                    background: 'rgba(0, 0, 0, 0.3)',
-                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    height: '26px',
+                    fontSize: '0.74rem',
+                    padding: '3px 8px',
+                    borderRadius: '5px',
+                    background: 'rgba(0, 0, 0, 0.25)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
                     color: 'var(--text-primary)',
                     outline: 'none'
                   }}
@@ -370,17 +353,17 @@ export default function TaskCard({
                   disabled={submittingNote || !newNoteText.trim()}
                   className="btn btn-primary btn-sm"
                   style={{
-                    height: '30px',
-                    padding: '4px 10px',
-                    fontSize: '0.74rem',
+                    height: '26px',
+                    padding: '2px 8px',
+                    fontSize: '0.7rem',
                     whiteSpace: 'nowrap',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '4px',
+                    gap: '3px',
                     opacity: (!newNoteText.trim() || submittingNote) ? 0.5 : 1
                   }}
                 >
-                  {submittingNote ? <Loader2 size={12} className="btn-spinner" /> : <Plus size={13} />}
+                  {submittingNote ? <Loader2 size={11} className="btn-spinner" /> : <Plus size={12} />}
                   <span>Add Note</span>
                 </button>
               </form>
