@@ -416,7 +416,7 @@ export default function TaskCard({
                     padding: 0,
                     fontSize: '0.85rem',
                     fontWeight: 600,
-                    borderRadius: '8px',
+                    borderRadius: '50%',
                     background: newNoteText.trim() 
                       ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' 
                       : 'rgba(99, 102, 241, 0.18)',
