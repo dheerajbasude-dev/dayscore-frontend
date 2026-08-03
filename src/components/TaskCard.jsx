@@ -102,6 +102,16 @@ export default function TaskCard({
     }
   };
 
+  const formatNoteDate = (dateStr) => {
+    if (!dateStr) return format(new Date(), 'MMM dd, yyyy');
+    try {
+      const d = parseISO(dateStr.length === 10 ? `${dateStr}T00:00:00` : dateStr);
+      return format(d, 'MMM dd, yyyy');
+    } catch (e) {
+      return dateStr;
+    }
+  };
+
   const getRatingBadgeClass = () => {
     const num = Number(task.rating);
     if (num <= 4) return 'rating-badge-low';
@@ -347,24 +357,20 @@ export default function TaskCard({
               <div className="daily-notes-list" style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: (isToday && !isDone && !isMissed) ? '6px' : '0' }}>
                 {notesList.map((n, idx) => (
                   <div key={n.id || idx} style={{
-                    fontSize: '0.74rem',
+                    fontSize: '0.76rem',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '6px',
+                    gap: '5px',
                     color: 'var(--text-primary)',
-                    lineHeight: '1.3'
+                    lineHeight: '1.4'
                   }}>
                     <span style={{
-                      fontWeight: 700,
-                      color: '#fffdd0',
-                      fontSize: '0.68rem',
-                      background: 'rgba(255, 253, 208, 0.12)',
-                      padding: '1px 5px',
-                      borderRadius: '4px',
-                      border: '1px solid rgba(255, 253, 208, 0.25)',
+                      fontWeight: 600,
+                      color: 'var(--text-muted)',
+                      fontSize: '0.74rem',
                       flexShrink: 0
                     }}>
-                      Added on {n.date || 'Today'}
+                      {formatNoteDate(n.date)}:
                     </span>
                     <span style={{ wordBreak: 'break-word' }}>{n.note || n.text}</span>
                   </div>
@@ -402,12 +408,14 @@ export default function TaskCard({
                   type="submit"
                   disabled={submittingNote || !newNoteText.trim()}
                   className="compact-note-save-btn"
+                  title="Save Note"
+                  aria-label="Save Note"
                   style={{
                     height: '34px',
-                    padding: '0 14px',
-                    fontSize: '0.76rem',
+                    width: '34px',
+                    padding: 0,
+                    fontSize: '0.85rem',
                     fontWeight: 600,
-                    letterSpacing: '0.02em',
                     borderRadius: '8px',
                     background: newNoteText.trim() 
                       ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' 
@@ -421,12 +429,11 @@ export default function TaskCard({
                     transition: 'all 0.2s ease-in-out',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '4px',
-                    whiteSpace: 'nowrap'
+                    justifyContent: 'center',
+                    flexShrink: 0
                   }}
                 >
-                  {submittingNote ? <Loader2 size={13} className="btn-spinner" /> : <Plus size={13} />}
-                  <span>Save</span>
+                  {submittingNote ? <Loader2 size={15} className="btn-spinner" /> : <Plus size={18} />}
                 </button>
               </form>
             )}
