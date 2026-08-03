@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { X, Loader2, Check, AlertTriangle, Clock, FileText, Plus } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { X, Loader2, Check, AlertTriangle, Clock, FileText, Plus, Star } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useTimer } from '../hooks/useTimer';
 
@@ -10,6 +10,7 @@ export default function TaskCard({
   onStatusChange,
   onDelete,
   onRequestComplete,
+  onAutoCompleteWithRating,
   onClaimReward,
   onAcceptPenalty,
   onAddDailyNote,
@@ -20,8 +21,22 @@ export default function TaskCard({
   const [claiming, setClaiming] = useState(false);
   const [accepting, setAccepting] = useState(false);
   const [newNoteText, setNewNoteText] = useState('');
+  const [dailyRating, setDailyRating] = useState(8.0);
   const [submittingNote, setSubmittingNote] = useState(false);
   const [showNotesInput, setShowNotesInput] = useState(false);
+
+  const notesList = Array.isArray(task.daily_notes || task.dailyNotes)
+    ? (task.daily_notes || task.dailyNotes)
+    : [];
+
+  const todayDateStr = format(new Date(), 'yyyy-MM-dd');
+  const hasNoteForToday = useMemo(() => {
+    if (!notesList || notesList.length === 0) return false;
+    return notesList.some(n => {
+      if (!n || !n.date) return false;
+      return String(n.date).split('T')[0] === todayDateStr;
+    });
+  }, [notesList, todayDateStr]);
 
   const handleClaim = async (e) => {
     e.stopPropagation();
@@ -47,10 +62,10 @@ export default function TaskCard({
 
   const handleNoteSubmit = async (e) => {
     e.preventDefault();
-    if (!newNoteText.trim() || submittingNote || !onAddDailyNote || !isToday || isDone || isMissed) return;
+    if (!newNoteText.trim() || submittingNote || !onAddDailyNote || !isToday || isDone || isMissed || hasNoteForToday) return;
     setSubmittingNote(true);
     try {
-      await onAddDailyNote(task, newNoteText.trim());
+      await onAddDailyNote(task, newNoteText.trim(), dailyRating);
       setNewNoteText('');
       setShowNotesInput(false);
     } catch (err) {
@@ -72,6 +87,16 @@ export default function TaskCard({
     }
 
     if (task.status === 'pending' || task.status === 'inprogress') {
+      const notesWithRating = notesList.filter(n => n && n.rating != null && !isNaN(Number(n.rating)));
+      if (notesWithRating.length > 0) {
+        const totalRating = notesWithRating.reduce((sum, n) => sum + Number(n.rating), 0);
+        const calculatedAvg = Number((totalRating / notesWithRating.length).toFixed(1));
+        if (onAutoCompleteWithRating) {
+          onAutoCompleteWithRating(task, calculatedAvg);
+          return;
+        }
+      }
+
       if (onRequestComplete) {
         onRequestComplete(task);
       } else {
@@ -99,20 +124,20 @@ export default function TaskCard({
     }
   };
 
-  const formatOrigDate = (dateStr) => {
-    if (!dateStr) return '';
+  const formatNoteDate = (isoStr) => {
+    if (!isoStr) return 'Today';
     try {
-      const d = parseISO(dateStr.length === 10 ? `${dateStr}T00:00:00` : dateStr);
-      return format(d, 'MMM d, yyyy');
+      const d = typeof isoStr === 'string' ? parseISO(isoStr) : new Date(isoStr);
+      return format(d, 'MMM dd, yyyy');
     } catch (e) {
-      return dateStr;
+      return 'Today';
     }
   };
 
-  const formatNoteDate = (dateStr) => {
-    if (!dateStr) return format(new Date(), 'MMM dd, yyyy');
+  const formatOrigDate = (dateStr) => {
+    if (!dateStr) return null;
     try {
-      const d = parseISO(dateStr.length === 10 ? `${dateStr}T00:00:00` : dateStr);
+      const d = typeof dateStr === 'string' ? parseISO(dateStr) : new Date(dateStr);
       return format(d, 'MMM dd, yyyy');
     } catch (e) {
       return dateStr;
@@ -143,10 +168,6 @@ export default function TaskCard({
   const origDateDisplay = task.originalDate || task.original_date;
   const origDateFormatted = formatOrigDate(origDateDisplay);
 
-  const notesList = Array.isArray(task.daily_notes || task.dailyNotes)
-    ? (task.daily_notes || task.dailyNotes)
-    : [];
-
   const checkExtendsBeyondToday = () => {
     if (isCarriedOver) return true;
     if (notesList && notesList.length > 0) return true;
@@ -155,7 +176,6 @@ export default function TaskCard({
     try {
       const d = typeof dueIso === 'string' ? parseISO(dueIso) : new Date(dueIso);
       const dueDateStr = format(d, 'yyyy-MM-dd');
-      const todayDateStr = format(new Date(), 'yyyy-MM-dd');
       return dueDateStr > todayDateStr;
     } catch (e) {
       return false;
@@ -171,7 +191,6 @@ export default function TaskCard({
 
   const hasUnclaimedReward = Boolean(task.reward && !isRewardClaimed);
   const hasUnacknowledgedPenalty = Boolean(task.penalty && !isPenaltyAccepted);
-  const hasPendingAction = hasUnclaimedReward || hasUnacknowledgedPenalty;
 
   const isCheckboxLocked = isDone || (isMissed && !isToday);
 
@@ -184,10 +203,9 @@ export default function TaskCard({
 
   return (
     <div 
-      className={`task-card ${task.status} ${hasPendingAction ? 'has-pending-action' : ''} ${isDeleting ? 'task-exit' : 'task-enter'}`}
+      className={`task-card ${task.status} ${(hasUnclaimedReward || hasUnacknowledgedPenalty) ? 'has-pending-action' : ''} ${isDeleting ? 'task-exit' : 'task-enter'}`}
       style={{ animationDelay: isDeleting ? '0s' : `${animDelay}s` }}
     >
-      {/* Checkbox */}
       <div
         className={`task-checkbox ${getCheckboxClass()} ${isCheckboxLocked ? 'locked' : ''}`}
         onClick={cycleStatus}
@@ -205,9 +223,7 @@ export default function TaskCard({
         {task.status === 'inprogress' && '⟳'}
       </div>
 
-      {/* Content */}
       <div className="task-info">
-        {/* Row 1: Title + Status + Delete */}
         <div className="task-header-row">
           <div className="task-title-group">
             {index !== undefined && index !== null && (
@@ -215,51 +231,30 @@ export default function TaskCard({
                 #{index}
               </span>
             )}
-            <span className={`task-title ${isDone && !hasPendingAction ? 'strikethrough' : ''}`}>
+            <span className={`task-title ${isDone ? 'strikethrough' : ''}`}>
               {task.title}
             </span>
           </div>
           <div className="task-actions-right">
-            {isMultiDayOrCarried && (notesList.length > 0 || (isToday && !isDone && !isMissed)) && (
+            {(isMultiDayOrCarried && (notesList.length > 0 || (isToday && !isDone && !isMissed))) && (
               <button
                 type="button"
                 className={`task-note-toggle-btn ${showNotesInput ? 'active' : ''} ${notesList.length > 0 ? 'has-notes' : ''}`}
                 onClick={() => setShowNotesInput(prev => !prev)}
-                title={isToday && !isDone && !isMissed ? "Add / View Daily Notes" : "View Daily Notes"}
-                style={{
-                  color: showNotesInput || notesList.length > 0 ? '#fffdd0' : undefined,
-                  background: showNotesInput ? 'rgba(255, 253, 208, 0.15)' : undefined,
-                  border: showNotesInput ? '1px solid rgba(255, 253, 208, 0.3)' : undefined
-                }}
               >
                 <FileText size={14} />
-                {notesList.length > 0 && (
-                  <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'inherit' }}>
-                    {notesList.length}
-                  </span>
-                )}
+                {notesList.length > 0 && <span>{notesList.length}</span>}
               </button>
             )}
             <div className={`countdown ${urgencyClass}`}>
               {isDone ? (
-                wasOriginallyMissed ? (
-                  <span style={{ color: '#f87171', fontWeight: 600 }}>✓ Late</span>
-                ) : (
-                  <span className="text-success">✓ Done</span>
-                )
-              ) : isMissed ? (
-                <span className="text-danger">Missed</span>
-              ) : (
-                timeLeft
-              )}
+                wasOriginallyMissed ? <span style={{ color: '#f87171' }}>✓ Late</span> : <span className="text-success">✓ Done</span>
+              ) : isMissed ? <span className="text-danger">Missed</span> : timeLeft}
             </div>
-            <button className="delete-btn" onClick={() => onDelete(task)} title="Delete Task">
-              <X size={14} />
-            </button>
+            <button className="delete-btn" onClick={() => onDelete(task)}><X size={14} /></button>
           </div>
         </div>
 
-        {/* Row 2: Meta badges + dates inline */}
         <div className="task-meta-row">
           <span className={`badge badge-${task.category.toLowerCase()}`}>{task.category}</span>
           <span className="meta-dot">·</span>
@@ -267,9 +262,7 @@ export default function TaskCard({
           {ratingDisplay && (
             <>
               <span className="meta-dot">·</span>
-              <span className={`rating-badge ${getRatingBadgeClass()}`}>
-                ★ {task.rating}/{maxR}
-              </span>
+              <span className={`rating-badge ${getRatingBadgeClass()}`}>★ {task.rating}/{maxR}</span>
             </>
           )}
           {(createdFormatted || dueFormatted) && (
@@ -280,112 +273,64 @@ export default function TaskCard({
                 {dueFormatted && (
                   <>
                     <span className="dates-arrow">→</span>
-                    <span className={isMissed ? 'task-date-missed' : 'task-date-due'}>
-                      {dueFormatted}
-                    </span>
+                    <span className={isMissed ? 'task-date-missed' : 'task-date-due'}>{dueFormatted}</span>
                   </>
                 )}
               </span>
             </>
           )}
-          {completedFormatted && isDone && (
+          {completedFormatted && (
             <>
               <span className="meta-dot">·</span>
-              <span className="task-date-completed">✔ {completedFormatted}</span>
-            </>
-          )}
-          {isCarriedOver && (
-            <>
-              <span className="meta-dot">·</span>
-              <span className="carried-over-badge-cream" title={`Carried over from ${origDateDisplay || 'past'}`}>
-                🔄 {origDateFormatted || 'Carried Over'}
+              <span className="task-date-completed">
+                ✓ {completedFormatted}
               </span>
             </>
           )}
         </div>
 
-        {/* Row 3: Reward / Penalty */}
-        {isDone && (task.reward || task.penalty) && (
-          <div className="task-reward-row">
-            {task.reward && (() => {
-              const isClaimed = task.rewardClaimed === true || task.rewardClaimed === 1 || task.rewardClaimed === '1' ||
-                                task.reward_claimed === true || task.reward_claimed === 1 || task.reward_claimed === '1';
-              return (
-                <div className={`reward-badge-task ${isClaimed ? 'badge-status-claimed' : ''}`}>
-                  <span className="reward-badge-text">🎁 Reward: {task.reward}</span>
-                  {isClaimed ? (
-                    <span className="claimed-tag">✓ Claimed</span>
-                  ) : (
-                    onClaimReward && (
-                      <button 
-                        className={`badge-action-btn badge-action-success ${claiming ? 'btn-loading' : ''}`}
-                        onClick={handleClaim}
-                        disabled={claiming}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                      >
-                        {claiming ? (
-                          <>
-                            <Loader2 size={12} className="btn-spinner" /> Saving...
-                          </>
-                        ) : (
-                          'Claim'
-                        )}
-                      </button>
-                    )
-                  )}
-                </div>
-              );
-            })()}
-            {task.penalty && (() => {
-              const isAccepted = task.penaltyAccepted === true || task.penaltyAccepted === 1 || task.penaltyAccepted === '1' ||
-                                 task.penalty_accepted === true || task.penalty_accepted === 1 || task.penalty_accepted === '1';
-              return (
-                <div className={`penalty-badge-task ${isAccepted ? 'badge-status-claimed' : ''}`}>
-                  <span className="penalty-badge-text">⚠️ Penalty: {task.penalty}</span>
-                  {isAccepted ? (
-                    <span className="accepted-tag">✓ Acknowledged</span>
-                  ) : (
-                    onAcceptPenalty && (
-                      <button 
-                        className={`badge-action-btn badge-action-danger ${accepting ? 'btn-loading' : ''}`}
-                        onClick={handleAccept}
-                        disabled={accepting}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                      >
-                        {accepting ? (
-                          <>
-                            <Loader2 size={12} className="btn-spinner" /> Saving...
-                          </>
-                        ) : (
-                          'Acknowledge'
-                        )}
-                      </button>
-                    )
-                  )}
-                </div>
-              );
-            })()}
+        {hasUnclaimedReward && (
+          <div className="action-banner banner-reward">
+            <span className="banner-text">🎁 Reward: {task.reward}</span>
+            <button 
+              className="btn btn-sm btn-success" 
+              onClick={handleClaim}
+              disabled={claiming}
+            >
+              {claiming ? <Loader2 size={13} className="btn-spinner" /> : '✓ Claimed'}
+            </button>
           </div>
         )}
 
-        {/* Row 4: Ultra Compact Daily Notes Section (Only rendered when showNotesInput is true) */}
-        {showNotesInput && (notesList.length > 0 || (isToday && !isDone && !isMissed)) && (
-          <div className="task-daily-notes-container-compact" style={{
-            marginTop: '6px',
-            padding: '6px 10px',
-            background: 'rgba(0, 0, 0, 0.25)',
-            borderRadius: '6px',
+        {hasUnacknowledgedPenalty && (
+          <div className="action-banner banner-penalty">
+            <span className="banner-text">⚠️ Penalty: {task.penalty}</span>
+            <button 
+              className="btn btn-sm btn-secondary" 
+              onClick={handleAccept}
+              disabled={accepting}
+            >
+              {accepting ? <Loader2 size={13} className="btn-spinner" /> : '✓ Acknowledged'}
+            </button>
+          </div>
+        )}
+
+        {(notesList.length > 0 || (isToday && !isDone && !isMissed && showNotesInput)) && (
+          <div className="daily-notes-container" style={{
+            marginTop: '8px',
+            padding: '8px 12px',
+            borderRadius: '10px',
+            background: 'rgba(15, 23, 42, 0.45)',
             border: '1px solid rgba(255, 255, 255, 0.08)'
           }}>
-            {/* Existing Notes List */}
             {notesList.length > 0 && (
-              <div className="daily-notes-list" style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: (isToday && !isDone && !isMissed) ? '6px' : '0' }}>
+              <div className="daily-notes-list" style={{ display: 'flex', flexDirection: 'column', gap: '5px', marginBottom: (isToday && !isDone && !isMissed) ? '8px' : '0' }}>
                 {notesList.map((n, idx) => (
                   <div key={n.id || idx} style={{
                     fontSize: '0.76rem',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '5px',
+                    gap: '6px',
                     color: 'var(--text-primary)',
                     lineHeight: '1.4'
                   }}>
@@ -397,70 +342,140 @@ export default function TaskCard({
                     }}>
                       {formatNoteDate(n.date)}:
                     </span>
+                    {n.rating != null && !isNaN(Number(n.rating)) && (
+                      <span style={{
+                        fontSize: '0.68rem',
+                        fontWeight: 700,
+                        color: '#fbbf24',
+                        background: 'rgba(251, 191, 36, 0.14)',
+                        border: '1px solid rgba(251, 191, 36, 0.28)',
+                        borderRadius: '4px',
+                        padding: '1px 5px',
+                        flexShrink: 0,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '2px'
+                      }}>
+                        ★ {Number(n.rating).toFixed(1)}
+                      </span>
+                    )}
                     <span style={{ wordBreak: 'break-word' }}>{n.note || n.text}</span>
                   </div>
                 ))}
               </div>
             )}
 
-            {/* Note Input Form: ONLY ON TODAY & WHEN TASK IS ACTIVE */}
             {isToday && !isDone && !isMissed && (
-              <form onSubmit={handleNoteSubmit} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center' }}>
-                  <FileText size={13} style={{ position: 'absolute', left: '10px', color: 'rgba(148, 163, 184, 0.6)', pointerEvents: 'none' }} />
-                  <input
-                    type="text"
-                    placeholder="Add a daily progress note..."
-                    value={newNoteText}
-                    onChange={(e) => setNewNoteText(e.target.value)}
-                    autoFocus
-                    className="compact-note-input"
-                    style={{
-                      width: '100%',
-                      height: '34px',
-                      fontSize: '0.78rem',
-                      padding: '4px 12px 4px 30px',
-                      borderRadius: '8px',
-                      background: 'rgba(10, 13, 22, 0.6)',
-                      border: '1px solid rgba(255, 255, 255, 0.12)',
-                      color: '#f8fafc',
-                      outline: 'none',
-                      transition: 'all 0.2s ease-in-out'
-                    }}
-                  />
+              hasNoteForToday ? (
+                <div style={{
+                  position: 'relative',
+                  flex: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  background: 'rgba(16, 185, 129, 0.08)',
+                  border: '1px solid rgba(16, 185, 129, 0.25)',
+                  borderRadius: '8px',
+                  padding: '6px 12px',
+                  height: '34px',
+                  fontSize: '0.78rem',
+                  color: '#34d399',
+                  fontWeight: 600
+                }}>
+                  <Check size={14} style={{ marginRight: '6px', flexShrink: 0, color: '#34d399' }} />
+                  <span>Daily note & rating submitted for today ✓</span>
                 </div>
-                <button
-                  type="submit"
-                  disabled={submittingNote || !newNoteText.trim()}
-                  className="compact-note-save-btn"
-                  title="Save Note"
-                  aria-label="Save Note"
-                  style={{
-                    height: '34px',
-                    width: '34px',
-                    padding: 0,
-                    fontSize: '0.85rem',
-                    fontWeight: 600,
-                    borderRadius: '50%',
-                    background: newNoteText.trim() 
-                      ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' 
-                      : 'rgba(99, 102, 241, 0.18)',
-                    color: newNoteText.trim() ? '#ffffff' : 'rgba(165, 180, 252, 0.5)',
-                    border: newNoteText.trim()
-                      ? '1px solid rgba(129, 140, 248, 0.4)'
-                      : '1px solid rgba(99, 102, 241, 0.2)',
-                    boxShadow: newNoteText.trim() ? '0 2px 10px rgba(99, 102, 241, 0.35)' : 'none',
-                    cursor: newNoteText.trim() && !submittingNote ? 'pointer' : 'not-allowed',
-                    transition: 'all 0.2s ease-in-out',
-                    display: 'inline-flex',
+              ) : (
+                <form onSubmit={handleNoteSubmit} style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <div style={{ position: 'relative', flex: 1, minWidth: '180px', display: 'flex', alignItems: 'center' }}>
+                    <FileText size={13} style={{ position: 'absolute', left: '10px', color: 'rgba(148, 163, 184, 0.6)', pointerEvents: 'none' }} />
+                    <input
+                      type="text"
+                      placeholder="Add a daily progress note..."
+                      value={newNoteText}
+                      onChange={(e) => setNewNoteText(e.target.value)}
+                      autoFocus
+                      className="compact-note-input"
+                      style={{
+                        width: '100%',
+                        height: '34px',
+                        fontSize: '0.78rem',
+                        padding: '4px 12px 4px 30px',
+                        borderRadius: '8px',
+                        background: 'rgba(10, 13, 22, 0.6)',
+                        border: '1px solid rgba(255, 255, 255, 0.12)',
+                        color: '#f8fafc',
+                        outline: 'none',
+                        transition: 'all 0.2s ease-in-out'
+                      }}
+                    />
+                  </div>
+
+                  <div style={{
+                    display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
+                    gap: '4px',
+                    background: 'rgba(251, 191, 36, 0.12)',
+                    border: '1px solid rgba(251, 191, 36, 0.3)',
+                    borderRadius: '8px',
+                    padding: '0 8px',
+                    height: '34px',
                     flexShrink: 0
-                  }}
-                >
-                  {submittingNote ? <Loader2 size={15} className="btn-spinner" /> : <Plus size={18} />}
-                </button>
-              </form>
+                  }} title="Daily Progress Rating (1-10)">
+                    <Star size={13} fill="#fbbf24" stroke="#fbbf24" style={{ flexShrink: 0 }} />
+                    <select
+                      value={dailyRating}
+                      onChange={(e) => setDailyRating(Number(e.target.value))}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#fbbf24',
+                        fontWeight: 700,
+                        fontSize: '0.78rem',
+                        cursor: 'pointer',
+                        outline: 'none'
+                      }}
+                    >
+                      {[10, 9.5, 9, 8.5, 8, 7.5, 7, 6.5, 6, 5.5, 5, 4, 3, 2, 1].map(r => (
+                        <option key={r} value={r} style={{ background: '#1e293b', color: '#f8fafc' }}>
+                          ★ {r.toFixed(1)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={submittingNote || !newNoteText.trim()}
+                    className="compact-note-save-btn"
+                    title="Save Daily Note & Rating"
+                    aria-label="Save Daily Note & Rating"
+                    style={{
+                      height: '34px',
+                      width: '34px',
+                      padding: 0,
+                      fontSize: '0.85rem',
+                      fontWeight: 600,
+                      borderRadius: '50%',
+                      background: newNoteText.trim() 
+                        ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' 
+                        : 'rgba(99, 102, 241, 0.18)',
+                      color: newNoteText.trim() ? '#ffffff' : 'rgba(165, 180, 252, 0.5)',
+                      border: newNoteText.trim()
+                        ? '1px solid rgba(129, 140, 248, 0.4)'
+                        : '1px solid rgba(99, 102, 241, 0.2)',
+                      boxShadow: newNoteText.trim() ? '0 2px 10px rgba(99, 102, 241, 0.35)' : 'none',
+                      cursor: newNoteText.trim() && !submittingNote ? 'pointer' : 'not-allowed',
+                      transition: 'all 0.2s ease-in-out',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0
+                    }}
+                  >
+                    {submittingNote ? <Loader2 size={15} className="btn-spinner" /> : <Plus size={18} />}
+                  </button>
+                </form>
+              )
             )}
           </div>
         )}

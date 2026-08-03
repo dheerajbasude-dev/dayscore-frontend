@@ -551,7 +551,7 @@ export default function TodayView() {
     }
   }
 
-  const handleAddDailyNote = async (targetTask, noteText) => {
+  const handleAddDailyNote = async (targetTask, noteText, noteRating) => {
     if (!targetTask || !noteText || !noteText.trim()) return;
     if (currentDateStr < todayStr) return; // Daily progress notes addition only works on Today's date
     if (targetTask.status === 'done' || targetTask.status === 'missed') return; // Cannot add notes to completed/missed tasks
@@ -562,10 +562,21 @@ export default function TodayView() {
       ? (targetTask.daily_notes || targetTask.dailyNotes)
       : [];
 
+    const alreadyHasNoteForToday = existingNotes.some(n => {
+      if (!n || !n.date) return false;
+      return String(n.date).split('T')[0] === todayStr;
+    });
+
+    if (alreadyHasNoteForToday) {
+      console.warn('A note for today has already been submitted.');
+      return;
+    }
+
     const newNote = {
       id: Date.now().toString(),
       date: todayStr,
       note: noteText.trim(),
+      rating: noteRating !== undefined && noteRating !== null ? Number(noteRating) : 8.0,
       created_at: new Date().toISOString()
     };
 
@@ -579,6 +590,12 @@ export default function TodayView() {
     await store.fetchAllTasksApi();
     setTasks(store.getTasks(currentDateStr));
     setArchives(store.getAllArchives());
+  };
+
+  const handleAutoCompleteWithRating = async (task, computedRating) => {
+    if (!task) return;
+    const targetId = task.id || task._id;
+    await handleRatingConfirm(targetId, computedRating, 10);
   };
 
   const handleStatusChange = async (taskOrId, newStatus) => {
@@ -1532,6 +1549,7 @@ export default function TodayView() {
                     onStatusChange={(taskId, newStatus) => handleStatusChange(taskId, newStatus)}
                     onDelete={(taskId) => handleDeleteTask(taskId)}
                     onRequestComplete={handleRequestComplete}
+                    onAutoCompleteWithRating={handleAutoCompleteWithRating}
                     onClaimReward={handleClaimTaskReward}
                     onAcceptPenalty={handleAcceptTaskPenalty}
                     onAddDailyNote={handleAddDailyNote}
