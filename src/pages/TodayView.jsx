@@ -687,6 +687,8 @@ export default function TodayView() {
       shouldTriggerReward = false;
     }
 
+    const wasMissedTask = targetTask?.status === 'missed' || targetTask?.wasMissed || targetTask?.was_missed;
+
     const updates = {
       status: 'done',
       completedAt: now.toISOString(),
@@ -701,7 +703,9 @@ export default function TodayView() {
       rewardAcknowledged: false,
       reward_acknowledged: 0,
       penaltyAccepted: false,
-      penalty_accepted: 0
+      penalty_accepted: 0,
+      wasMissed: wasMissedTask ? true : undefined,
+      was_missed: wasMissedTask ? 1 : undefined
     }
     await store.updateTask(taskDate, targetId, updates)
     await store.fetchAllTasksApi()

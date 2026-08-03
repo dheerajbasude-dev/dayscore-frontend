@@ -175,6 +175,13 @@ export default function TaskCard({
 
   const isCheckboxLocked = isDone || (isMissed && !isToday);
 
+  const wasOriginallyMissed = Boolean(
+    task.wasMissed || 
+    task.was_missed || 
+    task.wasMissedTask || 
+    (task.status === 'done' && (maxR === 3 || task.maxRating === 3 || task.max_rating === 3))
+  );
+
   return (
     <div 
       className={`task-card ${task.status} ${hasPendingAction ? 'has-pending-action' : ''} ${isDeleting ? 'task-exit' : 'task-enter'}`}
@@ -234,9 +241,30 @@ export default function TaskCard({
               </button>
             )}
             <div className={`countdown ${urgencyClass}`}>
-              {isDone ? <span className="text-success">✓ Done</span> : 
-               isMissed ? <span className="text-danger">Missed</span> :
-               timeLeft}
+              {isDone ? (
+                wasOriginallyMissed ? (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <span className="text-success">✓ Done</span>
+                    <span style={{
+                      fontSize: '0.66rem',
+                      fontWeight: 700,
+                      color: '#f87171',
+                      background: 'rgba(248, 113, 113, 0.14)',
+                      border: '1px solid rgba(248, 113, 113, 0.3)',
+                      borderRadius: '4px',
+                      padding: '1px 5px'
+                    }}>
+                      Missed
+                    </span>
+                  </span>
+                ) : (
+                  <span className="text-success">✓ Done</span>
+                )
+              ) : isMissed ? (
+                <span className="text-danger">Missed</span>
+              ) : (
+                timeLeft
+              )}
             </div>
             <button className="delete-btn" onClick={() => onDelete(task)} title="Delete Task">
               <X size={14} />
@@ -249,6 +277,18 @@ export default function TaskCard({
           <span className={`badge badge-${task.category.toLowerCase()}`}>{task.category}</span>
           <span className="meta-dot">·</span>
           <span className={`priority-text priority-${task.priority.toLowerCase()}`}>{task.priority}</span>
+          {isDone && wasOriginallyMissed && (
+            <>
+              <span className="meta-dot">·</span>
+              <span className="badge" style={{
+                background: 'rgba(248, 113, 113, 0.14)',
+                color: '#f87171',
+                border: '1px solid rgba(248, 113, 113, 0.3)'
+              }}>
+                Missed Task
+              </span>
+            </>
+          )}
           {ratingDisplay && (
             <>
               <span className="meta-dot">·</span>
