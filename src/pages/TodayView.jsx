@@ -614,13 +614,14 @@ export default function TodayView() {
 
   // Rating flow: open slider modal instead of directly completing
   const handleRequestComplete = (task) => {
-    if (!task || task.status === 'missed') return;
+    if (!task) return;
+    if (task.status === 'missed' && currentDateStr < todayStr) return;
     setRatingTask(task)
   }
 
   const handleRatingConfirm = async (ratingTaskId, rating, maxRating) => {
     const targetTask = ratingTask || tasks.find(t => t.id === ratingTaskId || t._id === ratingTaskId)
-    if (targetTask && targetTask.status === 'missed') {
+    if (targetTask && targetTask.status === 'missed' && currentDateStr < todayStr) {
       setRatingTask(null);
       return;
     }

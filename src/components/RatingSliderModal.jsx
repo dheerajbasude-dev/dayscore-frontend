@@ -8,6 +8,7 @@ export default function RatingSliderModal({ task, onConfirm, onCancel }) {
   const [submitting, setSubmitting] = useState(false);
 
   const isOverdue = useMemo(() => {
+    if (task.status === 'missed') return true;
     if (!task.dueDateTime && !task.due_date_time) return false;
     const dateVal = task.dueDateTime || task.due_date_time;
     try {
@@ -17,7 +18,7 @@ export default function RatingSliderModal({ task, onConfirm, onCancel }) {
     } catch {
       return new Date() > new Date(dateVal);
     }
-  }, [task.dueDateTime, task.due_date_time]);
+  }, [task.status, task.dueDateTime, task.due_date_time]);
 
   const maxRating = isOverdue ? 3 : 10;
   const [rating, setRating] = useState(maxRating === 3 ? 1.5 : 5.0);

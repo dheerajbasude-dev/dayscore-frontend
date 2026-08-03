@@ -61,8 +61,15 @@ export default function TaskCard({
   };
 
   const cycleStatus = () => {
-    // Once a task is completed or missed, it cannot be completed or edited
-    if (task.status === 'done' || task.status === 'missed') return;
+    if (task.status === 'done') return;
+
+    if (task.status === 'missed') {
+      if (!isToday) return;
+      if (onRequestComplete) {
+        onRequestComplete(task);
+      }
+      return;
+    }
 
     if (task.status === 'pending' || task.status === 'inprogress') {
       if (onRequestComplete) {
@@ -166,6 +173,8 @@ export default function TaskCard({
   const hasUnacknowledgedPenalty = Boolean(task.penalty && !isPenaltyAccepted);
   const hasPendingAction = hasUnclaimedReward || hasUnacknowledgedPenalty;
 
+  const isCheckboxLocked = isDone || (isMissed && !isToday);
+
   return (
     <div 
       className={`task-card ${task.status} ${hasPendingAction ? 'has-pending-action' : ''} ${isDeleting ? 'task-exit' : 'task-enter'}`}
@@ -173,10 +182,16 @@ export default function TaskCard({
     >
       {/* Checkbox */}
       <div
-        className={`task-checkbox ${getCheckboxClass()} ${isDone || isMissed ? 'locked' : ''}`}
+        className={`task-checkbox ${getCheckboxClass()} ${isCheckboxLocked ? 'locked' : ''}`}
         onClick={cycleStatus}
-        title={isDone ? 'Task completed' : isMissed ? 'Task missed (cannot be completed or edited)' : 'Mark as done'}
-        style={{ cursor: isDone || isMissed ? 'not-allowed' : 'pointer' }}
+        title={
+          isDone 
+            ? 'Task completed' 
+            : isMissed 
+              ? (isToday ? 'Mark missed task as done (max rating 3)' : 'Missed task on past date (cannot be modified)') 
+              : 'Mark as done'
+        }
+        style={{ cursor: isCheckboxLocked ? 'not-allowed' : 'pointer' }}
       >
         {isDone && <Check size={14} strokeWidth={3} />}
         {isMissed && '✕'}
