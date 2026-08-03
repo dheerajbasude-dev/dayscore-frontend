@@ -4832,3 +4832,19 @@ body {
   gap: 3px;
   animation: carriedOverBlink 1.8s ease-in-out infinite;
 }
+
+.compact-note-input:focus {
+  border-color: rgba(99, 102, 241, 0.6) !important;
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.25) !important;
+  background: rgba(15, 20, 32, 0.85) !important;
+}
+
+.compact-note-save-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.45) !important;
+  filter: brightness(1.1);
+}
+
+.compact-note-save-btn:active:not(:disabled) {
+  transform: translateY(0);
+}

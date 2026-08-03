@@ -374,41 +374,58 @@ export default function TaskCard({
 
             {/* Note Input Form: ONLY ON TODAY & WHEN TASK IS ACTIVE */}
             {isToday && !isDone && !isMissed && (
-              <form onSubmit={handleNoteSubmit} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <input
-                  type="text"
-                  placeholder="Add a daily progress note..."
-                  value={newNoteText}
-                  onChange={(e) => setNewNoteText(e.target.value)}
-                  autoFocus
-                  style={{
-                    flex: 1,
-                    height: '28px',
-                    fontSize: '0.76rem',
-                    padding: '3px 8px',
-                    borderRadius: '5px',
-                    background: 'rgba(0, 0, 0, 0.35)',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
-                    color: 'var(--text-primary)',
-                    outline: 'none'
-                  }}
-                />
+              <form onSubmit={handleNoteSubmit} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center' }}>
+                  <FileText size={13} style={{ position: 'absolute', left: '10px', color: 'rgba(148, 163, 184, 0.6)', pointerEvents: 'none' }} />
+                  <input
+                    type="text"
+                    placeholder="Add a daily progress note..."
+                    value={newNoteText}
+                    onChange={(e) => setNewNoteText(e.target.value)}
+                    autoFocus
+                    className="compact-note-input"
+                    style={{
+                      width: '100%',
+                      height: '34px',
+                      fontSize: '0.78rem',
+                      padding: '4px 12px 4px 30px',
+                      borderRadius: '8px',
+                      background: 'rgba(10, 13, 22, 0.6)',
+                      border: '1px solid rgba(255, 255, 255, 0.12)',
+                      color: '#f8fafc',
+                      outline: 'none',
+                      transition: 'all 0.2s ease-in-out'
+                    }}
+                  />
+                </div>
                 <button
                   type="submit"
                   disabled={submittingNote || !newNoteText.trim()}
-                  className="btn btn-primary btn-sm"
+                  className="compact-note-save-btn"
                   style={{
-                    height: '28px',
-                    padding: '2px 8px',
-                    fontSize: '0.72rem',
-                    whiteSpace: 'nowrap',
+                    height: '34px',
+                    padding: '0 14px',
+                    fontSize: '0.76rem',
+                    fontWeight: 600,
+                    letterSpacing: '0.02em',
+                    borderRadius: '8px',
+                    background: newNoteText.trim() 
+                      ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' 
+                      : 'rgba(99, 102, 241, 0.18)',
+                    color: newNoteText.trim() ? '#ffffff' : 'rgba(165, 180, 252, 0.5)',
+                    border: newNoteText.trim()
+                      ? '1px solid rgba(129, 140, 248, 0.4)'
+                      : '1px solid rgba(99, 102, 241, 0.2)',
+                    boxShadow: newNoteText.trim() ? '0 2px 10px rgba(99, 102, 241, 0.35)' : 'none',
+                    cursor: newNoteText.trim() && !submittingNote ? 'pointer' : 'not-allowed',
+                    transition: 'all 0.2s ease-in-out',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '3px',
-                    opacity: (!newNoteText.trim() || submittingNote) ? 0.5 : 1
+                    gap: '4px',
+                    whiteSpace: 'nowrap'
                   }}
                 >
-                  {submittingNote ? <Loader2 size={11} className="btn-spinner" /> : <Plus size={12} />}
+                  {submittingNote ? <Loader2 size={13} className="btn-spinner" /> : <Plus size={13} />}
                   <span>Save</span>
                 </button>
               </form>
