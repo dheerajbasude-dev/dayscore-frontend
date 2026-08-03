@@ -53,9 +53,7 @@ export default function RatingSliderModal({ task, onConfirm, onCancel }) {
   const getRatingColor = (val) => {
     const currentVal = val !== undefined ? val : activeRating;
     if (isOverdue) {
-      if (currentVal <= 1) return '#f87171';
-      if (currentVal <= 2) return '#60a5fa';
-      return '#60a5fa';
+      return '#f87171'; // Red color ONLY for overdue/missed tasks
     }
     if (currentVal <= 4) return '#f87171'; // Red (up to 4 stars)
     if (currentVal <= 8.5) return '#60a5fa'; // Blue (>4 and <=8.5 stars)
@@ -249,10 +247,18 @@ export default function RatingSliderModal({ task, onConfirm, onCancel }) {
           </button>
           <button
             type="button"
-            className={`btn btn-primary ${submitting ? 'btn-loading' : ''}`}
+            className={`btn ${isOverdue ? 'btn-danger' : 'btn-primary'} ${submitting ? 'btn-loading' : ''}`}
             onClick={handleConfirm}
             disabled={submitting}
-            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              background: isOverdue ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' : undefined,
+              borderColor: isOverdue ? 'rgba(239, 68, 68, 0.4)' : undefined,
+              boxShadow: isOverdue ? '0 4px 14px rgba(239, 68, 68, 0.4)' : undefined
+            }}
           >
             {submitting ? (
               <>
