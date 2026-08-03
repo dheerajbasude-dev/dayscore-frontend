@@ -4884,7 +4884,7 @@ body {
 }
 
 /* ==========================================================================
-   Action Banners (Rewards & Penalties - Ultra Slim Compact Design)
+   Action Banners (Rewards & Penalties - Unboxed Text + Button Only)
    ========================================================================== */
 
 .action-banner {
@@ -4893,12 +4893,13 @@ body {
   justify-content: space-between;
   gap: 8px;
   margin-top: 4px !important;
-  padding: 2px 10px !important;
-  min-height: 24px !important;
-  border-radius: 6px !important;
+  padding: 2px 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
   font-size: 0.74rem !important;
   font-weight: 600 !important;
-  backdrop-filter: blur(8px);
+  backdrop-filter: none !important;
   transition: all 0.2s ease-in-out;
 }
 
@@ -4910,10 +4911,10 @@ body {
   line-height: 1.2;
 }
 
-/* Penalty Banner (Dark Red Glass with Compact Coral Red Pill Button) */
+/* Penalty Banner (Unboxed Coral Red Text + Pill Button) */
 .action-banner.banner-penalty {
-  background: rgba(153, 27, 27, 0.2) !important;
-  border: 1px solid rgba(220, 38, 38, 0.25) !important;
+  background: transparent !important;
+  border: none !important;
   color: #f87171 !important;
 }
 
@@ -4951,10 +4952,10 @@ body {
   filter: brightness(1.1);
 }
 
-/* Reward Banner (Dark Purple Glass with Compact Purple Pill Button) */
+/* Reward Banner (Unboxed Purple Text + Pill Button) */
 .action-banner.banner-reward {
-  background: rgba(88, 28, 135, 0.22) !important;
-  border: 1px solid rgba(147, 51, 234, 0.25) !important;
+  background: transparent !important;
+  border: none !important;
   color: #c084fc !important;
 }
 
