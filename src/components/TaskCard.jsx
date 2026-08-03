@@ -171,7 +171,7 @@ export default function TaskCard({
             </span>
           </div>
           <div className="task-actions-right">
-            {(notesList.length > 0 || (isToday && !isDone && !isMissed)) && (
+            {((isCarriedOver && isToday && !isDone && !isMissed) || notesList.length > 0) && (
               <button
                 type="button"
                 className="delete-btn"
@@ -317,7 +317,7 @@ export default function TaskCard({
         )}
 
         {/* Row 4: Ultra Compact Daily Notes Section (Only rendered when showNotesInput is true) */}
-        {showNotesInput && (notesList.length > 0 || (isToday && !isDone && !isMissed)) && (
+        {showNotesInput && ((isCarriedOver && isToday && !isDone && !isMissed) || notesList.length > 0) && (
           <div className="task-daily-notes-container-compact" style={{
             marginTop: '6px',
             padding: '6px 10px',
