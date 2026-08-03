@@ -63,9 +63,7 @@ export default function RatingSliderModal({ task, onConfirm, onCancel }) {
   const getEmoji = (val) => {
     const currentVal = val !== undefined ? val : activeRating;
     if (isOverdue) {
-      if (currentVal <= 1) return '😔';
-      if (currentVal <= 2) return '😐';
-      return '🙂';
+      return '😔';
     }
     if (currentVal <= 2) return '😔';
     if (currentVal <= 4) return '😐';
