@@ -1874,8 +1874,7 @@ export default function TodayView() {
           title="Scroll to Top"
           aria-label="Scroll to Top"
         >
-          <ChevronUp size={16} strokeWidth={2.5} />
-          <span>Top</span>
+          <ChevronUp size={20} strokeWidth={2.5} />
         </button>
       )}
 
