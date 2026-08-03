@@ -548,32 +548,31 @@ export default function TaskCard({
                       type="submit"
                       disabled={submittingNote || !newNoteText.trim()}
                       className="compact-note-save-btn"
-                      title="Save Daily Note & Rating"
-                      aria-label="Save Daily Note & Rating"
+                      title="Add Daily Note"
+                      aria-label="Add Daily Note"
                       style={{
+                        width: '34px',
                         height: '34px',
-                        padding: '0 12px',
-                        fontSize: '0.78rem',
-                        fontWeight: 600,
+                        padding: '0',
+                        fontSize: '0.9rem',
+                        fontWeight: 700,
                         borderRadius: '8px',
                         background: newNoteText.trim() 
                           ? currentTheme.activeBg
-                          : 'rgba(99, 102, 241, 0.18)',
-                        color: newNoteText.trim() ? '#ffffff' : 'rgba(165, 180, 252, 0.5)',
-                        border: newNoteText.trim()
-                          ? `1px solid ${currentTheme.border}`
-                          : '1px solid rgba(99, 102, 241, 0.2)',
+                          : currentTheme.bg,
+                        color: newNoteText.trim() ? '#ffffff' : currentTheme.color,
+                        border: `1px solid ${currentTheme.border}`,
                         boxShadow: newNoteText.trim() ? currentTheme.shadow : 'none',
+                        opacity: newNoteText.trim() ? 1 : 0.65,
                         cursor: newNoteText.trim() && !submittingNote ? 'pointer' : 'not-allowed',
                         transition: 'all 0.2s ease-in-out',
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: '4px',
+                        justifyContent: 'center',
                         flexShrink: 0
                       }}
                     >
-                      {submittingNote ? <Loader2 size={14} className="btn-spinner" /> : <Plus size={14} />}
-                      <span>Save</span>
+                      {submittingNote ? <Loader2 size={15} className="btn-spinner" /> : <Plus size={16} strokeWidth={2.5} />}
                     </button>
                   </div>
 
