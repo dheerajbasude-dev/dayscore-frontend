@@ -11,7 +11,7 @@ import ReflectionBox from '../components/ReflectionBox'
 import ConfettiCelebration from '../components/ConfettiCelebration'
 import PenaltyCelebration from '../components/PenaltyCelebration'
 import AuthModal from '../components/AuthModal'
-import { Plus, AlertTriangle, Gift, PenLine, ChevronLeft, ChevronRight, Calendar, Layers, Search, SlidersHorizontal, Filter, RotateCcw, X, Clock, Zap, Check, ChevronUp } from 'lucide-react'
+import { Plus, AlertTriangle, Gift, PenLine, ChevronLeft, ChevronRight, Calendar, Layers, Search, SlidersHorizontal, Filter, RotateCcw, X, Clock, Zap, Check } from 'lucide-react'
 import * as store from '../store/store'
 import * as scoring from '../store/scoring'
 import { useDayRollover } from '../hooks/useDayRollover'
@@ -161,23 +161,6 @@ export default function TodayView() {
       if (scrollTimeout) clearTimeout(scrollTimeout);
     };
   }, []);
-
-  const [showScrollTop, setShowScrollTop] = useState(false);
-
-  useEffect(() => {
-    const checkScrollTop = () => {
-      const currentY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
-      setShowScrollTop(currentY > 250);
-    };
-
-    window.addEventListener('scroll', checkScrollTop, { passive: true });
-    return () => window.removeEventListener('scroll', checkScrollTop);
-  }, []);
-
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    sessionStorage.setItem('dayscore_today_scroll_pos', '0');
-  };
 
   const [archives, setArchives] = useState([])
   const [scoreResult, setScoreResult] = useState({ score: 0, baseScore: 0, bonus1: 0, bonus2: 0, penalty: 0 })
@@ -1854,17 +1837,6 @@ export default function TodayView() {
       )}
 
       <ConfettiCelebration trigger={showConfetti} />
-
-      {showScrollTop && (
-        <button
-          onClick={scrollToTop}
-          className="scroll-to-top-center-btn"
-          title="Scroll to Top"
-          aria-label="Scroll to Top"
-        >
-          <ChevronUp size={18} strokeWidth={2.5} />
-        </button>
-      )}
     </div>
   )
 }
