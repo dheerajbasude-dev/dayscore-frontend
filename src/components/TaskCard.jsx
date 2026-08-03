@@ -260,6 +260,9 @@ export default function TaskCard({
   const isPenaltyAccepted = task.penaltyAccepted === true || task.penaltyAccepted === 1 || task.penaltyAccepted === '1' ||
                      task.penalty_accepted === true || task.penalty_accepted === 1 || task.penalty_accepted === '1';
 
+  const hasReward = Boolean(task.reward);
+  const hasPenalty = Boolean(task.penalty);
+
   const hasUnclaimedReward = Boolean(task.reward && !isRewardClaimed);
   const hasUnacknowledgedPenalty = Boolean(task.penalty && !isPenaltyAccepted);
 
@@ -363,29 +366,41 @@ export default function TaskCard({
           )}
         </div>
 
-        {hasUnclaimedReward && (
+        {hasReward && (
           <div className="action-banner banner-reward">
             <span className="banner-text">🎁 Reward: {task.reward}</span>
-            <button 
-              className="btn btn-sm btn-success" 
-              onClick={handleClaim}
-              disabled={claiming}
-            >
-              {claiming ? <Loader2 size={13} className="btn-spinner" /> : 'Claim'}
-            </button>
+            {isRewardClaimed ? (
+              <button className="btn btn-sm btn-success claimed" disabled>
+                ✓ Claimed
+              </button>
+            ) : (
+              <button 
+                className="btn btn-sm btn-success" 
+                onClick={handleClaim}
+                disabled={claiming}
+              >
+                {claiming ? <Loader2 size={13} className="btn-spinner" /> : 'Claim'}
+              </button>
+            )}
           </div>
         )}
 
-        {hasUnacknowledgedPenalty && (
+        {hasPenalty && (
           <div className="action-banner banner-penalty">
             <span className="banner-text">⚠️ Penalty: {task.penalty}</span>
-            <button 
-              className="btn btn-sm btn-secondary" 
-              onClick={handleAccept}
-              disabled={accepting}
-            >
-              {accepting ? <Loader2 size={13} className="btn-spinner" /> : 'Acknowledge'}
-            </button>
+            {isPenaltyAccepted ? (
+              <button className="btn btn-sm btn-secondary acknowledged" disabled>
+                ✓ Acknowledged
+              </button>
+            ) : (
+              <button 
+                className="btn btn-sm btn-secondary" 
+                onClick={handleAccept}
+                disabled={accepting}
+              >
+                {accepting ? <Loader2 size={13} className="btn-spinner" /> : 'Acknowledge'}
+              </button>
+            )}
           </div>
         )}
 
