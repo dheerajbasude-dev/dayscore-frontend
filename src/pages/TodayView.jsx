@@ -169,7 +169,7 @@ export default function TodayView() {
       if (currentY > 0) {
         sessionStorage.setItem('dayscore_today_scroll_pos', currentY.toString());
       }
-      setShowScrollTopBtn(currentY > 200);
+      setShowScrollTopBtn(currentY > 350);
     };
 
     const mainEl = document.querySelector('.main-content');

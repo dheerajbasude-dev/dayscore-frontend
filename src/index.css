@@ -937,6 +937,7 @@ body {
   flex-direction: column;
   gap: 12px;
   width: 100%;
+  padding-bottom: 80px;
 }
 
 @media (min-width: 1024px) {
