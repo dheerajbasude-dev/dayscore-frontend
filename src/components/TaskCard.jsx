@@ -243,20 +243,7 @@ export default function TaskCard({
             <div className={`countdown ${urgencyClass}`}>
               {isDone ? (
                 wasOriginallyMissed ? (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                    <span className="text-success">✓ Done</span>
-                    <span style={{
-                      fontSize: '0.66rem',
-                      fontWeight: 700,
-                      color: '#f87171',
-                      background: 'rgba(248, 113, 113, 0.14)',
-                      border: '1px solid rgba(248, 113, 113, 0.3)',
-                      borderRadius: '4px',
-                      padding: '1px 5px'
-                    }}>
-                      Missed
-                    </span>
-                  </span>
+                  <span style={{ color: '#f87171', fontWeight: 600 }}>✓ Late</span>
                 ) : (
                   <span className="text-success">✓ Done</span>
                 )
@@ -277,18 +264,6 @@ export default function TaskCard({
           <span className={`badge badge-${task.category.toLowerCase()}`}>{task.category}</span>
           <span className="meta-dot">·</span>
           <span className={`priority-text priority-${task.priority.toLowerCase()}`}>{task.priority}</span>
-          {isDone && wasOriginallyMissed && (
-            <>
-              <span className="meta-dot">·</span>
-              <span className="badge" style={{
-                background: 'rgba(248, 113, 113, 0.14)',
-                color: '#f87171',
-                border: '1px solid rgba(248, 113, 113, 0.3)'
-              }}>
-                Missed Task
-              </span>
-            </>
-          )}
           {ratingDisplay && (
             <>
               <span className="meta-dot">·</span>
