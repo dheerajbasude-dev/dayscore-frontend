@@ -130,6 +130,23 @@ export default function TaskCard({
     ? (task.daily_notes || task.dailyNotes)
     : [];
 
+  const checkExtendsBeyondToday = () => {
+    if (isCarriedOver) return true;
+    if (notesList && notesList.length > 0) return true;
+    const dueIso = task.dueDateTime || task.due_date_time;
+    if (!dueIso) return false;
+    try {
+      const d = typeof dueIso === 'string' ? parseISO(dueIso) : new Date(dueIso);
+      const dueDateStr = format(d, 'yyyy-MM-dd');
+      const todayDateStr = format(new Date(), 'yyyy-MM-dd');
+      return dueDateStr > todayDateStr;
+    } catch (e) {
+      return false;
+    }
+  };
+
+  const isMultiDayOrCarried = checkExtendsBeyondToday();
+
   const isRewardClaimed = task.rewardClaimed === true || task.rewardClaimed === 1 || task.rewardClaimed === '1' ||
                     task.reward_claimed === true || task.reward_claimed === 1 || task.reward_claimed === '1';
   const isPenaltyAccepted = task.penaltyAccepted === true || task.penaltyAccepted === 1 || task.penaltyAccepted === '1' ||
@@ -171,7 +188,7 @@ export default function TaskCard({
             </span>
           </div>
           <div className="task-actions-right">
-            {((isCarriedOver && isToday && !isDone && !isMissed) || notesList.length > 0) && (
+            {isMultiDayOrCarried && (notesList.length > 0 || (isToday && !isDone && !isMissed)) && (
               <button
                 type="button"
                 className="delete-btn"
@@ -317,7 +334,7 @@ export default function TaskCard({
         )}
 
         {/* Row 4: Ultra Compact Daily Notes Section (Only rendered when showNotesInput is true) */}
-        {showNotesInput && ((isCarriedOver && isToday && !isDone && !isMissed) || notesList.length > 0) && (
+        {showNotesInput && (notesList.length > 0 || (isToday && !isDone && !isMissed)) && (
           <div className="task-daily-notes-container-compact" style={{
             marginTop: '6px',
             padding: '6px 10px',
