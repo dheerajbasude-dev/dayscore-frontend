@@ -1356,15 +1356,24 @@ export default function TodayView() {
                   <span>Tasks: <strong>{displayTasksList.length}</strong></span>
                 </div>
                 <div className="total-tasks-stat-group">
-                  <span className="task-stat-chip chip-pending" title="Pending Tasks">
-                    <Clock size={12} /> <strong>{displayTasksList.filter(t => t.status !== 'done' && t.status !== 'missed').length}</strong> Pending
-                  </span>
-                  <span className="task-stat-chip chip-done" title="Completed Tasks">
-                    <Check size={12} /> <strong>{displayTasksList.filter(t => t.status === 'done' || t.completed === true).length}</strong> Done
-                  </span>
+                  {displayTasksList.filter(t => t.status !== 'done' && t.status !== 'missed').length > 0 && (
+                    <span className="task-stat-chip chip-pending" title="Pending Tasks">
+                      <Clock size={12} /> <strong>{displayTasksList.filter(t => t.status !== 'done' && t.status !== 'missed').length}</strong> Pending
+                    </span>
+                  )}
+                  {displayTasksList.filter(t => t.status === 'done' || t.completed === true).length > 0 && (
+                    <span className="task-stat-chip chip-done" title="Completed Tasks">
+                      <Check size={12} /> <strong>{displayTasksList.filter(t => t.status === 'done' || t.completed === true).length}</strong> Done
+                    </span>
+                  )}
                   {displayTasksList.filter(t => t.status === 'missed' || t.missed === true).length > 0 && (
                     <span className="task-stat-chip chip-missed" title="Missed Tasks">
                       <AlertTriangle size={12} /> <strong>{displayTasksList.filter(t => t.status === 'missed' || t.missed === true).length}</strong> Missed
+                    </span>
+                  )}
+                  {displayTasksList.filter(t => Boolean(t.carriedOver || t.carried_over || t.originalDate || t.original_date)).length > 0 && (
+                    <span className="task-stat-chip chip-carried" title="Carried Over Tasks">
+                      <RotateCcw size={12} /> <strong>{displayTasksList.filter(t => Boolean(t.carriedOver || t.carried_over || t.originalDate || t.original_date)).length}</strong> Carried Over
                     </span>
                   )}
                 </div>

@@ -4758,6 +4758,12 @@ body {
   border-color: rgba(248, 113, 113, 0.3);
 }
 
+.chip-carried {
+  background: rgba(255, 253, 208, 0.14);
+  color: #fffdd0;
+  border-color: rgba(255, 253, 208, 0.35);
+}
+
 .task-actions-group {
   display: flex;
   align-items: center;
