@@ -371,7 +371,7 @@ export default function TaskCard({
               onClick={handleClaim}
               disabled={claiming}
             >
-              {claiming ? <Loader2 size={13} className="btn-spinner" /> : '✓ Claimed'}
+              {claiming ? <Loader2 size={13} className="btn-spinner" /> : 'Claim Reward'}
             </button>
           </div>
         )}
@@ -384,7 +384,7 @@ export default function TaskCard({
               onClick={handleAccept}
               disabled={accepting}
             >
-              {accepting ? <Loader2 size={13} className="btn-spinner" /> : '✓ Acknowledged'}
+              {accepting ? <Loader2 size={13} className="btn-spinner" /> : 'Acknowledge Penalty'}
             </button>
           </div>
         )}

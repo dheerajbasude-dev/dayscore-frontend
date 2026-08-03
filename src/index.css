@@ -4882,3 +4882,97 @@ body {
 .task-note-toggle-btn:hover span {
   color: #ffffff !important;
 }
+
+/* ==========================================================================
+   Action Banners (Rewards & Penalties)
+   ========================================================================== */
+
+.action-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  backdrop-filter: blur(8px);
+  transition: all 0.2s ease-in-out;
+}
+
+.action-banner .banner-text {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  word-break: break-word;
+  line-height: 1.4;
+}
+
+/* Reward Banner (Emerald Glass / Glowing Green) */
+.action-banner.banner-reward {
+  background: rgba(16, 185, 129, 0.12) !important;
+  border: 1px solid rgba(16, 185, 129, 0.35) !important;
+  color: #34d399 !important;
+}
+
+.action-banner.banner-reward .banner-text {
+  color: #34d399 !important;
+}
+
+.action-banner.banner-reward button,
+.action-banner.banner-reward .btn {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(52, 211, 153, 0.4) !important;
+  box-shadow: 0 2px 10px rgba(16, 185, 129, 0.35) !important;
+  padding: 5px 14px !important;
+  border-radius: 8px !important;
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  transition: all 0.2s ease-in-out !important;
+}
+
+.action-banner.banner-reward button:hover:not(:disabled),
+.action-banner.banner-reward .btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.5) !important;
+  filter: brightness(1.1);
+}
+
+/* Penalty Banner (Coral / Crimson Red Glass) */
+.action-banner.banner-penalty {
+  background: rgba(248, 113, 113, 0.12) !important;
+  border: 1px solid rgba(248, 113, 113, 0.35) !important;
+  color: #f87171 !important;
+}
+
+.action-banner.banner-penalty .banner-text {
+  color: #f87171 !important;
+}
+
+.action-banner.banner-penalty button,
+.action-banner.banner-penalty .btn {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(248, 113, 113, 0.4) !important;
+  box-shadow: 0 2px 10px rgba(239, 68, 68, 0.35) !important;
+  padding: 5px 14px !important;
+  border-radius: 8px !important;
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  transition: all 0.2s ease-in-out !important;
+}
+
+.action-banner.banner-penalty button:hover:not(:disabled),
+.action-banner.banner-penalty .btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.5) !important;
+  filter: brightness(1.1);
+}
