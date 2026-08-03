@@ -1469,7 +1469,7 @@ export default function TodayView() {
               <div className="total-tasks-badge-group">
                 <div className="total-tasks-badge">
                   <Layers size={15} style={{ color: 'var(--accent-primary)', flexShrink: 0 }} />
-                  <span>Tasks: <strong>{displayTasksList.length}</strong></span>
+                  <span><strong>{displayTasksList.length}</strong></span>
                 </div>
                 <div className="total-tasks-stat-group">
                   {displayTasksList.filter(t => t.status !== 'done' && t.status !== 'missed').length > 0 && (
