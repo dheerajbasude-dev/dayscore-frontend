@@ -884,13 +884,13 @@ export default function TodayView() {
 
   const sortTasksByDefaultHierarchy = (a, b) => {
     // Default Status Tier Hierarchy:
-    // Tier 1: Missed tasks
-    // Tier 2: Carried-over tasks
-    // Tier 3: Pending / In-progress tasks
-    // Tier 4: Completed / Done tasks
+    // Tier 1: Missed tasks (status === 'missed')
+    // Tier 2: Carried-over tasks (not completed, has carried over flag/original date)
+    // Tier 3: Pending / In-progress tasks (status === 'pending' || 'inprogress')
+    // Tier 4: Completed / Done tasks (status === 'done')
     const getStatusTier = (t) => {
       if (t.status === 'missed') return 1;
-      const isCarried = Boolean(t.carriedOver || t.carried_over);
+      const isCarried = Boolean(t.carriedOver || t.carried_over || t.originalDate || t.original_date || t.wasCarried || t.isCarried);
       if (t.status !== 'done' && isCarried) return 2;
       if (t.status === 'done') return 4;
       return 3; // pending / inprogress
@@ -905,7 +905,7 @@ export default function TodayView() {
 
     // Within each tier: Sort from latest datetime to oldest (newest timestamp FIRST)
     const getTaskTimestamp = (t) => {
-      const isoStr = t.completedAt || t.completed_at || t.dueDateTime || t.due_date_time || t.createdAt || t.created_at || t.date;
+      const isoStr = t.completedAt || t.completed_at || t.updatedAt || t.updated_at || t.createdAt || t.created_at || t.dueDateTime || t.due_date_time || t.date || t.originalDate || t.original_date;
       if (!isoStr) return 0;
       const ms = new Date(isoStr).getTime();
       return isNaN(ms) ? 0 : ms;
@@ -913,7 +913,7 @@ export default function TodayView() {
 
     const timeA = getTaskTimestamp(a);
     const timeB = getTaskTimestamp(b);
-    return timeB - timeA; // Latest to oldest
+    return timeB - timeA; // Latest (newest) to oldest
   };
 
   const displayTasksList = useMemo(() => {
