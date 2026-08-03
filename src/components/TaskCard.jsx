@@ -549,7 +549,6 @@ export default function TaskCard({
                     border: '1px solid rgba(255, 255, 255, 0.06)'
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <Star size={12} fill={currentTheme.color} stroke={currentTheme.color} />
                       <span style={{
                         fontSize: '0.75rem',
                         fontWeight: 800,
