@@ -64,7 +64,7 @@ export default function ScoreRing({
           <div className="score-label">{label}</div>
           {streak.current > 0 ? (
             <div className="streak-badge streak-badge-active">
-              🔥 {streak.current} {streak.current === 1 ? 'Day' : 'Days'} Streak
+              🔥 {streak.current}-Day Streak
             </div>
           ) : (
             <div className="streak-badge streak-badge-inactive">
