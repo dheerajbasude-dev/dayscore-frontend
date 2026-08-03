@@ -1,8 +1,10 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { format } from 'date-fns';
 import { saveTasks } from '../store/store';
 
 export function useDayRollover(currentDateStr, tasks, onRollover) {
+  const lastSystemDateRef = useRef(format(new Date(), 'yyyy-MM-dd'));
+
   const checkAndMarkMissed = useCallback(() => {
     let tasksUpdated = false;
     const now = new Date();
@@ -26,13 +28,15 @@ export function useDayRollover(currentDateStr, tasks, onRollover) {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      const todayStr = format(new Date(), 'yyyy-MM-dd');
-      if (todayStr !== currentDateStr) {
+      const actualSystemDate = format(new Date(), 'yyyy-MM-dd');
+      // ONLY trigger onRollover when real clock time crosses midnight (system date changes)
+      if (actualSystemDate !== lastSystemDateRef.current) {
+        lastSystemDateRef.current = actualSystemDate;
         onRollover();
-      } else {
+      } else if (currentDateStr === actualSystemDate) {
         checkAndMarkMissed();
       }
-    }, 30000);
+    }, 10000);
 
     return () => clearInterval(interval);
   }, [currentDateStr, checkAndMarkMissed, onRollover]);
