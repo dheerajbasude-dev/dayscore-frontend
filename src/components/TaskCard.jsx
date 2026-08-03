@@ -241,6 +241,7 @@ export default function TaskCard({
                 type="button"
                 className={`task-note-toggle-btn ${showNotesInput ? 'active' : ''} ${notesList.length > 0 ? 'has-notes' : ''}`}
                 onClick={() => setShowNotesInput(prev => !prev)}
+                title={showNotesInput ? "Hide Daily Notes" : "View / Add Daily Notes"}
               >
                 <FileText size={14} />
                 {notesList.length > 0 && <span>{notesList.length}</span>}
@@ -251,7 +252,7 @@ export default function TaskCard({
                 wasOriginallyMissed ? <span style={{ color: '#f87171' }}>✓ Late</span> : <span className="text-success">✓ Done</span>
               ) : isMissed ? <span className="text-danger">Missed</span> : timeLeft}
             </div>
-            <button className="delete-btn" onClick={() => onDelete(task)}><X size={14} /></button>
+            <button className="delete-btn" onClick={() => onDelete(task)} title="Delete Task"><X size={14} /></button>
           </div>
         </div>
 
@@ -315,7 +316,7 @@ export default function TaskCard({
           </div>
         )}
 
-        {(notesList.length > 0 || (isToday && !isDone && !isMissed && showNotesInput)) && (
+        {showNotesInput && (
           <div className="daily-notes-container" style={{
             marginTop: '8px',
             padding: '8px 12px',
