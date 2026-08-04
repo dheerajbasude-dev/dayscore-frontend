@@ -92,27 +92,67 @@ export default function TodayView() {
   const [showConfetti, setShowConfetti] = useState(false)
   const [deletingTaskIds, setDeletingTaskIds] = useState(new Set())
 
-  // Filter, Sort & Search States
-  const [searchQuery, setSearchQuery] = useState('')
-  const [sortOption, setSortOption] = useState('default') // default, pending, carriedOver, missed, completed, reward, penalty, rating_red, rating_blue, rating_green, category
-  const [filterCategory, setFilterCategory] = useState('all') // all, Work, Learning, Health, Personal
-  const [filterPriority, setFilterPriority] = useState('all') // all, High, Med, Low
-  const [filterStatus, setFilterStatus] = useState('all') // all, pending, done, missed, carriedOver, reward, penalty, unclaimedReward, unackPenalty
-  const [filterRatingRange, setFilterRatingRange] = useState('all') // all, red, blue, green, or rating number string
-  const [filterDateFrom, setFilterDateFrom] = useState('')
-  const [filterDateTo, setFilterDateTo] = useState('')
-  const [showFilterModal, setShowFilterModal] = useState(false)
+  // Persistent Filter, Sort & Search States (persists across F5 reloads)
+  const [searchQuery, setSearchQuery] = useState(() => {
+    try { return sessionStorage.getItem('dayscore_filter_search') || ''; } catch { return ''; }
+  });
+  const [sortOption, setSortOption] = useState(() => {
+    try { return sessionStorage.getItem('dayscore_filter_sort') || 'default'; } catch { return 'default'; }
+  });
+  const [filterCategory, setFilterCategory] = useState(() => {
+    try { return sessionStorage.getItem('dayscore_filter_category') || 'all'; } catch { return 'all'; }
+  });
+  const [filterPriority, setFilterPriority] = useState(() => {
+    try { return sessionStorage.getItem('dayscore_filter_priority') || 'all'; } catch { return 'all'; }
+  });
+  const [filterStatus, setFilterStatus] = useState(() => {
+    try { return sessionStorage.getItem('dayscore_filter_status') || 'all'; } catch { return 'all'; }
+  });
+  const [filterRatingRange, setFilterRatingRange] = useState(() => {
+    try { return sessionStorage.getItem('dayscore_filter_rating') || 'all'; } catch { return 'all'; }
+  });
+  const [filterDateFrom, setFilterDateFrom] = useState(() => {
+    try { return sessionStorage.getItem('dayscore_filter_date_from') || ''; } catch { return ''; }
+  });
+  const [filterDateTo, setFilterDateTo] = useState(() => {
+    try { return sessionStorage.getItem('dayscore_filter_date_to') || ''; } catch { return ''; }
+  });
+  const [showFilterModal, setShowFilterModal] = useState(false);
+
+  // Sync active filter/sort selections to sessionStorage
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('dayscore_filter_search', searchQuery);
+      sessionStorage.setItem('dayscore_filter_sort', sortOption);
+      sessionStorage.setItem('dayscore_filter_category', filterCategory);
+      sessionStorage.setItem('dayscore_filter_priority', filterPriority);
+      sessionStorage.setItem('dayscore_filter_status', filterStatus);
+      sessionStorage.setItem('dayscore_filter_rating', filterRatingRange);
+      sessionStorage.setItem('dayscore_filter_date_from', filterDateFrom);
+      sessionStorage.setItem('dayscore_filter_date_to', filterDateTo);
+    } catch (e) {}
+  }, [searchQuery, sortOption, filterCategory, filterPriority, filterStatus, filterRatingRange, filterDateFrom, filterDateTo]);
 
   const resetAllFilters = () => {
-    setSearchQuery('')
-    setSortOption('default')
-    setFilterCategory('all')
-    setFilterPriority('all')
-    setFilterStatus('all')
-    setFilterRatingRange('all')
-    setFilterDateFrom('')
-    setFilterDateTo('')
-  }
+    setSearchQuery('');
+    setSortOption('default');
+    setFilterCategory('all');
+    setFilterPriority('all');
+    setFilterStatus('all');
+    setFilterRatingRange('all');
+    setFilterDateFrom('');
+    setFilterDateTo('');
+    try {
+      sessionStorage.removeItem('dayscore_filter_search');
+      sessionStorage.removeItem('dayscore_filter_sort');
+      sessionStorage.removeItem('dayscore_filter_category');
+      sessionStorage.removeItem('dayscore_filter_priority');
+      sessionStorage.removeItem('dayscore_filter_status');
+      sessionStorage.removeItem('dayscore_filter_rating');
+      sessionStorage.removeItem('dayscore_filter_date_from');
+      sessionStorage.removeItem('dayscore_filter_date_to');
+    } catch (e) {}
+  };
 
   const activeFilterCount = useMemo(() => {
     let count = 0
