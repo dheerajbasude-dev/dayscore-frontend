@@ -406,7 +406,7 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
               </div>
 
               {/* Glassmorphic Date & Time Triggers Grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr', gap: '8px', position: 'relative', overflow: 'visible' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.35fr 0.8fr', gap: '6px', position: 'relative', overflow: 'visible' }}>
                 
                 {/* 1. Glassmorphic Date Picker */}
                 <div style={{ position: 'static' }} ref={datePickerRef}>
@@ -420,24 +420,25 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
                     }}
                     style={{
                       width: '100%',
-                      padding: '9px 10px',
+                      padding: '9px 6px',
                       borderRadius: 'var(--radius-md)',
                       background: 'var(--bg-tertiary)',
                       border: isDatePickerOpen ? '1px solid var(--accent-primary)' : '1px solid var(--border-glass)',
                       color: '#ffffff',
-                      fontSize: '0.85rem',
+                      fontSize: '0.82rem',
                       fontWeight: '600',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      cursor: 'pointer'
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap'
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <CalendarIcon size={14} color="var(--accent-primary)" />
-                      <span>{formatDisplayDate(selectedDate)}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                      <CalendarIcon size={13} color="var(--accent-primary)" style={{ flexShrink: 0 }} />
+                      <span style={{ whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{formatDisplayDate(selectedDate)}</span>
                     </div>
-                    <ChevronDown size={14} color="var(--text-muted)" style={{ transform: isDatePickerOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                    <ChevronDown size={13} color="var(--text-muted)" style={{ transform: isDatePickerOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }} />
                   </button>
 
                   {/* Calendar Popover */}
@@ -551,26 +552,27 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
                     }}
                     style={{
                       width: '100%',
-                      padding: '9px 10px',
+                      padding: '9px 6px',
                       borderRadius: 'var(--radius-md)',
                       background: 'var(--bg-tertiary)',
                       border: isHourPickerOpen ? '1px solid var(--accent-primary)' : '1px solid var(--border-glass)',
                       color: '#ffffff',
-                      fontSize: '0.85rem',
+                      fontSize: '0.82rem',
                       fontWeight: '600',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      cursor: 'pointer'
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap'
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <Clock size={14} color="var(--accent-primary)" />
-                      <span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap' }}>
+                      <Clock size={13} color="var(--accent-primary)" style={{ flexShrink: 0 }} />
+                      <span style={{ whiteSpace: 'nowrap' }}>
                         {String(selectedHour % 12 === 0 ? 12 : selectedHour % 12).padStart(2, '0')}:00 {selectedHour >= 12 ? 'PM' : 'AM'}
                       </span>
                     </div>
-                    <ChevronDown size={14} color="var(--text-muted)" style={{ transform: isHourPickerOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                    <ChevronDown size={13} color="var(--text-muted)" style={{ transform: isHourPickerOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }} />
                   </button>
 
                   {/* Hour Popover */}

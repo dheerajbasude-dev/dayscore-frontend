@@ -535,7 +535,7 @@ export default function SettingsView() {
                   <button type="button" className="btn btn-secondary btn-sm" onClick={setTemplateEndOfDay} disabled={isSavingTemplate} style={{ fontSize: '0.75rem', padding: '3px 8px' }}>End of Day (11:59 PM)</button>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr', gap: '8px', position: 'relative', overflow: 'visible' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.35fr 0.8fr', gap: '6px', position: 'relative', overflow: 'visible' }}>
                   
                   {/* 1. Custom Glassmorphic Date Picker */}
                   <div style={{ position: 'static' }} ref={tDatePickerRef}>
@@ -549,24 +549,25 @@ export default function SettingsView() {
                       }}
                       style={{
                         width: '100%',
-                        padding: '9px 10px',
+                        padding: '9px 6px',
                         borderRadius: 'var(--radius-md)',
                         background: 'var(--bg-tertiary)',
                         border: isTDatePickerOpen ? '1px solid var(--accent-primary)' : '1px solid var(--border-glass)',
                         color: '#ffffff',
-                        fontSize: '0.85rem',
+                        fontSize: '0.82rem',
                         fontWeight: '600',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
-                        cursor: isSavingTemplate ? 'not-allowed' : 'pointer'
+                        cursor: isSavingTemplate ? 'not-allowed' : 'pointer',
+                        whiteSpace: 'nowrap'
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <CalendarIcon size={14} color="var(--accent-primary)" />
-                        <span>{formatDisplayTDate(tDate)}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                        <CalendarIcon size={13} color="var(--accent-primary)" style={{ flexShrink: 0 }} />
+                        <span style={{ whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{formatDisplayTDate(tDate)}</span>
                       </div>
-                      <ChevronDown size={14} color="var(--text-muted)" style={{ transform: isTDatePickerOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                      <ChevronDown size={13} color="var(--text-muted)" style={{ transform: isTDatePickerOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }} />
                     </button>
 
                     {/* Calendar Popover */}
@@ -680,26 +681,27 @@ export default function SettingsView() {
                       }}
                       style={{
                         width: '100%',
-                        padding: '9px 10px',
+                        padding: '9px 6px',
                         borderRadius: 'var(--radius-md)',
                         background: 'var(--bg-tertiary)',
                         border: isTHourPickerOpen ? '1px solid var(--accent-primary)' : '1px solid var(--border-glass)',
                         color: '#ffffff',
-                        fontSize: '0.85rem',
+                        fontSize: '0.82rem',
                         fontWeight: '600',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
-                        cursor: isSavingTemplate ? 'not-allowed' : 'pointer'
+                        cursor: isSavingTemplate ? 'not-allowed' : 'pointer',
+                        whiteSpace: 'nowrap'
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <Clock size={14} color="var(--accent-primary)" />
-                        <span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap' }}>
+                        <Clock size={13} color="var(--accent-primary)" style={{ flexShrink: 0 }} />
+                        <span style={{ whiteSpace: 'nowrap' }}>
                           {String(tHour % 12 === 0 ? 12 : tHour % 12).padStart(2, '0')}:00 {tHour >= 12 ? 'PM' : 'AM'}
                         </span>
                       </div>
-                      <ChevronDown size={14} color="var(--text-muted)" style={{ transform: isTHourPickerOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                      <ChevronDown size={13} color="var(--text-muted)" style={{ transform: isTHourPickerOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }} />
                     </button>
 
                     {/* Hour Popover */}
