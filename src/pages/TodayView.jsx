@@ -1098,24 +1098,27 @@ export default function TodayView() {
 
   const sortTasksByDefaultHierarchy = (a, b) => {
     // Status Group Tier Hierarchy (Top to Bottom):
-    // Tier 1: 🔴 Missed Tasks (status: 'missed')
-    // Tier 2: ⏳ Pending Tasks (status: 'pending' / 'inprogress', non-carried)
-    // Tier 3: 🔄 Carried-over Tasks (isCarriedTask)
-    // Tier 4: 🟢 Completed Tasks (status: 'done') with pending claim / acknowledge
-    // Tier 5: 🟢 Fully Completed Tasks (status: 'done')
+    // Tier 1: 🔴 Missed Tasks (Non-Carried)
+    // Tier 2: 🔄🔴 Missed Carried-Over Tasks
+    // Tier 3: ⏳ Pending Tasks (Non-Carried)
+    // Tier 4: 🔄⏳ Carried-Over Pending Tasks
+    // Tier 5: 🟢 Completed Tasks with pending claim / acknowledge action
+    // Tier 6: 🟢 Fully Completed Tasks
     const getStatusTier = (t) => {
-      // Tier 1: Missed Tasks
-      if (t.status === 'missed' || t.missed === true) return 1;
-
       const isCarried = isCarriedTask(t);
       const isDone = t.status === 'done' || t.completed === true;
+      const isMissed = t.status === 'missed' || t.missed === true;
 
-      // Unfinished Tasks (pending or inprogress)
+      // Tier 1 & 2: Missed Tasks
+      if (isMissed) {
+        if (!isCarried) return 1; // Tier 1: Missed (Non-Carried)
+        return 2;                // Tier 2: Missed Carried
+      }
+
+      // Tier 3 & 4: Unfinished Tasks (pending / inprogress)
       if (!isDone) {
-        // Tier 2: Pending Tasks (Non-Carried)
-        if (!isCarried) return 2;
-        // Tier 3: Carried Tasks
-        return 3;
+        if (!isCarried) return 3; // Tier 3: Pending (Non-Carried)
+        return 4;                // Tier 4: Carried Pending
       }
 
       // For Completed / Done Tasks (t.status === 'done'):
@@ -1131,13 +1134,13 @@ export default function TodayView() {
       const hasUnclaimedReward = Boolean(t.reward && hasHighRatingReward && !isRewardClaimed);
       const hasUnacknowledgedPenalty = Boolean(t.penalty && hasLowRatingPenalty && !isPenaltyAccepted);
 
-      // Tier 4: Completed Tasks with pending claim / acknowledge
+      // Tier 5: Completed Tasks with pending claim / acknowledge
       if (hasUnclaimedReward || hasUnacknowledgedPenalty) {
-        return 4;
+        return 5;
       }
 
-      // Tier 5: Fully Completed Tasks
-      return 5;
+      // Tier 6: Fully Completed Tasks
+      return 6;
     };
 
     const tierA = getStatusTier(a);
@@ -1147,8 +1150,8 @@ export default function TodayView() {
       return tierA - tierB;
     }
 
-    // Tier 1 (Missed): Sort by most recent ended DESCENDING (newest ended first)
-    if (tierA === 1) {
+    // Tiers 1 & 2 (Missed Tasks & Missed Carried Tasks): Sort by most recent ended DESCENDING (newest ended first)
+    if (tierA === 1 || tierA === 2) {
       const getMissedEndedTimestamp = (t) => {
         const iso = t.dueDateTime || t.due_date_time || t.date || t.originalDate || t.original_date || t.createdAt || t.created_at;
         if (!iso) return 0;
@@ -1160,8 +1163,8 @@ export default function TodayView() {
       if (endA !== endB) return endB - endA;
     }
 
-    // Tiers 2 & 3 (Pending & Carried): Sort by most recent ending / nearest due time ASCENDING (soonest ending first)
-    if (tierA === 2 || tierA === 3) {
+    // Tiers 3 & 4 (Pending Tasks & Carried Pending Tasks): Sort by most recent ending / nearest due time ASCENDING (soonest ending first)
+    if (tierA === 3 || tierA === 4) {
       const getTaskDueTimestamp = (t) => {
         const dueStr = t.dueDateTime || t.due_date_time;
         if (dueStr) {
@@ -1185,8 +1188,8 @@ export default function TodayView() {
       if (dueA !== dueB) return dueA - dueB;
     }
 
-    // Tiers 4 & 5 (Completed): Sort by most recent completed DESCENDING (latest completed first)
-    if (tierA === 4 || tierA === 5) {
+    // Tiers 5 & 6 (Completed Tasks): Sort by most recent completed DESCENDING (latest completed first)
+    if (tierA === 5 || tierA === 6) {
       const getCompletedTimestamp = (t) => {
         const iso = t.completedAt || t.completed_at || t.updatedAt || t.updated_at || t.date || t.createdAt;
         if (!iso) return 0;
