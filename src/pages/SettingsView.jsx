@@ -532,7 +532,7 @@ export default function SettingsView() {
                   <button type="button" className="btn btn-secondary btn-sm" onClick={() => setTemplatePresetTime(30)} disabled={isSavingTemplate} style={{ fontSize: '0.75rem', padding: '3px 8px' }}>+30 Min</button>
                   <button type="button" className="btn btn-secondary btn-sm" onClick={() => setTemplatePresetTime(60)} disabled={isSavingTemplate} style={{ fontSize: '0.75rem', padding: '3px 8px' }}>+1 Hour</button>
                   <button type="button" className="btn btn-secondary btn-sm" onClick={() => setTemplatePresetTime(120)} disabled={isSavingTemplate} style={{ fontSize: '0.75rem', padding: '3px 8px' }}>+2 Hours</button>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={setTemplateEndOfDay} disabled={isSavingTemplate} style={{ fontSize: '0.72rem', padding: '3px 8px' }}>End of Day (11:59 PM)</button>
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={setTemplateEndOfDay} disabled={isSavingTemplate} style={{ fontSize: '0.72rem', padding: '3px 6px' }}>End of Day (11:59 PM)</button>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.35fr 0.8fr', gap: '6px', position: 'relative', overflow: 'visible' }}>
