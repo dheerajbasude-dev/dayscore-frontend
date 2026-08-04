@@ -20,17 +20,38 @@ import { useAuth } from '../context/AuthContext'
 
 export default function TodayView() {
   const { user } = useAuth()
-  const todayStr = useMemo(() => format(new Date(), 'yyyy-MM-dd'), [])
+  const realTodayStr = format(new Date(), 'yyyy-MM-dd')
+  const [todayStr, setTodayStr] = useState(realTodayStr)
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const nowToday = format(new Date(), 'yyyy-MM-dd')
+      if (nowToday !== todayStr) {
+        setTodayStr(nowToday)
+      }
+    }, 10000)
+    return () => clearInterval(timer)
+  }, [todayStr])
+
   const [currentDateStr, setCurrentDateStr] = useState(() => {
+    const today = format(new Date(), 'yyyy-MM-dd')
     try {
       const uid = store.getUserId()
       const saved = localStorage.getItem(`dayscore_${uid}_selected_date`)
-      if (saved && /^\d{4}-\d{2}-\d{2}$/.test(saved)) {
+      // Only keep saved date if it is NOT a past date (saved >= today)
+      if (saved && /^\d{4}-\d{2}-\d{2}$/.test(saved) && saved >= today) {
         return saved
       }
     } catch (e) {}
-    return format(new Date(), 'yyyy-MM-dd')
+    return today
   })
+
+  // Automatically reset to today's date if currentDateStr is in the past when visiting
+  useEffect(() => {
+    if (currentDateStr < todayStr) {
+      setCurrentDateStr(todayStr)
+    }
+  }, [todayStr])
 
   useEffect(() => {
     try {
