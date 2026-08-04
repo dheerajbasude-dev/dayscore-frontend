@@ -438,26 +438,38 @@ export default function TodayView() {
     setCurrentDateStr(todayStr)
   }
 
-  // Compute all tasks across all dates from archives
+  // Compute all tasks across all dates from active tasks & archives
   const allTasksAcrossDates = useMemo(() => {
     const list = []
     const seenIds = new Set()
-    const allArcs = archives.length > 0 ? archives : store.getAllArchives()
+
+    // Add current active tasks first
+    (tasks || []).forEach(t => {
+      const id = t.id || t._id;
+      if (id && !seenIds.has(id)) {
+        seenIds.add(id);
+        list.push({ ...t, dateLabel: t.date || currentDateStr });
+      } else if (!id) {
+        list.push({ ...t, dateLabel: t.date || currentDateStr });
+      }
+    });
+
+    const allArcs = archives.length > 0 ? archives : store.getAllArchives();
     allArcs.forEach(arc => {
       if (Array.isArray(arc.tasks)) {
         arc.tasks.forEach(t => {
-          const id = t.id || t._id
+          const id = t.id || t._id;
           if (id && !seenIds.has(id)) {
-            seenIds.add(id)
-            list.push({ ...t, dateLabel: arc.date })
+            seenIds.add(id);
+            list.push({ ...t, dateLabel: arc.date });
           } else if (!id) {
-            list.push({ ...t, dateLabel: arc.date })
+            list.push({ ...t, dateLabel: arc.date });
           }
-        })
+        });
       }
-    })
-    return list
-  }, [archives])
+    });
+    return list;
+  }, [archives, tasks, currentDateStr]);
 
   // Initialize data per user & date
   useEffect(() => {
