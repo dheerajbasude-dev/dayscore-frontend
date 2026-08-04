@@ -1106,7 +1106,45 @@ export default function TodayView() {
       return tierA - tierB;
     }
 
-    // Within Tiers 4 and 5 (Completed): sort by completed timestamp DESCENDING (most recent completed first)
+    // Tier 1 (Missed): Sort by most recent ended DESCENDING (newest ended first)
+    if (tierA === 1) {
+      const getMissedEndedTimestamp = (t) => {
+        const iso = t.dueDateTime || t.due_date_time || t.date || t.originalDate || t.original_date || t.createdAt || t.created_at;
+        if (!iso) return 0;
+        const ms = new Date(iso.includes('T') ? iso : `${iso}T23:59:59`).getTime();
+        return isNaN(ms) ? 0 : ms;
+      };
+      const endA = getMissedEndedTimestamp(a);
+      const endB = getMissedEndedTimestamp(b);
+      if (endA !== endB) return endB - endA;
+    }
+
+    // Tiers 2 & 3 (Pending & Carried): Sort by most recent ending / nearest due time ASCENDING (soonest ending first)
+    if (tierA === 2 || tierA === 3) {
+      const getTaskDueTimestamp = (t) => {
+        const dueStr = t.dueDateTime || t.due_date_time;
+        if (dueStr) {
+          const ms = new Date(dueStr).getTime();
+          if (!isNaN(ms)) return ms;
+        }
+        const dateStr = t.date || t.originalDate || t.original_date;
+        if (dateStr) {
+          const ms = new Date(`${dateStr}T23:59:59`).getTime();
+          if (!isNaN(ms)) return ms;
+        }
+        const createdStr = t.createdAt || t.created_at;
+        if (createdStr) {
+          const ms = new Date(createdStr).getTime();
+          if (!isNaN(ms)) return ms;
+        }
+        return 9999999999999;
+      };
+      const dueA = getTaskDueTimestamp(a);
+      const dueB = getTaskDueTimestamp(b);
+      if (dueA !== dueB) return dueA - dueB;
+    }
+
+    // Tiers 4 & 5 (Completed): Sort by most recent completed DESCENDING (latest completed first)
     if (tierA === 4 || tierA === 5) {
       const getCompletedTimestamp = (t) => {
         const iso = t.completedAt || t.completed_at || t.updatedAt || t.updated_at || t.date || t.createdAt;
@@ -1119,30 +1157,7 @@ export default function TodayView() {
       if (compA !== compB) return compB - compA;
     }
 
-    // Within Tiers 1, 2, and 3 (Unfinished / Pending / Missed / Carried):
-    // sort by due date/time ASCENDING (nearest ending / soonest due date/time first)
-    const getTaskDueTimestamp = (t) => {
-      const dueStr = t.dueDateTime || t.due_date_time;
-      if (dueStr) {
-        const ms = new Date(dueStr).getTime();
-        if (!isNaN(ms)) return ms;
-      }
-      const dateStr = t.date || t.originalDate || t.original_date;
-      if (dateStr) {
-        const ms = new Date(`${dateStr}T23:59:59`).getTime();
-        if (!isNaN(ms)) return ms;
-      }
-      const createdStr = t.createdAt || t.created_at;
-      if (createdStr) {
-        const ms = new Date(createdStr).getTime();
-        if (!isNaN(ms)) return ms;
-      }
-      return 9999999999999;
-    };
-
-    const timeA = getTaskDueTimestamp(a);
-    const timeB = getTaskDueTimestamp(b);
-    return timeA - timeB;
+    return 0;
   };
 
   const displayTasksList = useMemo(() => {
