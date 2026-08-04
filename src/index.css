@@ -5095,3 +5095,46 @@ body {
     height: 34px;
   }
 }
+
+/* ==========================================================================
+   Blinking Carried-Over Badge & Pulse Glow Animation
+   ========================================================================== */
+
+.carried-over-blinking-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.16);
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.25);
+  animation: carriedBlinkGlow 2s ease-in-out infinite;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+@keyframes carriedBlinkGlow {
+  0%, 100% {
+    opacity: 1;
+    border-color: rgba(245, 158, 11, 0.55);
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.35);
+  }
+  50% {
+    opacity: 0.55;
+    border-color: rgba(245, 158, 11, 0.25);
+    box-shadow: 0 0 4px rgba(245, 158, 11, 0.1);
+  }
+}
+
+.carried-icon-spin-subtle {
+  animation: subtleRotate 6s linear infinite;
+}
+
+@keyframes subtleRotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(-360deg); }
+}

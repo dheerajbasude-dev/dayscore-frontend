@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { X, Loader2, Check, AlertTriangle, Clock, FileText, Plus, Star } from 'lucide-react';
+import { X, Loader2, Check, AlertTriangle, Clock, FileText, Plus, Star, RotateCcw } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useTimer } from '../hooks/useTimer';
 
@@ -252,7 +252,20 @@ export default function TaskCard({
   const dueFormatted = formatDateSafe(task.dueDateTime || task.due_date_time);
   const isDone = task.status === 'done';
   const isMissed = task.status === 'missed';
-  const isCarriedOver = Boolean(task.carriedOver || task.carried_over || task.originalDate || task.original_date);
+  const taskCreatedDateStr = useMemo(() => {
+    if (task.createdAt) return typeof task.createdAt === 'string' ? task.createdAt.substring(0, 10) : '';
+    if (task.created_at) return typeof task.created_at === 'string' ? task.created_at.substring(0, 10) : '';
+    return '';
+  }, [task.createdAt, task.created_at]);
+
+  const isCarriedOver = useMemo(() => {
+    if (task.carriedOver || task.carried_over || task.wasCarried || task.isCarried) return true;
+    const orig = task.originalDate || task.original_date;
+    if (orig && orig < currentDateStr) return true;
+    if (taskCreatedDateStr && taskCreatedDateStr < currentDateStr) return true;
+    if (task.date && orig && orig !== task.date) return true;
+    return false;
+  }, [task.carriedOver, task.carried_over, task.wasCarried, task.isCarried, task.originalDate, task.original_date, task.date, currentDateStr, taskCreatedDateStr]);
 
   const checkExtendsBeyondToday = () => {
     if (isCarriedOver) return true;
@@ -331,6 +344,12 @@ export default function TaskCard({
             {index !== undefined && index !== null && (
               <span className="task-index-num" title={`Task #${index}`}>
                 #{index}
+              </span>
+            )}
+            {isCarriedOver && (
+              <span className="carried-over-blinking-badge" title={`Carried over from ${task.originalDate || task.original_date || taskCreatedDateStr || 'previous date'}`}>
+                <RotateCcw size={11} className="carried-icon-spin-subtle" />
+                <span>Carried</span>
               </span>
             )}
             <span className={`task-title ${isDone ? 'strikethrough' : ''}`}>

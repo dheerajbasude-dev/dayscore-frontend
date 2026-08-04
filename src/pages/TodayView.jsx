@@ -230,8 +230,77 @@ export default function TodayView() {
   const [settings, setSettings] = useState({ notifications: false })
   const [loading, setLoading] = useState(true)
   const [dateWarningToast, setDateWarningToast] = useState(null)
+  const [autoCarriedToastInfo, setAutoCarriedToastInfo] = useState(null)
+
+  const isCarriedTask = useCallback((t) => {
+    if (!t) return false;
+    if (Boolean(t.carriedOver || t.carried_over || t.wasCarried || t.isCarried)) return true;
+    const orig = t.originalDate || t.original_date;
+    if (orig && orig < currentDateStr) return true;
+    const createdDate = t.createdAt ? (typeof t.createdAt === 'string' ? t.createdAt.substring(0, 10) : '') : 
+                       (t.created_at ? (typeof t.created_at === 'string' ? t.created_at.substring(0, 10) : '') : '');
+    if (createdDate && createdDate < currentDateStr) return true;
+    if (t.date && orig && orig !== t.date) return true;
+    return false;
+  }, [currentDateStr]);
 
   const [isMissedModalOpen, setIsMissedModalOpen] = useState(false)
+
+  // --- Automated Carry-Over for Past Unfinished Tasks ---
+  const autoCarryOverDoneRef = useRef(false);
+
+  useEffect(() => {
+    const runAutoCarryOver = async () => {
+      if (currentDateStr !== todayStr || autoCarryOverDoneRef.current) return;
+      autoCarryOverDoneRef.current = true;
+
+      const allArcs = archives.length > 0 ? archives : store.getArchivesFromTasks();
+      const pastPending = [];
+      allArcs.forEach(arc => {
+        if (arc.date && arc.date < todayStr && Array.isArray(arc.tasks)) {
+          arc.tasks.forEach(t => {
+            if (t.status === 'pending' || t.status === 'inprogress') {
+              pastPending.push({ ...t, taskDate: arc.date });
+            }
+          });
+        }
+      });
+
+      if (pastPending.length === 0) return;
+
+      let carriedCount = 0;
+      for (const task of pastPending) {
+        const originDate = task.taskDate || task.date || task.dateLabel;
+        const taskId = task.id || task._id;
+        if (!originDate || !taskId) continue;
+
+        await store.updateTask(originDate, taskId, {
+          date: todayStr,
+          carriedOver: true,
+          carried_over: 1,
+          originalDate: originDate,
+          original_date: originDate
+        });
+        carriedCount++;
+      }
+
+      if (carriedCount > 0) {
+        await store.fetchAllTasksApi();
+        setTasks(store.getTasks(currentDateStr));
+        setArchives(store.getArchivesFromTasks());
+
+        const ackKey = `dayscore_auto_carried_ack_${todayStr}_${carriedCount}`;
+        if (!sessionStorage.getItem(ackKey)) {
+          setAutoCarriedToastInfo({
+            count: carriedCount,
+            ackKey
+          });
+        }
+      }
+    };
+
+    runAutoCarryOver();
+  }, [currentDateStr, todayStr, archives]);
 
   const pastUnfinishedTasks = useMemo(() => {
     const list = [];
@@ -1475,6 +1544,50 @@ export default function TodayView() {
             )
           )}
 
+          {autoCarriedToastInfo && (
+            <div className="card-glass auto-carried-toast-banner animate-fade-in" style={{
+              marginBottom: '16px',
+              padding: '10px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '12px',
+              background: 'rgba(245, 158, 11, 0.12)',
+              border: '1px solid rgba(245, 158, 11, 0.35)',
+              borderRadius: 'var(--radius-md)',
+              boxShadow: '0 4px 20px rgba(245, 158, 11, 0.15)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', color: '#fef3c7' }}>
+                <RotateCcw size={16} style={{ color: '#fbbf24', flexShrink: 0 }} />
+                <span>
+                  ⚡ <strong>{autoCarriedToastInfo.count} task{autoCarriedToastInfo.count > 1 ? 's' : ''}</strong> automatically carried over to Today!
+                </span>
+              </div>
+              <button
+                className="btn btn-sm"
+                onClick={() => {
+                  if (autoCarriedToastInfo.ackKey) {
+                    sessionStorage.setItem(autoCarriedToastInfo.ackKey, 'true');
+                  }
+                  setAutoCarriedToastInfo(null);
+                }}
+                style={{
+                  background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  fontWeight: 700,
+                  fontSize: '0.78rem',
+                  padding: '4px 14px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 10px rgba(245, 158, 11, 0.3)'
+                }}
+              >
+                OK
+              </button>
+            </div>
+          )}
+
           {/* Daily Reflection Section */}
           <div className="reflection-section-top" style={{ marginBottom: '16px' }}>
             <ReflectionBox 
@@ -1512,9 +1625,9 @@ export default function TodayView() {
                       <AlertTriangle size={12} /> <strong>{displayTasksList.filter(t => t.status === 'missed' || t.missed === true).length}</strong> Missed
                     </span>
                   )}
-                  {displayTasksList.filter(t => Boolean(t.carriedOver || t.carried_over || t.originalDate || t.original_date)).length > 0 && (
+                  {displayTasksList.filter(t => isCarriedTask(t)).length > 0 && (
                     <span className="task-stat-chip chip-carried" title="Carried Over Tasks">
-                      <RotateCcw size={12} /> <strong>{displayTasksList.filter(t => Boolean(t.carriedOver || t.carried_over || t.originalDate || t.original_date)).length}</strong> Carried
+                      <RotateCcw size={12} /> <strong>{displayTasksList.filter(t => isCarriedTask(t)).length}</strong> Carried
                     </span>
                   )}
                 </div>
