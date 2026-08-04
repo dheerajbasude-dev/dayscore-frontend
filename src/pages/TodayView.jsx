@@ -1190,7 +1190,7 @@ export default function TodayView() {
       } else if (filterStatus === 'missed') {
         list = list.filter(t => t.status === 'missed');
       } else if (filterStatus === 'carriedOver') {
-        list = list.filter(t => Boolean(t.carriedOver || t.carried_over));
+        list = list.filter(t => isCarriedTask(t));
       } else if (filterStatus === 'reward') {
         list = list.filter(t => Boolean(t.reward));
       } else if (filterStatus === 'penalty') {
@@ -1950,22 +1950,66 @@ export default function TodayView() {
                   </div>
 
                   {/* Status & Special Type Filter */}
-                  <div className="form-group">
-                    <label className="form-label">Task Type / Status</label>
+                  <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                    <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>Task Type / Status</span>
+                      {filterStatus !== 'all' && (
+                        <span 
+                          onClick={() => setFilterStatus('all')} 
+                          style={{ fontSize: '0.75rem', color: 'var(--accent-primary)', cursor: 'pointer', textDecoration: 'underline' }}
+                        >
+                          Clear status filter
+                        </span>
+                      )}
+                    </label>
                     <CustomSelect
                       value={filterStatus}
                       onChange={val => setFilterStatus(val)}
                       options={[
-                        { label: 'All Task Types', value: 'all' },
-                        { label: 'Pending Tasks', value: 'pending' },
-                        { label: 'Completed Tasks', value: 'done' },
-                        { label: 'Missed Tasks', value: 'missed' },
-                        { label: 'Tasks with Reward', value: 'reward' },
-                        { label: 'Tasks with Penalty', value: 'penalty' },
+                        { label: '⚡ All Task Types', value: 'all' },
+                        { label: '⏳ Pending Tasks', value: 'pending' },
+                        { label: '🔄 Carried Over Tasks', value: 'carriedOver' },
+                        { label: '✓ Completed Tasks', value: 'done' },
+                        { label: '⚠️ Missed Tasks', value: 'missed' },
                         { label: '🎁 Unclaimed Rewards', value: 'unclaimedReward' },
-                        { label: '⚠️ Unacknowledged Penalties', value: 'unackPenalty' }
+                        { label: '⚠️ Unacknowledged Penalties', value: 'unackPenalty' },
+                        { label: '🏆 Tasks with Reward', value: 'reward' },
+                        { label: '⚡ Tasks with Penalty', value: 'penalty' }
                       ]}
                     />
+
+                    {/* Quick Selection Responsive Pill Badges */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
+                      {[
+                        { id: 'all', label: 'All' },
+                        { id: 'pending', label: '⏳ Pending' },
+                        { id: 'carriedOver', label: '🔄 Carried' },
+                        { id: 'done', label: '✓ Done' },
+                        { id: 'missed', label: '⚠️ Missed' },
+                        { id: 'unclaimedReward', label: '🎁 Rewards' },
+                        { id: 'unackPenalty', label: '⚠️ Penalties' }
+                      ].map(chip => (
+                        <button
+                          key={chip.id}
+                          type="button"
+                          onClick={() => setFilterStatus(chip.id)}
+                          style={{
+                            padding: '4px 10px',
+                            borderRadius: '20px',
+                            fontSize: '0.75rem',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                            background: filterStatus === chip.id ? 'rgba(99, 102, 241, 0.25)' : 'rgba(255, 255, 255, 0.05)',
+                            color: filterStatus === chip.id ? '#ffffff' : 'var(--text-muted)',
+                            border: filterStatus === chip.id ? '1px solid var(--accent-primary)' : '1px solid rgba(255, 255, 255, 0.1)',
+                            boxShadow: filterStatus === chip.id ? '0 0 10px rgba(99, 102, 241, 0.3)' : 'none'
+                          }}
+                        >
+                          {chip.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
                   {/* Rating Range Filter */}
