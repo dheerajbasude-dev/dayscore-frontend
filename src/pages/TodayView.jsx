@@ -37,25 +37,29 @@ export default function TodayView() {
     const today = format(new Date(), 'yyyy-MM-dd')
     try {
       const uid = store.getUserId()
-      const saved = localStorage.getItem(`dayscore_${uid}_selected_date`)
-      // Only keep saved date if it is NOT a past date (saved >= today)
-      if (saved && /^\d{4}-\d{2}-\d{2}$/.test(saved) && saved >= today) {
-        return saved
+      const lastSessionDate = localStorage.getItem(`dayscore_${uid}_last_session_date`)
+      const savedSelectedDate = localStorage.getItem(`dayscore_${uid}_selected_date`)
+
+      // If visiting on a NEW day (last session was a previous day), default to today's date
+      if (!lastSessionDate || lastSessionDate < today) {
+        localStorage.setItem(`dayscore_${uid}_last_session_date`, today)
+        localStorage.setItem(`dayscore_${uid}_selected_date`, today)
+        return today
+      }
+
+      // Same-day refresh: Keep whatever date the user selected during their session
+      if (savedSelectedDate && /^\d{4}-\d{2}-\d{2}$/.test(savedSelectedDate)) {
+        return savedSelectedDate
       }
     } catch (e) {}
     return today
   })
 
-  // Automatically reset to today's date if currentDateStr is in the past when visiting
-  useEffect(() => {
-    if (currentDateStr < todayStr) {
-      setCurrentDateStr(todayStr)
-    }
-  }, [todayStr])
-
   useEffect(() => {
     try {
       const uid = store.getUserId()
+      const today = format(new Date(), 'yyyy-MM-dd')
+      localStorage.setItem(`dayscore_${uid}_last_session_date`, today)
       if (currentDateStr) {
         localStorage.setItem(`dayscore_${uid}_selected_date`, currentDateStr)
       }
