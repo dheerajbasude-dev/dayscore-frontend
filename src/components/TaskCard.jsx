@@ -90,7 +90,7 @@ export default function TaskCard({
             filled.push({
               id: `missed-${currStr}`,
               date: currStr,
-              note: 'Missed (No note submitted)',
+              note: '',
               rating: 0,
               isAutoMissed: true
             });
