@@ -258,14 +258,21 @@ export default function TaskCard({
     return '';
   }, [task.createdAt, task.created_at]);
 
+  const targetDateCompareStr = useMemo(() => {
+    if (task.date && typeof task.date === 'string' && task.date.length >= 10) {
+      return task.date.trim().substring(0, 10);
+    }
+    return todayDateStr;
+  }, [task.date, todayDateStr]);
+
   const isCarriedOver = useMemo(() => {
     if (task.carriedOver || task.carried_over || task.wasCarried || task.isCarried) return true;
     const orig = task.originalDate || task.original_date;
-    if (orig && orig < currentDateStr) return true;
-    if (taskCreatedDateStr && taskCreatedDateStr < currentDateStr) return true;
+    if (orig && orig < targetDateCompareStr) return true;
+    if (taskCreatedDateStr && taskCreatedDateStr < targetDateCompareStr) return true;
     if (task.date && orig && orig !== task.date) return true;
     return false;
-  }, [task.carriedOver, task.carried_over, task.wasCarried, task.isCarried, task.originalDate, task.original_date, task.date, currentDateStr, taskCreatedDateStr]);
+  }, [task.carriedOver, task.carried_over, task.wasCarried, task.isCarried, task.originalDate, task.original_date, task.date, targetDateCompareStr, taskCreatedDateStr]);
 
   const checkExtendsBeyondToday = () => {
     if (isCarriedOver) return true;
