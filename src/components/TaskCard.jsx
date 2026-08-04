@@ -64,6 +64,21 @@ export default function TaskCard({
 
   // Compute effective notes list including auto-missed days (0 rating) for past days
   const effectiveNotesList = useMemo(() => {
+    const isMissedTask = task.status === 'missed' || task.missed === true;
+    const isCarriedTask = Boolean(
+      task.carriedOver ||
+      task.carried_over ||
+      task.wasCarried ||
+      task.isCarried ||
+      task.originalDate ||
+      task.original_date
+    );
+
+    // Stop adding auto-missed notes automatically for carried missed tasks
+    if (isCarriedTask && isMissedTask) {
+      return notesList;
+    }
+
     let startStr = task.originalDate || task.original_date || task.date;
     if (!startStr) {
       const iso = task.createdAt || task.created_at;
