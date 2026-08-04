@@ -481,7 +481,8 @@ export default function TodayView() {
 
       await Promise.all([
         store.fetchPunishmentsApi(),
-        store.fetchRewardsApi()
+        store.fetchRewardsApi(),
+        store.fetchTemplatesApi()
       ])
       if (!isMounted) return;
       setActivePunishment(store.getActivePunishment())

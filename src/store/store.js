@@ -708,10 +708,25 @@ export async function claimStreakMilestoneApi(days) {
   return currentClaimed;
 }
 
+export const DEFAULT_TEMPLATES = [
+  { id: 'default-1', title: 'Work Sync & Sprint Update', category: 'Work', priority: 'High', relativeTime: '10:00' },
+  { id: 'default-2', title: 'Code Review & PR Polish', category: 'Work', priority: 'Med', relativeTime: '14:00' },
+  { id: 'default-3', title: 'Learning & Skill Practice', category: 'Learning', priority: 'Med', relativeTime: '16:00' },
+  { id: 'default-4', title: 'Workout & Fitness Session', category: 'Health', priority: 'High', relativeTime: '18:00' }
+];
+
 export function getTemplates() {
   const uid = getUserId();
   const data = localStorage.getItem(`dayscore_${uid}_templates`);
-  return data ? JSON.parse(data) : [];
+  if (data) {
+    try {
+      const parsed = JSON.parse(data);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    } catch (e) {
+      console.warn('Parse templates error:', e);
+    }
+  }
+  return DEFAULT_TEMPLATES;
 }
 
 export function saveTemplates(templates) {

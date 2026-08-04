@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, ChevronDown, Zap, Check, Calendar as CalendarIcon, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format, addHours, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths } from 'date-fns';
+import * as store from '../store/store';
 
 export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates = [] }) {
   const [title, setTitle] = useState('');
@@ -195,6 +196,8 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
   const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
   const startDayOffset = getDay(monthStart);
 
+  const effectiveTemplates = templates && templates.length > 0 ? templates : store.getTemplates();
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content animate-pop-in" onClick={e => e.stopPropagation()} style={{ maxWidth: '520px', overflow: 'visible' }}>
@@ -208,7 +211,7 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
         <form onSubmit={handleSubmit} className="modal-form-body" style={{ overflow: 'visible' }}>
           <div className="modal-form-scroll" style={{ overflow: 'visible' }}>
             {/* Quick Template */}
-            {templates.length > 0 && (
+            {effectiveTemplates.length > 0 && (
               <div className="form-group" ref={templateMenuRef} style={{ position: 'relative' }}>
                 <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -247,8 +250,8 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
                   }}
                 >
                   {(() => {
-                    const activeIdx = templates.findIndex(t => t.id === selectedTemplateId);
-                    const activeTpl = activeIdx !== -1 ? templates[activeIdx] : null;
+                    const activeIdx = effectiveTemplates.findIndex(t => t.id === selectedTemplateId);
+                    const activeTpl = activeIdx !== -1 ? effectiveTemplates[activeIdx] : null;
                     if (activeTpl) {
                       return (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
@@ -294,7 +297,7 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
                       gap: '4px'
                     }}
                   >
-                    {templates.map((t, idx) => {
+                    {effectiveTemplates.map((t, idx) => {
                       const isSelected = t.id === selectedTemplateId;
                       return (
                         <div
