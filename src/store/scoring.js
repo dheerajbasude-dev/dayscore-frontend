@@ -232,30 +232,22 @@ export function getStreakAsOfDate(archives = [], targetDateStr = null) {
   }
 
   const prevDate = subDays(checkDate, 1);
-  const prevDateStr = format(prevDate, 'yyyy-MM-dd');
 
-  let streakCount = 0;
-  let isActive = false;
-
-  // Check if effectiveTarget itself is active
-  if (activeDatesSet.has(effectiveTarget)) {
-    isActive = true;
-    streakCount++;
-    checkDate = prevDate;
-  } else if (activeDatesSet.has(prevDateStr)) {
-    // If effectiveTarget is not active yet (e.g. today in progress), keep streak active from day before
-    isActive = true;
-    checkDate = prevDate;
-  } else {
+  // If effectiveTarget (e.g. today) has no completed tasks yet, streak for today is 0
+  if (!activeDatesSet.has(effectiveTarget)) {
     return { current: 0, isActive: false };
   }
 
-  // Count backwards for consecutive active days
+  let streakCount = 1;
+  let isActive = true;
+  let currCheckDate = prevDate;
+
+  // Count backwards for consecutive active days prior to effectiveTarget
   while (true) {
-    const dStr = format(checkDate, 'yyyy-MM-dd');
+    const dStr = format(currCheckDate, 'yyyy-MM-dd');
     if (activeDatesSet.has(dStr)) {
       streakCount++;
-      checkDate = subDays(checkDate, 1);
+      currCheckDate = subDays(currCheckDate, 1);
     } else {
       break;
     }
