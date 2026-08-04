@@ -1046,21 +1046,24 @@ export default function TodayView() {
   const sortTasksByDefaultHierarchy = (a, b) => {
     // Status Group Tier Hierarchy (Top to Bottom):
     // Tier 1: 🔴 Missed Tasks (status: 'missed')
-    // Tier 2: ⏩ Carried-over Tasks (carriedOver, carried_over, originalDate, original_date)
-    // Tier 3: ⏳ Pending / Active Tasks (status: 'pending' / 'inprogress')
+    // Tier 2: ⏳ Pending Tasks (status: 'pending' / 'inprogress', non-carried)
+    // Tier 3: 🔄 Carried-over Tasks (isCarriedTask)
     // Tier 4: 🟢 Completed Tasks (status: 'done') with pending claim / acknowledge
-    // Tier 5: 🟢 Completed Tasks (status: 'done')
+    // Tier 5: 🟢 Fully Completed Tasks (status: 'done')
     const getStatusTier = (t) => {
       // Tier 1: Missed Tasks
-      if (t.status === 'missed') return 1;
+      if (t.status === 'missed' || t.missed === true) return 1;
 
-      const isCarried = Boolean(t.carriedOver || t.carried_over || t.originalDate || t.original_date || t.wasCarried || t.isCarried);
+      const isCarried = isCarriedTask(t);
+      const isDone = t.status === 'done' || t.completed === true;
 
-      // Tier 2: Carried-over Tasks (uncompleted)
-      if (t.status !== 'done' && isCarried) return 2;
-
-      // Tier 3: Pending / Active Tasks (uncompleted)
-      if (t.status !== 'done') return 3;
+      // Unfinished Tasks (pending or inprogress)
+      if (!isDone) {
+        // Tier 2: Pending Tasks (Non-Carried)
+        if (!isCarried) return 2;
+        // Tier 3: Carried Tasks
+        return 3;
+      }
 
       // For Completed / Done Tasks (t.status === 'done'):
       const isRewardClaimed = t.rewardClaimed === true || t.rewardClaimed === 1 || t.rewardClaimed === '1' ||
@@ -1080,7 +1083,7 @@ export default function TodayView() {
         return 4;
       }
 
-      // Tier 5: Completed Tasks (fully claimed/acknowledged or no reward/penalty)
+      // Tier 5: Fully Completed Tasks
       return 5;
     };
 
@@ -1091,22 +1094,43 @@ export default function TodayView() {
       return tierA - tierB;
     }
 
-    // Within each tier: Sort by nearest date with time FIRST (ascending order)
-    const getTaskTimestamp = (t) => {
+    // Within Tiers 4 and 5 (Completed): sort by completed timestamp DESCENDING (most recent completed first)
+    if (tierA === 4 || tierA === 5) {
+      const getCompletedTimestamp = (t) => {
+        const iso = t.completedAt || t.completed_at || t.updatedAt || t.updated_at || t.date || t.createdAt;
+        if (!iso) return 0;
+        const ms = new Date(iso).getTime();
+        return isNaN(ms) ? 0 : ms;
+      };
+      const compA = getCompletedTimestamp(a);
+      const compB = getCompletedTimestamp(b);
+      if (compA !== compB) return compB - compA;
+    }
+
+    // Within Tiers 1, 2, and 3 (Unfinished / Pending / Missed / Carried):
+    // sort by due date/time ASCENDING (nearest ending / soonest due date/time first)
+    const getTaskDueTimestamp = (t) => {
       const dueStr = t.dueDateTime || t.due_date_time;
       if (dueStr) {
         const ms = new Date(dueStr).getTime();
         if (!isNaN(ms)) return ms;
       }
-      const isoStr = t.completedAt || t.completed_at || t.updatedAt || t.updated_at || t.createdAt || t.created_at || t.date || t.originalDate || t.original_date;
-      if (!isoStr) return 9999999999999;
-      const ms = new Date(isoStr).getTime();
-      return isNaN(ms) ? 9999999999999 : ms;
+      const dateStr = t.date || t.originalDate || t.original_date;
+      if (dateStr) {
+        const ms = new Date(`${dateStr}T23:59:59`).getTime();
+        if (!isNaN(ms)) return ms;
+      }
+      const createdStr = t.createdAt || t.created_at;
+      if (createdStr) {
+        const ms = new Date(createdStr).getTime();
+        if (!isNaN(ms)) return ms;
+      }
+      return 9999999999999;
     };
 
-    const timeA = getTaskTimestamp(a);
-    const timeB = getTaskTimestamp(b);
-    return timeA - timeB; // Nearest date with time FIRST
+    const timeA = getTaskDueTimestamp(a);
+    const timeB = getTaskDueTimestamp(b);
+    return timeA - timeB;
   };
 
   const displayTasksList = useMemo(() => {
