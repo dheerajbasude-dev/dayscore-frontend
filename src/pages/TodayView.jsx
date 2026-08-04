@@ -440,11 +440,11 @@ export default function TodayView() {
 
   // Compute all tasks across all dates from active tasks & archives
   const allTasksAcrossDates = useMemo(() => {
-    const list = []
-    const seenIds = new Set()
+    const list = [];
+    const seenIds = new Set();
 
-    // Add current active tasks first
-    (tasks || []).forEach(t => {
+    const activeTasks = Array.isArray(tasks) ? tasks : [];
+    activeTasks.forEach(t => {
       const id = t.id || t._id;
       if (id && !seenIds.has(id)) {
         seenIds.add(id);
