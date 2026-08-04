@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Clock, AlertTriangle, Star, Loader2 } from 'lucide-react';
 import { parseISO, isAfter } from 'date-fns';
 
@@ -74,7 +75,7 @@ export default function RatingSliderModal({ task, onConfirm, onCancel }) {
 
   const starSize = isOverdue ? 36 : 28;
 
-  return (
+  return createPortal(
     <div className="modal-overlay" onClick={onCancel}>
       <div className="modal-content rating-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '520px' }}>
         <div className="modal-header">
@@ -269,7 +270,8 @@ export default function RatingSliderModal({ task, onConfirm, onCancel }) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

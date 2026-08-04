@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { Trash2, Download, Upload, AlertTriangle, Moon, Sun, Bell, Plus, X, Pencil, Settings as SettingsIcon, Loader2, Calendar as CalendarIcon, Clock, ChevronDown, ChevronLeft, ChevronRight, Check } from 'lucide-react'
 import { format, addHours, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths } from 'date-fns'
 import * as store from '../store/store'
@@ -475,7 +476,7 @@ export default function SettingsView() {
       )}
 
       {/* Template Modal */}
-      {showAddTemplate && (
+      {showAddTemplate && createPortal(
         <div className="modal-overlay" onClick={() => !isSavingTemplate && setShowAddTemplate(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '480px' }}>
             <div className="modal-header">
@@ -865,7 +866,8 @@ export default function SettingsView() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )

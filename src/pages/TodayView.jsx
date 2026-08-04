@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { format, subDays, addDays, parseISO } from 'date-fns'
 import ScoreRing from '../components/ScoreRing'
 import TaskCard from '../components/TaskCard'
@@ -1925,7 +1926,7 @@ export default function TodayView() {
         />
       )}
 
-      {showReflectionModal && (
+      {showReflectionModal && createPortal(
         <div className="modal-overlay" onClick={() => setShowReflectionModal(false)}>
           <div className="modal-content card-glass animate-scale-up" onClick={e => e.stopPropagation()} style={{ maxWidth: '540px' }}>
             <ReflectionBox
@@ -1938,11 +1939,12 @@ export default function TodayView() {
               onClose={() => setShowReflectionModal(false)}
             />
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Advanced Filter Modal */}
-      {showFilterModal && (
+      {showFilterModal && createPortal(
         <div className="modal-overlay" onClick={() => setShowFilterModal(false)}>
           <div className="modal-content card-glass animate-scale-up" onClick={e => e.stopPropagation()} style={{ maxWidth: '560px' }}>
             <div className="modal-header">
@@ -2109,7 +2111,8 @@ export default function TodayView() {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       <MissedTasksModal

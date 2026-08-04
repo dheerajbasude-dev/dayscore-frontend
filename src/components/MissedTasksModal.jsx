@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Clock, Calendar, ArrowRight, CheckCircle2, Trash2, Zap, Sparkles, AlertCircle } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
@@ -131,7 +132,7 @@ export default function MissedTasksModal({
     return { bg: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24', border: 'rgba(245, 158, 11, 0.3)' };
   };
 
-  return (
+  return createPortal(
     <div className="modal-overlay" onClick={onClose}>
       <div
         className="modal-content animate-pop-in"
@@ -409,6 +410,7 @@ export default function MissedTasksModal({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

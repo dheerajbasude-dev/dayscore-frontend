@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, LogIn, UserPlus, ShieldCheck, Mail, Lock, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -42,7 +43,7 @@ export default function AuthModal({ isOpen, onClose }) {
     }
   };
 
-  return (
+  return createPortal(
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content auth-modal" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
@@ -138,6 +139,7 @@ export default function AuthModal({ isOpen, onClose }) {
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

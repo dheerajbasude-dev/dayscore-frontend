@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { X, ChevronDown, Zap, Check, Calendar as CalendarIcon, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format, addHours, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths } from 'date-fns';
 import * as store from '../store/store';
@@ -198,7 +199,7 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
 
   const effectiveTemplates = templates && templates.length > 0 ? templates : store.getTemplates();
 
-  return (
+  return createPortal(
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content animate-pop-in" onClick={e => e.stopPropagation()} style={{ maxWidth: '520px', overflow: 'visible' }}>
         <div className="modal-header">
@@ -727,6 +728,7 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

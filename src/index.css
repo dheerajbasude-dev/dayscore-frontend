@@ -1598,12 +1598,18 @@ body {
 /* Body scrolling is disabled when modal is open to keep focus on the modal */
 
 .modal-overlay {
-  position: fixed;
-  inset: 0;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  margin: 0 !important;
   background: rgba(0, 0, 0, 0.78);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  z-index: 999999 !important;
+  z-index: 9999999 !important;
   display: flex !important;
   justify-content: center !important;
   align-items: center !important;
