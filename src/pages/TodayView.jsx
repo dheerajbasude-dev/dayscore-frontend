@@ -295,15 +295,18 @@ export default function TodayView() {
   const [showAutoCarriedBanner, setShowAutoCarriedBanner] = useState(false);
   const autoCarryOverDoneRef = useRef(false);
 
-  // Instant 0ms toast notification check on page load
+  // Display carried task toast notification ONCE PER DAY on first visit
   useEffect(() => {
     const todayTasks = store.getTasks(todayStr);
     const count = todayTasks.filter(t => isCarriedTask(t)).length;
     if (count > 0) {
       setAutoCarriedCount(count);
-      const isDismissed = sessionStorage.getItem(`dayscore_dismiss_carried_${todayStr}`);
-      if (!isDismissed) {
+      const isAlreadyShown = localStorage.getItem(`dayscore_shown_carried_${todayStr}`);
+      if (!isAlreadyShown) {
         setShowAutoCarriedBanner(true);
+        try {
+          localStorage.setItem(`dayscore_shown_carried_${todayStr}`, 'true');
+        } catch (e) {}
       }
     }
   }, [todayStr, isCarriedTask]);
@@ -403,9 +406,12 @@ export default function TodayView() {
 
         if (carriedCount > 0) {
           setAutoCarriedCount(carriedCount);
-          const isDismissed = sessionStorage.getItem(`dayscore_dismiss_carried_${todayStr}`);
-          if (!isDismissed) {
+          const isAlreadyShown = localStorage.getItem(`dayscore_shown_carried_${todayStr}`);
+          if (!isAlreadyShown) {
             setShowAutoCarriedBanner(true);
+            try {
+              localStorage.setItem(`dayscore_shown_carried_${todayStr}`, 'true');
+            } catch (e) {}
           }
         }
       }
@@ -2201,7 +2207,9 @@ export default function TodayView() {
             className="toast-close-btn"
             onClick={() => {
               setShowAutoCarriedBanner(false);
-              sessionStorage.setItem(`dayscore_dismiss_carried_${todayStr}`, 'true');
+              try {
+                localStorage.setItem(`dayscore_shown_carried_${todayStr}`, 'true');
+              } catch (e) {}
             }}
             title="Dismiss"
             aria-label="Dismiss Notification"
