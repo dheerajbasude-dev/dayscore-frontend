@@ -682,7 +682,24 @@ export default function TodayView() {
     }
   }
 
-  // Auto-calculate task completion/missed status from daily note ratings
+  const isTaskTimeOver = useCallback((task) => {
+    if (!task) return false;
+    const now = new Date();
+    const dueDateStr = task.dueDateTime || task.due_date_time;
+    if (dueDateStr) {
+      const dueObj = new Date(dueDateStr);
+      if (!isNaN(dueObj.getTime())) {
+        return dueObj <= now;
+      }
+    }
+    const taskDate = task.date || task.dateLabel;
+    if (taskDate) {
+      return taskDate < todayStr;
+    }
+    return false;
+  }, [todayStr]);
+
+  // Auto-calculate task completion/missed status from daily note ratings ONLY IF task end date & time has overed (0s time remaining)
   useEffect(() => {
     if (!tasks || tasks.length === 0) return;
 
@@ -691,15 +708,16 @@ export default function TodayView() {
 
     tasks.forEach(async (task) => {
       if (task.status === 'done' || task.status === 'missed') return;
+      if (!isTaskTimeOver(task)) return; // ONLY evaluate if task end date & time has overed (0s time)
 
       const notes = Array.isArray(task.daily_notes || task.dailyNotes) ? (task.daily_notes || task.dailyNotes) : [];
       const ratedNotes = notes.filter(n => n && n.rating != null && Number(n.rating) > 0 && !n.isAutoMissed);
+      const targetId = task.id || task._id;
+      const taskDate = task.date || task.dateLabel || currentDateStr;
 
       if (ratedNotes.length > 0) {
         modified = true;
         const avgRating = Math.round((ratedNotes.reduce((sum, n) => sum + Number(n.rating), 0) / ratedNotes.length) * 10) / 10;
-        const targetId = task.id || task._id;
-        const taskDate = task.date || task.dateLabel || currentDateStr;
 
         await store.updateTask(taskDate, targetId, {
           status: 'done',
@@ -709,6 +727,11 @@ export default function TodayView() {
           maxRating: task.maxRating || task.max_rating || 10,
           max_rating: task.maxRating || task.max_rating || 10
         });
+      } else {
+        modified = true;
+        await store.updateTask(taskDate, targetId, {
+          status: 'missed'
+        });
       }
     });
 
@@ -717,7 +740,7 @@ export default function TodayView() {
         setTasks(store.getTasks(currentDateStr));
       });
     }
-  }, [tasks, currentDateStr]);
+  }, [tasks, currentDateStr, isTaskTimeOver]);
 
   const handleAddDailyNote = async (targetTask, noteText, noteRating) => {
     if (!targetTask || !noteText || !noteText.trim()) return;
@@ -750,38 +773,29 @@ export default function TodayView() {
 
     const updatedNotes = [...existingNotes, newNote];
 
-    // Compute automatic status transition based on ratings in daily notes
-    const ratedNotes = updatedNotes.filter(n => n && n.rating != null && Number(n.rating) > 0 && !n.isAutoMissed);
-
     const updates = {
       daily_notes: updatedNotes,
       dailyNotes: updatedNotes
     };
 
     const now = new Date();
-    const dueDateStr = targetTask.dueDateTime || targetTask.due_date_time;
-    let isTaskEndingToday = false;
-    if (dueDateStr) {
-      const cleanDue = String(dueDateStr).split('T')[0];
-      if (cleanDue <= todayStr) isTaskEndingToday = true;
-    } else if (taskDate <= todayStr) {
-      isTaskEndingToday = true;
-    }
+    const ratedNotes = updatedNotes.filter(n => n && n.rating != null && Number(n.rating) > 0 && !n.isAutoMissed);
 
-    if (ratedNotes.length > 0) {
-      // If at least one task note has a rating, mark task as completed automatically with calculated rating
-      const avgRating = Math.round((ratedNotes.reduce((sum, n) => sum + Number(n.rating), 0) / ratedNotes.length) * 10) / 10;
-      const maxRating = targetTask.maxRating || targetTask.max_rating || 10;
+    // ONLY perform automatic completion/missed status calculation IF task end date & time has overed (0s time remaining)
+    if (isTaskTimeOver(targetTask)) {
+      if (ratedNotes.length > 0) {
+        const avgRating = Math.round((ratedNotes.reduce((sum, n) => sum + Number(n.rating), 0) / ratedNotes.length) * 10) / 10;
+        const maxRating = targetTask.maxRating || targetTask.max_rating || 10;
 
-      updates.status = 'done';
-      updates.completedAt = now.toISOString();
-      updates.completed_at = now.toISOString();
-      updates.rating = avgRating;
-      updates.maxRating = maxRating;
-      updates.max_rating = maxRating;
-    } else if (isTaskEndingToday) {
-      // If all task note ratings are missed / 0 and task end date is reached, mark as missed
-      updates.status = 'missed';
+        updates.status = 'done';
+        updates.completedAt = now.toISOString();
+        updates.completed_at = now.toISOString();
+        updates.rating = avgRating;
+        updates.maxRating = maxRating;
+        updates.max_rating = maxRating;
+      } else {
+        updates.status = 'missed';
+      }
     }
 
     await store.updateTask(taskDate, targetId, updates);
