@@ -300,7 +300,7 @@ export default function TodayView() {
       if (autoCarryOverDoneRef.current) return;
       autoCarryOverDoneRef.current = true;
 
-      // 1. Clean up tasks currently attached to todayStr whose due date ended on a past date itself (dueDateStr <= origDate < todayStr)
+      // 1. Clean up tasks currently attached to todayStr
       const currentTodayTasks = store.getTasks(todayStr);
       let cleanedUpCount = 0;
       for (const t of currentTodayTasks) {
@@ -314,28 +314,38 @@ export default function TodayView() {
             dueDateStr = format(dueObj, 'yyyy-MM-dd');
           } catch (e) {}
         }
-        // Only revert back to past date if due date ended on that past date itself (dueDateStr <= origDate < todayStr)
+
+        // A: If task due date ended on past date itself (dueDateStr <= origDate < todayStr), revert back to past date as missed
         if (origDate && origDate < todayStr && dueDateStr && dueDateStr <= origDate) {
           await store.updateTask(todayStr, t.id || t._id, {
             date: origDate,
             carriedOver: false,
             carried_over: 0,
-            status: t.status === 'pending' || t.status === 'inprogress' ? 'missed' : t.status
+            status: t.status === 'done' ? 'done' : 'missed'
+          });
+          cleanedUpCount++;
+        }
+        // B: If task carried over to today AND its due date is today or future, ensure status is 'pending'
+        else if (t.status === 'missed' && (!dueDateStr || dueDateStr >= todayStr)) {
+          await store.updateTask(todayStr, t.id || t._id, {
+            status: 'pending',
+            carriedOver: true,
+            carried_over: 1
           });
           cleanedUpCount++;
         }
       }
 
-      // 2. Scan past pending tasks:
-      // - Carry over if task has NO due date
-      // - Carry over if task due date extends beyond its original date (dueDateStr > arc.date)
-      // - Keep on past date if task due date ended on the past date itself (dueDateStr <= arc.date)
+      // 2. Scan past tasks from previous dates:
+      // Carry over tasks that are unfinished (pending/inprogress/missed) IF:
+      // - task has NO due date, OR
+      // - task's due date extends beyond its original date (dueDateStr > arc.date)
       const allArcs = archives.length > 0 ? archives : store.getArchivesFromTasks();
-      const pastPending = [];
+      const pastTasksToCarry = [];
       allArcs.forEach(arc => {
         if (arc.date && arc.date < todayStr && Array.isArray(arc.tasks)) {
           arc.tasks.forEach(t => {
-            if (t.status === 'pending' || t.status === 'inprogress') {
+            if (t.status !== 'done') {
               const dueIso = t.dueDateTime || t.due_date_time;
               let shouldCarryOver = true;
               if (dueIso) {
@@ -348,7 +358,7 @@ export default function TodayView() {
                 } catch (e) {}
               }
               if (shouldCarryOver) {
-                pastPending.push({ ...t, taskDate: arc.date });
+                pastTasksToCarry.push({ ...t, taskDate: arc.date });
               }
             }
           });
@@ -356,13 +366,14 @@ export default function TodayView() {
       });
 
       let carriedCount = 0;
-      for (const task of pastPending) {
+      for (const task of pastTasksToCarry) {
         const originDate = task.taskDate || task.date || task.dateLabel;
         const taskId = task.id || task._id;
         if (!originDate || !taskId) continue;
 
         await store.updateTask(originDate, taskId, {
           date: todayStr,
+          status: task.status === 'done' ? 'done' : 'pending',
           carriedOver: true,
           carried_over: 1,
           originalDate: originDate,
