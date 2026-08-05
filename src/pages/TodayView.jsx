@@ -854,13 +854,17 @@ export default function TodayView() {
     if (!task) return;
     if (task.status === 'missed' && currentDateStr < todayStr) return;
 
+    const targetDateStr = (task.date && typeof task.date === 'string' && task.date.length >= 10)
+      ? task.date.trim().substring(0, 10)
+      : currentDateStr;
+
     const isCarried = Boolean(
       task.carriedOver ||
       task.carried_over ||
       task.wasCarried ||
       task.isCarried ||
-      (task.originalDate && task.originalDate.trim().substring(0, 10) !== currentDateStr) ||
-      (task.original_date && task.original_date.trim().substring(0, 10) !== currentDateStr)
+      (task.originalDate && String(task.originalDate).trim().substring(0, 10) < targetDateStr) ||
+      (task.original_date && String(task.original_date).trim().substring(0, 10) < targetDateStr)
     );
 
     const notes = Array.isArray(task.daily_notes || task.dailyNotes) ? (task.daily_notes || task.dailyNotes) : [];
