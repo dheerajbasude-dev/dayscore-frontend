@@ -300,7 +300,7 @@ export default function TodayView() {
       if (autoCarryOverDoneRef.current) return;
       autoCarryOverDoneRef.current = true;
 
-      // 1. Clean up any tasks currently attached to todayStr whose due date expired on a past date
+      // 1. Clean up tasks currently attached to todayStr whose due date ended on a past date itself (dueDateStr <= origDate < todayStr)
       const currentTodayTasks = store.getTasks(todayStr);
       let cleanedUpCount = 0;
       for (const t of currentTodayTasks) {
@@ -314,10 +314,10 @@ export default function TodayView() {
             dueDateStr = format(dueObj, 'yyyy-MM-dd');
           } catch (e) {}
         }
-        const targetPastDate = (dueDateStr && dueDateStr < todayStr) ? dueDateStr : (origDate && origDate < todayStr ? origDate : '');
-        if (targetPastDate) {
+        // Only revert back to past date if due date ended on that past date itself (dueDateStr <= origDate < todayStr)
+        if (origDate && origDate < todayStr && dueDateStr && dueDateStr <= origDate) {
           await store.updateTask(todayStr, t.id || t._id, {
-            date: targetPastDate,
+            date: origDate,
             carriedOver: false,
             carried_over: 0,
             status: t.status === 'pending' || t.status === 'inprogress' ? 'missed' : t.status
@@ -326,7 +326,10 @@ export default function TodayView() {
         }
       }
 
-      // 2. Scan past pending tasks, but skip tasks whose end date / due date expired on a past date
+      // 2. Scan past pending tasks:
+      // - Carry over if task has NO due date
+      // - Carry over if task due date extends beyond its original date (dueDateStr > arc.date)
+      // - Keep on past date if task due date ended on the past date itself (dueDateStr <= arc.date)
       const allArcs = archives.length > 0 ? archives : store.getArchivesFromTasks();
       const pastPending = [];
       allArcs.forEach(arc => {
@@ -334,17 +337,17 @@ export default function TodayView() {
           arc.tasks.forEach(t => {
             if (t.status === 'pending' || t.status === 'inprogress') {
               const dueIso = t.dueDateTime || t.due_date_time;
-              let isExpiredOnPastDate = false;
+              let shouldCarryOver = true;
               if (dueIso) {
                 try {
                   const dueObj = typeof dueIso === 'string' ? parseISO(dueIso) : new Date(dueIso);
                   const dueDateStr = format(dueObj, 'yyyy-MM-dd');
-                  if (dueDateStr < todayStr) {
-                    isExpiredOnPastDate = true;
+                  if (dueDateStr <= arc.date) {
+                    shouldCarryOver = false;
                   }
                 } catch (e) {}
               }
-              if (!isExpiredOnPastDate) {
+              if (shouldCarryOver) {
                 pastPending.push({ ...t, taskDate: arc.date });
               }
             }
