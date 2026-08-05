@@ -4822,62 +4822,82 @@ body {
 
 @media (max-width: 768px) {
   .task-controls-card {
-    padding: 10px 12px !important;
+    padding: 8px 10px !important;
     margin-bottom: 12px !important;
     border-radius: 12px !important;
   }
 
   .compact-task-toolbar {
+    display: flex;
     flex-direction: column;
     align-items: stretch;
     gap: 8px;
   }
 
+  /* Row 1: Unified Horizontal Stats Bar */
   .total-tasks-badge-group {
     display: flex;
     align-items: center;
     gap: 6px;
-    flex-wrap: wrap;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    scrollbar-width: none;
+  }
+
+  .total-tasks-badge-group::-webkit-scrollbar {
+    display: none;
   }
 
   .total-tasks-badge {
-    font-size: 0.78rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.76rem;
     padding: 3px 8px;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.06);
     border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 
   .total-tasks-badge strong {
-    font-size: 0.88rem;
+    font-size: 0.86rem;
   }
 
   .total-tasks-stat-group {
-    gap: 4px;
-    flex-wrap: wrap;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
   }
 
   .task-stat-chip {
-    padding: 2px 7px;
+    padding: 3px 8px;
     font-size: 0.72rem;
-    border-radius: 10px;
-    gap: 3px;
+    border-radius: 8px;
+    gap: 4px;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 
+  /* Row 2: Search + Sort + Filters 3-Column Lock Grid */
   .task-actions-group {
-    display: flex;
-    flex-direction: row !important;
-    align-items: center;
-    gap: 6px;
-    width: 100%;
-    justify-content: space-between;
+    display: grid !important;
+    grid-template-columns: 1fr auto auto !important;
+    gap: 6px !important;
+    align-items: center !important;
+    width: 100% !important;
   }
 
   .task-actions-group .task-search-input-wrapper {
-    flex: 1 1 auto;
-    min-width: 0;
-    width: auto;
-    max-width: none;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
   }
 
   .task-actions-group .task-search-input {
@@ -4888,7 +4908,8 @@ body {
   }
 
   .task-sort-wrapper {
-    min-width: 110px;
+    min-width: 0 !important;
+    width: auto !important;
     flex-shrink: 0;
   }
 
@@ -4898,6 +4919,7 @@ body {
     font-size: 0.76rem !important;
     border-radius: 8px !important;
     gap: 4px !important;
+    white-space: nowrap;
   }
 
   .task-filter-btn {
@@ -4906,20 +4928,17 @@ body {
     font-size: 0.76rem !important;
     border-radius: 8px !important;
     flex-shrink: 0;
+    white-space: nowrap;
   }
 }
 
 @media (max-width: 480px) {
   .task-controls-card {
-    padding: 8px 10px !important;
-  }
-
-  .task-sort-wrapper {
-    min-width: 95px;
+    padding: 8px 8px !important;
   }
 
   .task-actions-group .custom-select-trigger span {
-    max-width: 65px;
+    max-width: 58px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
