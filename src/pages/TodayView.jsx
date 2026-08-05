@@ -2045,34 +2045,82 @@ export default function TodayView() {
               <div className="modal-form-scroll">
                 <div className="filter-modal-grid" style={{ overflow: 'visible' }}>
                   {/* Category Filter */}
-                  <div className="form-group">
+                  <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                     <label className="form-label">Category</label>
-                    <CustomSelect
-                      value={filterCategory}
-                      onChange={val => setFilterCategory(val)}
-                      options={[
-                        { label: 'All Categories', value: 'all' },
-                        { label: 'Work', value: 'Work' },
-                        { label: 'Learning', value: 'Learning' },
-                        { label: 'Health', value: 'Health' },
-                        { label: 'Personal', value: 'Personal' }
-                      ]}
-                    />
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '6px' }}>
+                      {[
+                        { id: 'all', label: 'All Categories' },
+                        { id: 'Work', label: '💼 Work' },
+                        { id: 'Health', label: '💪 Health' },
+                        { id: 'Learning', label: '📚 Learning' },
+                        { id: 'Personal', label: '🧘 Personal' }
+                      ].map(chip => {
+                        const isSelected = filterCategory === chip.id;
+                        return (
+                          <button
+                            key={chip.id}
+                            type="button"
+                            onClick={() => setFilterCategory(chip.id)}
+                            style={{
+                              padding: '6px 14px',
+                              borderRadius: '20px',
+                              fontSize: '0.80rem',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              transition: 'all 0.18s ease-in-out',
+                              background: isSelected 
+                                ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.35) 0%, rgba(129, 140, 248, 0.25) 100%)' 
+                                : 'rgba(255, 255, 255, 0.05)',
+                              color: isSelected ? '#ffffff' : 'rgba(255, 255, 255, 0.7)',
+                              border: isSelected ? '1px solid #818cf8' : '1px solid rgba(255, 255, 255, 0.12)',
+                              boxShadow: isSelected ? '0 0 12px rgba(129, 140, 248, 0.35)' : 'none',
+                              transform: isSelected ? 'scale(1.02)' : 'scale(1)'
+                            }}
+                          >
+                            {chip.label}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
 
                   {/* Priority Filter */}
-                  <div className="form-group">
+                  <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                     <label className="form-label">Priority</label>
-                    <CustomSelect
-                      value={filterPriority}
-                      onChange={val => setFilterPriority(val)}
-                      options={[
-                        { label: 'All Priorities', value: 'all' },
-                        { label: 'High', value: 'High' },
-                        { label: 'Medium', value: 'Med' },
-                        { label: 'Low', value: 'Low' }
-                      ]}
-                    />
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '6px' }}>
+                      {[
+                        { id: 'all', label: 'All Priorities' },
+                        { id: 'High', label: '🔴 High' },
+                        { id: 'Med', label: '🟡 Medium' },
+                        { id: 'Low', label: '🟢 Low' }
+                      ].map(chip => {
+                        const isSelected = filterPriority === chip.id;
+                        return (
+                          <button
+                            key={chip.id}
+                            type="button"
+                            onClick={() => setFilterPriority(chip.id)}
+                            style={{
+                              padding: '6px 14px',
+                              borderRadius: '20px',
+                              fontSize: '0.80rem',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              transition: 'all 0.18s ease-in-out',
+                              background: isSelected 
+                                ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.35) 0%, rgba(129, 140, 248, 0.25) 100%)' 
+                                : 'rgba(255, 255, 255, 0.05)',
+                              color: isSelected ? '#ffffff' : 'rgba(255, 255, 255, 0.7)',
+                              border: isSelected ? '1px solid #818cf8' : '1px solid rgba(255, 255, 255, 0.12)',
+                              boxShadow: isSelected ? '0 0 12px rgba(129, 140, 248, 0.35)' : 'none',
+                              transform: isSelected ? 'scale(1.02)' : 'scale(1)'
+                            }}
+                          >
+                            {chip.label}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
 
                   {/* Task Type / Status Filter */}
@@ -2118,23 +2166,42 @@ export default function TodayView() {
                   </div>
 
                   {/* Rating Range Filter */}
-                  <div className="form-group">
+                  <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                     <label className="form-label">Rating Range</label>
-                    <CustomSelect
-                      value={filterRatingRange}
-                      onChange={val => setFilterRatingRange(val)}
-                      options={[
-                        { label: 'All Ratings', value: 'all' },
-                        { label: '🔴 Red Threshold (≤ 4.0)', value: 'red' },
-                        { label: '🔵 Blue Threshold (4.1 – 8.5)', value: 'blue' },
-                        { label: '🟢 Green Threshold (> 8.5)', value: 'green' },
-                        { label: '── Specific Rating Values ──', value: '', disabled: true },
-                        ...Array.from({ length: 21 }).map((_, i) => {
-                          const val = (i * 0.5).toFixed(1);
-                          return { label: `Rating: ★ ${val}`, value: val };
-                        })
-                      ]}
-                    />
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '6px' }}>
+                      {[
+                        { id: 'all', label: 'All Ratings' },
+                        { id: 'red', label: '🔴 Low (≤ 4.0)' },
+                        { id: 'blue', label: '🔵 Med (4.1 – 8.5)' },
+                        { id: 'green', label: '🟢 High (> 8.5)' }
+                      ].map(chip => {
+                        const isSelected = filterRatingRange === chip.id;
+                        return (
+                          <button
+                            key={chip.id}
+                            type="button"
+                            onClick={() => setFilterRatingRange(chip.id)}
+                            style={{
+                              padding: '6px 14px',
+                              borderRadius: '20px',
+                              fontSize: '0.80rem',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              transition: 'all 0.18s ease-in-out',
+                              background: isSelected 
+                                ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.35) 0%, rgba(129, 140, 248, 0.25) 100%)' 
+                                : 'rgba(255, 255, 255, 0.05)',
+                              color: isSelected ? '#ffffff' : 'rgba(255, 255, 255, 0.7)',
+                              border: isSelected ? '1px solid #818cf8' : '1px solid rgba(255, 255, 255, 0.12)',
+                              boxShadow: isSelected ? '0 0 12px rgba(129, 140, 248, 0.35)' : 'none',
+                              transform: isSelected ? 'scale(1.02)' : 'scale(1)'
+                            }}
+                          >
+                            {chip.label}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
 
