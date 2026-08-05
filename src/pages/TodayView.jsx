@@ -331,8 +331,16 @@ export default function TodayView() {
           } catch (e) {}
         }
 
-        // A: If task due date or orig date ended on a past date before today, revert back to its past end date as missed
-        const pastEndDate = (dueDateStr && dueDateStr < todayStr) ? dueDateStr : (origDate && origDate < todayStr ? origDate : '');
+        // A task only expired on a past date if its due date itself expired before today (dueDateStr < todayStr).
+        // If it has a due date on or after today (dueDateStr >= todayStr), it is active and extends into today/future!
+        let pastEndDate = '';
+        if (dueDateStr) {
+          if (dueDateStr < todayStr) {
+            pastEndDate = dueDateStr;
+          }
+        } else if (origDate && origDate < todayStr) {
+          pastEndDate = origDate;
+        }
 
         if (pastEndDate) {
           await store.updateTask(todayStr, t.id || t._id, {

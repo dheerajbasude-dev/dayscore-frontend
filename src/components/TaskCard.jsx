@@ -308,20 +308,31 @@ export default function TaskCard({
   const createdFormatted = formatDateSafe(getStartDateISO());
   const completedFormatted = formatDateSafe(task.completedAt || task.completed_at);
   const dueFormatted = formatDateSafe(task.dueDateTime || task.due_date_time);
-  const isDone = task.status === 'done';
-  const isMissed = task.status === 'missed';
-  const taskCreatedDateStr = useMemo(() => {
-    if (task.createdAt) return typeof task.createdAt === 'string' ? task.createdAt.substring(0, 10) : '';
-    if (task.created_at) return typeof task.created_at === 'string' ? task.created_at.substring(0, 10) : '';
-    return '';
-  }, [task.createdAt, task.created_at]);
-
   const targetDateCompareStr = useMemo(() => {
     if (task.date && typeof task.date === 'string' && task.date.length >= 10) {
       return task.date.trim().substring(0, 10);
     }
     return todayDateStr;
   }, [task.date, todayDateStr]);
+
+  const isDone = task.status === 'done';
+  const isMissed = useMemo(() => {
+    if (isDone) return false;
+    if (task.status === 'missed') {
+      const dueIso = task.dueDateTime || task.due_date_time;
+      if (dueIso) {
+        try {
+          const dueObj = typeof dueIso === 'string' ? parseISO(dueIso) : new Date(dueIso);
+          const dueDateStr = format(dueObj, 'yyyy-MM-dd');
+          if (targetDateCompareStr && dueDateStr > targetDateCompareStr) {
+            return false;
+          }
+        } catch (e) {}
+      }
+      return true;
+    }
+    return false;
+  }, [isDone, task.status, task.dueDateTime, task.due_date_time, targetDateCompareStr]);
 
   const isCarriedOver = useMemo(() => {
     if (task.carriedOver || task.carried_over || task.wasCarried || task.isCarried) return true;
