@@ -21,16 +21,26 @@ export default function RatingSliderModal({ task, onConfirm, onCancel }) {
     }
   }, [task.status, task.dueDateTime, task.due_date_time]);
 
-  const maxRating = isOverdue ? 3 : 10;
-  const [rating, setRating] = useState(maxRating === 3 ? 1.5 : 5.0);
+  const initialDefaultRating = useMemo(() => {
+    if (isOverdue) return 1.5;
+    const notes = Array.isArray(task.daily_notes || task.dailyNotes) ? (task.daily_notes || task.dailyNotes) : [];
+    const rated = notes.filter(n => n && n.rating != null && !isNaN(Number(n.rating)) && Number(n.rating) > 0);
+    if (rated.length > 0) {
+      const avg = rated.reduce((s, n) => s + Number(n.rating), 0) / rated.length;
+      return Math.round(avg * 10) / 10;
+    }
+    return 8.0;
+  }, [isOverdue, task]);
+
+  const [rating, setRating] = useState(initialDefaultRating);
   const [hoverRating, setHoverRating] = useState(null);
 
   // Reset rating default when task or maxRating changes
   useEffect(() => {
-    setRating(maxRating === 3 ? 1.5 : 5.0);
+    setRating(initialDefaultRating);
     setHoverRating(null);
     setSubmitting(false);
-  }, [maxRating, task.id, task._id]);
+  }, [initialDefaultRating, task.id, task._id]);
 
   useEffect(() => {
     document.body.classList.add('modal-open');

@@ -185,18 +185,6 @@ export default function TaskCard({
     if (task.status === 'pending' || task.status === 'inprogress') {
       setIsUpdatingStatus(true);
       try {
-        const notesWithRating = effectiveNotesList.filter(n => n && n.rating != null && !isNaN(Number(n.rating)));
-        if (notesWithRating.length > 0) {
-          const totalRating = notesWithRating.reduce((sum, n) => sum + Number(n.rating), 0);
-          const calculatedAvg = Number((totalRating / notesWithRating.length).toFixed(1));
-          if (onAutoCompleteWithRating) {
-            await onAutoCompleteWithRating(task, calculatedAvg);
-            setIsJustCompleted(true);
-            setTimeout(() => setIsJustCompleted(false), 2500);
-            return;
-          }
-        }
-
         if (onRequestComplete) {
           await onRequestComplete(task);
           setIsJustCompleted(true);
