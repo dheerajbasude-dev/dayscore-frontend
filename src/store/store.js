@@ -239,29 +239,11 @@ export async function updateTask(dateStr, taskId, updates) {
   const cleanUpdates = { ...updates };
 
   if (existing.status === 'missed') {
-    const isAttemptingEditOrComplete = (
-      cleanUpdates.status === 'done' ||
-      cleanUpdates.status === 'pending' ||
-      cleanUpdates.status === 'inprogress' ||
-      cleanUpdates.title !== undefined ||
-      cleanUpdates.category !== undefined ||
-      cleanUpdates.priority !== undefined ||
-      cleanUpdates.dueDateTime !== undefined ||
-      cleanUpdates.due_date_time !== undefined ||
-      cleanUpdates.rating !== undefined ||
-      cleanUpdates.completedAt !== undefined ||
-      cleanUpdates.completed_at !== undefined
-    );
-    if (isAttemptingEditOrComplete) {
-      if (cleanUpdates.status === 'done') {
-        cleanUpdates.wasMissed = true;
-        cleanUpdates.was_missed = 1;
-        if (cleanUpdates.rating !== undefined && cleanUpdates.rating !== null) {
-          cleanUpdates.rating = Math.min(Number(cleanUpdates.rating) || 1, 3);
-        }
-      } else {
-        console.warn('Missed tasks cannot be edited. They can only be marked as completed with a maximum rating of 3.');
-        return getTasks(dateStr);
+    if (cleanUpdates.status === 'done') {
+      cleanUpdates.wasMissed = true;
+      cleanUpdates.was_missed = 1;
+      if (cleanUpdates.rating !== undefined && cleanUpdates.rating !== null) {
+        cleanUpdates.rating = Math.min(Number(cleanUpdates.rating) || 1, 3);
       }
     }
   }
