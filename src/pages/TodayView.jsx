@@ -297,7 +297,7 @@ export default function TodayView() {
 
   useEffect(() => {
     const runAutoCarryOver = async () => {
-      if (currentDateStr !== todayStr || autoCarryOverDoneRef.current) return;
+      if (autoCarryOverDoneRef.current) return;
       autoCarryOverDoneRef.current = true;
 
       const allArcs = archives.length > 0 ? archives : store.getArchivesFromTasks();
@@ -332,7 +332,8 @@ export default function TodayView() {
 
       if (carriedCount > 0) {
         await store.fetchAllTasksApi();
-        setTasks(store.getTasks(currentDateStr));
+        setCurrentDateStr(todayStr);
+        setTasks(store.getTasks(todayStr));
         setArchives(store.getArchivesFromTasks());
 
         setAutoCarriedCount(carriedCount);
@@ -344,7 +345,7 @@ export default function TodayView() {
     };
 
     runAutoCarryOver();
-  }, [currentDateStr, todayStr, archives]);
+  }, [todayStr, archives]);
 
   // Compute all dates that contain recorded task data or archives (plus today)
   const validTaskDates = useMemo(() => {
