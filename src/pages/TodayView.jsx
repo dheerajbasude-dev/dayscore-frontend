@@ -1496,70 +1496,7 @@ export default function TodayView() {
   return (
     <div className="today-view animate-slide-up">
 
-      {/* Automated Carry-Over Toast Notification */}
-      {autoCarriedCount > 0 && showAutoCarriedBanner && (
-        <div className="card-glass animate-slide-up" style={{
-          padding: '14px 20px',
-          marginBottom: '20px',
-          borderRadius: 'var(--radius-lg)',
-          border: '1px solid rgba(10, 255, 255, 0.4)',
-          background: 'linear-gradient(135deg, rgba(10, 255, 255, 0.08) 0%, rgba(99, 102, 241, 0.05) 100%)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '12px',
-          boxShadow: '0 8px 24px rgba(10, 255, 255, 0.12)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '12px',
-              background: 'rgba(10, 255, 255, 0.15)',
-              border: '1px solid rgba(10, 255, 255, 0.4)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#0AFFFF',
-              flexShrink: 0
-            }}>
-              <RotateCcw size={18} />
-            </div>
-            <div>
-              <strong style={{ fontSize: '0.92rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                ⚡ {autoCarriedCount} {autoCarriedCount === 1 ? 'task' : 'tasks'} automatically carried over to Today!
-              </strong>
-              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginTop: '2px' }}>
-                Unfinished tasks from previous days have been brought forward automatically.
-              </span>
-            </div>
-          </div>
 
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={() => {
-              setShowAutoCarriedBanner(false);
-              try {
-                sessionStorage.setItem(`dayscore_dismiss_carried_${todayStr}`, 'true');
-              } catch (e) {}
-            }}
-            style={{
-              padding: '6px 16px',
-              fontSize: '0.82rem',
-              fontWeight: 700,
-              background: 'rgba(10, 255, 255, 0.15)',
-              border: '1px solid rgba(10, 255, 255, 0.4)',
-              color: '#0AFFFF',
-              borderRadius: 'var(--radius-md)',
-              cursor: 'pointer'
-            }}
-          >
-            OK
-          </button>
-        </div>
-      )}
 
       <ConfettiCelebration trigger={showConfetti} />
       <PenaltyCelebration trigger={showPenaltyFlash} />
