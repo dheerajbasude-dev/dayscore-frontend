@@ -361,8 +361,8 @@ export default function TodayView() {
     }
   }, [initialCarriedCount, todayStr]);
 
-  const [autoCarriedCount, setAutoCarriedCount] = useState(0);
-  const [showAutoCarriedBanner, setShowAutoCarriedBanner] = useState(false);
+  const [autoCarriedCount, setAutoCarriedCount] = useState(() => initialCarriedCount);
+  const [showAutoCarriedBanner, setShowAutoCarriedBanner] = useState(() => shouldShowInitialToast);
   const autoCarryOverDoneRef = useRef(false);
 
   // Mark localStorage when toast is actually shown
@@ -381,14 +381,11 @@ export default function TodayView() {
     if (count > 0) {
       setAutoCarriedCount(count);
       const isAlreadyShown = localStorage.getItem(`dayscore_shown_carried_${todayStr}`);
-      if (!isAlreadyShown && shouldShowInitialToast) {
+      if (!isAlreadyShown) {
         setShowAutoCarriedBanner(true);
       }
-    } else if (shouldShowInitialToast) {
-      setAutoCarriedCount(initialCarriedCount);
-      setShowAutoCarriedBanner(true);
     }
-  }, [tasks, todayStr, isCarriedTask, initialCarriedCount, shouldShowInitialToast]);
+  }, [tasks, todayStr, isCarriedTask, initialCarriedCount]);
 
   useEffect(() => {
     const runAutoCarryOver = async () => {
@@ -434,10 +431,9 @@ export default function TodayView() {
           };
           if (finalStatus === 'done') {
             updates.completed = true;
-            const validNotes = notes.filter(n => n && n.rating != null && !isNaN(Number(n.rating)));
-            if (validNotes.length > 0) {
-              const totalSum = validNotes.reduce((acc, n) => acc + Math.max(0, Number(n.rating)), 0);
-              updates.rating = Math.round((totalSum / validNotes.length) * 10) / 10;
+            if (ratedNotes.length > 0) {
+              const avgRating = Math.round((ratedNotes.reduce((sum, n) => sum + Number(n.rating), 0) / ratedNotes.length) * 10) / 10;
+              updates.rating = avgRating;
             }
           }
           await store.updateTask(todayStr, t.id || t._id, updates);
@@ -763,9 +759,7 @@ export default function TodayView() {
                 if (task.status !== finalStatus) {
                   const updates = { status: finalStatus };
                   if (finalStatus === 'done') {
-                    const validNotes = notes.filter(n => n && n.rating != null && !isNaN(Number(n.rating)));
-                    const totalSum = validNotes.reduce((acc, n) => acc + Math.max(0, Number(n.rating)), 0);
-                    const avgRating = validNotes.length > 0 ? Math.round((totalSum / validNotes.length) * 10) / 10 : 0;
+                    const avgRating = Math.round((ratedNotes.reduce((sum, n) => sum + Number(n.rating), 0) / ratedNotes.length) * 10) / 10;
                     updates.completed = true;
                     updates.completedAt = now.toISOString();
                     updates.completed_at = now.toISOString();
@@ -780,9 +774,7 @@ export default function TodayView() {
               if (task.status !== finalStatus) {
                 const updates = { status: finalStatus };
                 if (finalStatus === 'done') {
-                  const validNotes = notes.filter(n => n && n.rating != null && !isNaN(Number(n.rating)));
-                  const totalSum = validNotes.reduce((acc, n) => acc + Math.max(0, Number(n.rating)), 0);
-                  const avgRating = validNotes.length > 0 ? Math.round((totalSum / validNotes.length) * 10) / 10 : 0;
+                  const avgRating = Math.round((ratedNotes.reduce((sum, n) => sum + Number(n.rating), 0) / ratedNotes.length) * 10) / 10;
                   updates.completed = true;
                   updates.completedAt = now.toISOString();
                   updates.completed_at = now.toISOString();
@@ -951,12 +943,10 @@ export default function TodayView() {
       const taskDate = task.date || task.dateLabel || currentDateStr;
 
       if (ratedNotes.length > 0) {
-        const validNotes = notes.filter(n => n && n.rating != null && !isNaN(Number(n.rating)));
-        const totalSum = validNotes.reduce((acc, n) => acc + Math.max(0, Number(n.rating)), 0);
-        const avgRating = validNotes.length > 0 ? Math.round((totalSum / validNotes.length) * 10) / 10 : 0;
-
-        if (task.status !== 'done' || task.rating !== avgRating) {
+        if (task.status !== 'done') {
           modified = true;
+          const avgRating = Math.round((ratedNotes.reduce((sum, n) => sum + Number(n.rating), 0) / ratedNotes.length) * 10) / 10;
+
           await store.updateTask(taskDate, targetId, {
             status: 'done',
             completed: true,
@@ -1026,9 +1016,7 @@ export default function TodayView() {
     // ONLY perform automatic completion/missed status calculation IF task end date & time has overed (0s time remaining)
     if (isTaskTimeOver(targetTask)) {
       if (ratedNotes.length > 0) {
-        const validNotes = updatedNotes.filter(n => n && n.rating != null && !isNaN(Number(n.rating)));
-        const totalSum = validNotes.reduce((acc, n) => acc + Math.max(0, Number(n.rating)), 0);
-        const avgRating = validNotes.length > 0 ? Math.round((totalSum / validNotes.length) * 10) / 10 : 0;
+        const avgRating = Math.round((ratedNotes.reduce((sum, n) => sum + Number(n.rating), 0) / ratedNotes.length) * 10) / 10;
         const maxRating = targetTask.maxRating || targetTask.max_rating || 10;
 
         updates.status = 'done';
@@ -1381,7 +1369,7 @@ export default function TodayView() {
     setActivePunishment(null)
   }
 
-  const sortTasksByDefaultHierarchy = useCallback((a, b) => {
+  const sortTasksByDefaultHierarchy = (a, b) => {
     // Status Group Tier Hierarchy (Top to Bottom):
     // Tier 1: 🔴 Missed Tasks (Non-Carried)
     // Tier 2: 🔄🔴 Missed Carried-Over Tasks
@@ -1407,8 +1395,10 @@ export default function TodayView() {
       }
 
       // For Completed / Done Tasks (t.status === 'done'):
-      const isRewardClaimed = t.rewardClaimed === true || t.rewardClaimed === 1 || t.reward_claimed === 1 || t.reward_claimed === '1';
-      const isPenaltyAccepted = t.penaltyAccepted === true || t.penaltyAccepted === 1 || t.penalty_accepted === 1 || t.penalty_accepted === '1';
+      const isRewardClaimed = t.rewardClaimed === true || t.rewardClaimed === 1 || t.rewardClaimed === '1' ||
+                        t.reward_claimed === true || t.reward_claimed === 1 || t.reward_claimed === '1';
+      const isPenaltyAccepted = t.penaltyAccepted === true || t.penaltyAccepted === 1 || t.penaltyAccepted === '1' ||
+                         t.penalty_accepted === true || t.penalty_accepted === 1 || t.penalty_accepted === '1';
 
       const ratingNum = t.rating != null && !isNaN(Number(t.rating)) ? Number(t.rating) : null;
       const hasLowRatingPenalty = ratingNum != null && ratingNum <= 4.0;
@@ -1485,7 +1475,7 @@ export default function TodayView() {
     }
 
     return 0;
-  }, [isCarriedTask]);
+  };
 
   const displayTasksList = useMemo(() => {
     const rawList = viewMode === 'all' ? allTasksAcrossDates : tasks;
