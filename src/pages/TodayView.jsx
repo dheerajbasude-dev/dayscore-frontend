@@ -2138,23 +2138,13 @@ export default function TodayView() {
           <div className="toast-icon-wrapper">
             <AlertTriangle size={18} color="#fbbf24" />
           </div>
-          <span style={{ flex: 1, color: '#f8fafc' }}>{dateWarningToast}</span>
+          <span style={{ flex: 1, color: '#f8fafc', fontWeight: 600 }}>{dateWarningToast}</span>
           <button
             type="button"
+            className="toast-close-btn"
             onClick={() => setDateWarningToast(null)}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--text-muted)',
-              cursor: 'pointer',
-              padding: '2px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: '4px',
-              transition: 'color 0.15s'
-            }}
             title="Close"
+            aria-label="Close Toast"
           >
             <X size={16} />
           </button>
