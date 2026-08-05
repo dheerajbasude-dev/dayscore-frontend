@@ -167,7 +167,9 @@ export default function TaskCard({
   const cycleStatus = async () => {
     if (task.status === 'done' || isUpdatingStatus) return;
 
-    if (isMultiDayOrCarried && !hasNoteForToday) {
+    const requiresNote = Boolean(isCarriedOver || (notesList && notesList.length > 0));
+
+    if (requiresNote && !hasNoteForToday) {
       if (onShowToast) {
         onShowToast("Please submit today's progress note & rating before marking as completed!");
       }

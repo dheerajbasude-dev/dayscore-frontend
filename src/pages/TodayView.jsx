@@ -880,7 +880,7 @@ export default function TodayView() {
       } catch (e) {}
     }
 
-    const requiresDailyNote = isCarried || isMultiDay || hasNotes;
+    const requiresDailyNote = isCarried || hasNotes;
     const hasNoteForToday = notes.some(n => n && n.date && String(n.date).split('T')[0] === todayStr);
 
     if (requiresDailyNote && !hasNoteForToday) {
