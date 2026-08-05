@@ -57,6 +57,53 @@ export default function TaskCard({
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isJustCompleted, setIsJustCompleted] = useState(false);
 
+  if (task.isOptimistic) {
+    return (
+      <div
+        className="task-card card-glass animate-slide-up"
+        style={{
+          border: '1px solid rgba(99, 102, 241, 0.45)',
+          background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(168, 85, 247, 0.08) 100%)',
+          boxShadow: '0 8px 24px rgba(99, 102, 241, 0.18)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '14px',
+          padding: '14px 18px',
+          borderRadius: 'var(--radius-lg)',
+          marginBottom: '12px',
+          animation: 'optimisticPulse 1.8s ease-in-out infinite'
+        }}
+      >
+        <div style={{
+          width: '26px',
+          height: '26px',
+          borderRadius: '50%',
+          border: '2px solid rgba(99, 102, 241, 0.5)',
+          background: 'rgba(99, 102, 241, 0.15)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0
+        }}>
+          <Loader2 size={14} className="btn-spinner" style={{ color: 'var(--accent-primary)' }} />
+        </div>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#f8fafc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {task.title}
+            </span>
+            <span className="badge badge-pri" style={{ fontSize: '0.68rem', padding: '2px 8px', borderRadius: '10px', whiteSpace: 'nowrap' }}>
+              Adding...
+            </span>
+          </div>
+          <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+            Syncing task with MongoDB Atlas...
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   const notesList = Array.isArray(task.daily_notes || task.dailyNotes)
     ? (task.daily_notes || task.dailyNotes)
     : [];

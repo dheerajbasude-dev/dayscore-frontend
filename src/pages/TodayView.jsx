@@ -623,13 +623,40 @@ export default function TodayView() {
   useNotifications(tasks, settings.notifications, settings.reminderLeadTime ?? 30)
 
   const handleAddTask = async (newTask) => {
-    // ALWAYS create new tasks for TODAY's date (todayStr) as requested by user
-    await store.addTask(todayStr, newTask)
-    await store.fetchAllTasksApi()
-    setTasks(store.getTasks(currentDateStr))
-    setArchives(store.getAllArchives())
-    setShowAddModal(false)
-  }
+    // 1. Close modal instantly for 0ms delay UX
+    setShowAddModal(false);
+
+    // 2. Create optimistic task object
+    const tempId = `temp-add-${Date.now()}`;
+    const optimisticTask = {
+      id: tempId,
+      _id: tempId,
+      title: newTask.title,
+      category: newTask.category || 'General',
+      priority: newTask.priority || 'Med',
+      dueDateTime: newTask.dueDateTime || null,
+      due_date_time: newTask.dueDateTime || null,
+      status: 'pending',
+      date: todayStr,
+      isOptimistic: true,
+      createdAt: new Date().toISOString()
+    };
+
+    // 3. Insert optimistic task immediately into UI state
+    setTasks(prev => [optimisticTask, ...prev]);
+
+    try {
+      // 4. Save to backend API and sync store
+      await store.addTask(todayStr, newTask);
+      await store.fetchAllTasksApi();
+    } catch (err) {
+      console.error('Failed to save task:', err);
+    } finally {
+      // 5. Replace optimistic task with actual server task from store
+      setTasks(store.getTasks(currentDateStr));
+      setArchives(store.getAllArchives());
+    }
+  };
 
   const handleCarryOver = async (task) => {
     if (!task) return;

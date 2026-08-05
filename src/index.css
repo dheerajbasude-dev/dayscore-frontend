@@ -5255,3 +5255,14 @@ body {
     transform: rotate(-360deg);
   }
 }
+
+@keyframes optimisticPulse {
+  0%, 100% {
+    border-color: rgba(99, 102, 241, 0.45);
+    box-shadow: 0 8px 24px rgba(99, 102, 241, 0.18);
+  }
+  50% {
+    border-color: rgba(168, 85, 247, 0.75);
+    box-shadow: 0 10px 32px rgba(168, 85, 247, 0.35);
+  }
+}
