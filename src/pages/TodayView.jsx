@@ -1378,7 +1378,7 @@ export default function TodayView() {
     setActivePunishment(null)
   }
 
-  const sortTasksByDefaultHierarchy = (a, b) => {
+  const sortTasksByDefaultHierarchy = useCallback((a, b) => {
     // Status Group Tier Hierarchy (Top to Bottom):
     // Tier 1: 🔴 Missed Tasks (Non-Carried)
     // Tier 2: 🔄🔴 Missed Carried-Over Tasks
@@ -1404,10 +1404,8 @@ export default function TodayView() {
       }
 
       // For Completed / Done Tasks (t.status === 'done'):
-      const isRewardClaimed = t.rewardClaimed === true || t.rewardClaimed === 1 || t.rewardClaimed === '1' ||
-                        t.reward_claimed === true || t.reward_claimed === 1 || t.reward_claimed === '1';
-      const isPenaltyAccepted = t.penaltyAccepted === true || t.penaltyAccepted === 1 || t.penaltyAccepted === '1' ||
-                         t.penalty_accepted === true || t.penalty_accepted === 1 || t.penalty_accepted === '1';
+      const isRewardClaimed = t.rewardClaimed === true || t.rewardClaimed === 1 || t.reward_claimed === 1 || t.reward_claimed === '1';
+      const isPenaltyAccepted = t.penaltyAccepted === true || t.penaltyAccepted === 1 || t.penalty_accepted === 1 || t.penalty_accepted === '1';
 
       const ratingNum = t.rating != null && !isNaN(Number(t.rating)) ? Number(t.rating) : null;
       const hasLowRatingPenalty = ratingNum != null && ratingNum <= 4.0;
@@ -1484,7 +1482,7 @@ export default function TodayView() {
     }
 
     return 0;
-  };
+  }, [isCarriedTask]);
 
   const displayTasksList = useMemo(() => {
     const rawList = viewMode === 'all' ? allTasksAcrossDates : tasks;
