@@ -4881,6 +4881,12 @@ body {
   color: #ffffff;
 }
 
+.task-note-toggle-btn.active {
+    border-radius: 8px;
+    border: 1px solid white;
+    background: #ffffff1f !important;
+}
+
 .task-note-toggle-btn:hover {
   color: #ffffff !important;
   border-radius: 8px;
