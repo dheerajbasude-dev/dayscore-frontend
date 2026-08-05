@@ -2136,7 +2136,7 @@ export default function TodayView() {
         document.body
       )}
 
-      {showScrollTopBtn && (
+      {showScrollTopBtn && createPortal(
         <button
           type="button"
           className="scroll-to-top-btn"
@@ -2145,7 +2145,8 @@ export default function TodayView() {
           aria-label="Scroll to Top"
         >
           <ChevronUp size={20} strokeWidth={2.5} />
-        </button>
+        </button>,
+        document.body
       )}
 
       <ConfettiCelebration trigger={showConfetti} />

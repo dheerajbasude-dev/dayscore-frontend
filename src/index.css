@@ -5049,11 +5049,11 @@ body {
    ========================================================================== */
 
 .scroll-to-top-btn {
-  position: sticky;
+  position: fixed;
   bottom: 24px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 9999;
+  z-index: 99999;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -5065,6 +5065,7 @@ body {
   border: 1px solid rgba(99, 102, 241, 0.5);
   color: #a5b4fc;
   backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45), 0 0 15px rgba(99, 102, 241, 0.3);
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
@@ -5096,9 +5097,9 @@ body {
 
 @media (max-width: 640px) {
   .scroll-to-top-btn {
-    bottom: 18px;
-    width: 34px;
-    height: 34px;
+    bottom: 20px;
+    width: 38px;
+    height: 38px;
   }
 }
 
