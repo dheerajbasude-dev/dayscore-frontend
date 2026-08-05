@@ -43,6 +43,7 @@ export default function TaskCard({
   onClaimReward,
   onAcceptPenalty,
   onAddDailyNote,
+  onShowToast,
   isDeleting,
   animDelay = 0
 }) {
@@ -128,9 +129,8 @@ export default function TaskCard({
     });
   }, [notesList, todayDateStr]);
 
-  const handleClaim = async (e) => {
-    e.stopPropagation();
-    if (claiming || !onClaimReward) return;
+  const handleClaimReward = async () => {
+    if (!onClaimReward || claiming) return;
     setClaiming(true);
     try {
       await onClaimReward(task);
@@ -139,9 +139,8 @@ export default function TaskCard({
     }
   };
 
-  const handleAccept = async (e) => {
-    e.stopPropagation();
-    if (accepting || !onAcceptPenalty) return;
+  const handleAcceptPenalty = async () => {
+    if (!onAcceptPenalty || accepting) return;
     setAccepting(true);
     try {
       await onAcceptPenalty(task);
@@ -167,6 +166,13 @@ export default function TaskCard({
 
   const cycleStatus = async () => {
     if (task.status === 'done' || isUpdatingStatus) return;
+
+    if (!hasNoteForToday) {
+      if (onShowToast) {
+        onShowToast("⚠️ Please submit today's progress note & rating before marking as completed!");
+      }
+      return;
+    }
 
     if (task.status === 'missed') {
       if (!isToday) return;

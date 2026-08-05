@@ -842,11 +842,27 @@ export default function TodayView() {
     setArchives(store.getAllArchives())
   }
 
+  const showToast = useCallback((msg) => {
+    setDateWarningToast(msg);
+    setTimeout(() => {
+      setDateWarningToast(prev => (prev === msg ? null : prev));
+    }, 4000);
+  }, []);
+
   // Rating flow: open slider modal instead of directly completing
   const handleRequestComplete = (task) => {
     if (!task) return;
     if (task.status === 'missed' && currentDateStr < todayStr) return;
-    setRatingTask(task)
+
+    const notes = Array.isArray(task.daily_notes || task.dailyNotes) ? (task.daily_notes || task.dailyNotes) : [];
+    const hasNoteForToday = notes.some(n => n && n.date && String(n.date).split('T')[0] === todayStr);
+
+    if (!hasNoteForToday) {
+      showToast("⚠️ Please submit today's progress note & rating before marking as completed!");
+      return;
+    }
+
+    setRatingTask(task);
   }
 
   const handleRatingConfirm = async (ratingTaskId, rating, maxRating) => {
@@ -1859,6 +1875,7 @@ export default function TodayView() {
                     onClaimReward={handleClaimTaskReward}
                     onAcceptPenalty={handleAcceptTaskPenalty}
                     onAddDailyNote={handleAddDailyNote}
+                    onShowToast={showToast}
                   />
                 ))}
               </div>
