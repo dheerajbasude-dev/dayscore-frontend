@@ -361,8 +361,8 @@ export default function TodayView() {
     }
   }, [initialCarriedCount, todayStr]);
 
-  const [autoCarriedCount, setAutoCarriedCount] = useState(() => initialCarriedCount);
-  const [showAutoCarriedBanner, setShowAutoCarriedBanner] = useState(() => shouldShowInitialToast);
+  const [autoCarriedCount, setAutoCarriedCount] = useState(0);
+  const [showAutoCarriedBanner, setShowAutoCarriedBanner] = useState(false);
   const autoCarryOverDoneRef = useRef(false);
 
   // Mark localStorage when toast is actually shown
@@ -381,11 +381,14 @@ export default function TodayView() {
     if (count > 0) {
       setAutoCarriedCount(count);
       const isAlreadyShown = localStorage.getItem(`dayscore_shown_carried_${todayStr}`);
-      if (!isAlreadyShown) {
+      if (!isAlreadyShown && shouldShowInitialToast) {
         setShowAutoCarriedBanner(true);
       }
+    } else if (shouldShowInitialToast) {
+      setAutoCarriedCount(initialCarriedCount);
+      setShowAutoCarriedBanner(true);
     }
-  }, [tasks, todayStr, isCarriedTask, initialCarriedCount]);
+  }, [tasks, todayStr, isCarriedTask, initialCarriedCount, shouldShowInitialToast]);
 
   useEffect(() => {
     const runAutoCarryOver = async () => {
