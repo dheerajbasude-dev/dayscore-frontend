@@ -2233,6 +2233,35 @@ export default function TodayView() {
         document.body
       )}
 
+      {showAutoCarriedBanner && autoCarriedCount > 0 && createPortal(
+        <div className="responsive-toast-notification carried-over-toast">
+          <div className="toast-icon-wrapper carried-toast-icon">
+            <RotateCcw size={18} color="#0AFFFF" className="carried-icon-spin-subtle" />
+          </div>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <span style={{ color: '#ffffff', fontWeight: 700, fontSize: '0.92rem' }}>
+              Auto-Carried Over {autoCarriedCount} Task{autoCarriedCount > 1 ? 's' : ''}!
+            </span>
+            <span style={{ color: 'rgba(255, 255, 255, 0.75)', fontSize: '0.78rem' }}>
+              Rolled over unfinished tasks into Today's workspace.
+            </span>
+          </div>
+          <button
+            type="button"
+            className="toast-close-btn"
+            onClick={() => {
+              setShowAutoCarriedBanner(false);
+              sessionStorage.setItem(`dayscore_dismiss_carried_${todayStr}`, 'true');
+            }}
+            title="Dismiss"
+            aria-label="Dismiss Notification"
+          >
+            <X size={16} />
+          </button>
+        </div>,
+        document.body
+      )}
+
       {showScrollTopBtn && createPortal(
         <button
           type="button"
