@@ -295,6 +295,19 @@ export default function TodayView() {
   const [showAutoCarriedBanner, setShowAutoCarriedBanner] = useState(false);
   const autoCarryOverDoneRef = useRef(false);
 
+  // Instant 0ms toast notification check on page load
+  useEffect(() => {
+    const todayTasks = store.getTasks(todayStr);
+    const count = todayTasks.filter(t => isCarriedTask(t)).length;
+    if (count > 0) {
+      setAutoCarriedCount(count);
+      const isDismissed = sessionStorage.getItem(`dayscore_dismiss_carried_${todayStr}`);
+      if (!isDismissed) {
+        setShowAutoCarriedBanner(true);
+      }
+    }
+  }, [todayStr, isCarriedTask]);
+
   useEffect(() => {
     const runAutoCarryOver = async () => {
       if (autoCarryOverDoneRef.current) return;
