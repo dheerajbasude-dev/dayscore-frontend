@@ -2075,37 +2075,10 @@ export default function TodayView() {
                     />
                   </div>
 
-                  {/* Status & Special Type Filter */}
+                  {/* Task Type / Status Filter */}
                   <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                    <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span>Task Type / Status</span>
-                      {filterStatus !== 'all' && (
-                        <span 
-                          onClick={() => setFilterStatus('all')} 
-                          style={{ fontSize: '0.75rem', color: 'var(--accent-primary)', cursor: 'pointer', textDecoration: 'underline' }}
-                        >
-                          Clear status filter
-                        </span>
-                      )}
-                    </label>
-                    <CustomSelect
-                      value={filterStatus}
-                      onChange={val => setFilterStatus(val)}
-                      options={[
-                        { label: '⚡ All Task Types', value: 'all' },
-                        { label: '⏳ Pending Tasks', value: 'pending' },
-                        { label: '🔄 Carried Over Tasks', value: 'carriedOver' },
-                        { label: '✓ Completed Tasks', value: 'done' },
-                        { label: '⚠️ Missed Tasks', value: 'missed' },
-                        { label: '🎁 Unclaimed Rewards', value: 'unclaimedReward' },
-                        { label: '⚠️ Unacknowledged Penalties', value: 'unackPenalty' },
-                        { label: '🏆 Tasks with Reward', value: 'reward' },
-                        { label: '⚡ Tasks with Penalty', value: 'penalty' }
-                      ]}
-                    />
-
-                    {/* Quick Selection Responsive Pill Badges */}
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
+                    <label className="form-label">Task Type / Status</label>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '6px' }}>
                       {[
                         { id: 'all', label: 'All' },
                         { id: 'pending', label: '⏳ Pending' },
@@ -2114,27 +2087,33 @@ export default function TodayView() {
                         { id: 'missed', label: '⚠️ Missed' },
                         { id: 'unclaimedReward', label: '🎁 Rewards' },
                         { id: 'unackPenalty', label: '⚠️ Penalties' }
-                      ].map(chip => (
-                        <button
-                          key={chip.id}
-                          type="button"
-                          onClick={() => setFilterStatus(chip.id)}
-                          style={{
-                            padding: '4px 10px',
-                            borderRadius: '20px',
-                            fontSize: '0.75rem',
-                            fontWeight: '600',
-                            cursor: 'pointer',
-                            transition: 'all 0.15s ease',
-                            background: filterStatus === chip.id ? 'rgba(99, 102, 241, 0.25)' : 'rgba(255, 255, 255, 0.05)',
-                            color: filterStatus === chip.id ? '#ffffff' : 'var(--text-muted)',
-                            border: filterStatus === chip.id ? '1px solid var(--accent-primary)' : '1px solid rgba(255, 255, 255, 0.1)',
-                            boxShadow: filterStatus === chip.id ? '0 0 10px rgba(99, 102, 241, 0.3)' : 'none'
-                          }}
-                        >
-                          {chip.label}
-                        </button>
-                      ))}
+                      ].map(chip => {
+                        const isSelected = filterStatus === chip.id;
+                        return (
+                          <button
+                            key={chip.id}
+                            type="button"
+                            onClick={() => setFilterStatus(chip.id)}
+                            style={{
+                              padding: '6px 14px',
+                              borderRadius: '20px',
+                              fontSize: '0.80rem',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              transition: 'all 0.18s ease-in-out',
+                              background: isSelected 
+                                ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.35) 0%, rgba(129, 140, 248, 0.25) 100%)' 
+                                : 'rgba(255, 255, 255, 0.05)',
+                              color: isSelected ? '#ffffff' : 'rgba(255, 255, 255, 0.7)',
+                              border: isSelected ? '1px solid #818cf8' : '1px solid rgba(255, 255, 255, 0.12)',
+                              boxShadow: isSelected ? '0 0 12px rgba(129, 140, 248, 0.35)' : 'none',
+                              transform: isSelected ? 'scale(1.02)' : 'scale(1)'
+                            }}
+                          >
+                            {chip.label}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
