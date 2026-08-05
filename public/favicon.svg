@@ -1,10 +1,63 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
   <defs>
-    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#818cf8;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#a78bfa;stop-opacity:1" />
+    <!-- Dark Glass Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0F172A" />
+      <stop offset="50%" stop-color="#1E1B4B" />
+      <stop offset="100%" stop-color="#020617" />
     </linearGradient>
+
+    <!-- Vibrant Neon Ring Gradient -->
+    <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366F1" />
+      <stop offset="45%" stop-color="#8B5CF6" />
+      <stop offset="80%" stop-color="#06B6D4" />
+      <stop offset="100%" stop-color="#10B981" />
+    </linearGradient>
+
+    <!-- Lightning Flame Symbol Gradient -->
+    <linearGradient id="symbolGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8" />
+      <stop offset="50%" stop-color="#818CF8" />
+      <stop offset="100%" stop-color="#C084FC" />
+    </linearGradient>
+
+    <!-- Glow Filter -->
+    <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="10" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
   </defs>
-  <circle cx="50" cy="50" r="45" fill="url(#grad)" />
-  <text x="50" y="62" font-family="sans-serif" font-size="36" font-weight="bold" fill="white" text-anchor="middle">D</text>
+
+  <!-- Background Canvas Container -->
+  <rect width="512" height="512" rx="128" fill="url(#bgGrad)" />
+
+  <!-- Subtle Inner Border Shadow -->
+  <rect x="8" y="8" width="496" height="496" rx="120" fill="none" stroke="rgba(255, 255, 255, 0.15)" stroke-width="6" />
+
+  <!-- Background Ring Track -->
+  <circle cx="256" cy="256" r="185" fill="none" stroke="rgba(255, 255, 255, 0.08)" stroke-width="26" />
+
+  <!-- Outer Neon Score Progress Arc Ring -->
+  <circle cx="256" cy="256" r="185" fill="none" stroke="url(#ringGrad)" stroke-width="26" stroke-linecap="round" stroke-dasharray="1162" stroke-dashoffset="240" transform="rotate(-90 256 256)" filter="url(#neonGlow)" />
+
+  <!-- Center Core Icon: High Performance Lightning Shield -->
+  <g transform="translate(256, 256) scale(1.1) translate(-256, -256)" filter="url(#neonGlow)">
+    <!-- Electric Lightning Path -->
+    <path d="M 285 105 
+             L 185 260 
+             L 250 260 
+             L 215 405 
+             L 335 235 
+             L 268 235 
+             Z" 
+          fill="url(#symbolGrad)" 
+          stroke="#FFFFFF" 
+          stroke-width="7" 
+          stroke-linejoin="round" />
+    
+    <!-- Streak Flame Accent Star -->
+    <circle cx="345" cy="135" r="18" fill="#F59E0B" />
+    <circle cx="345" cy="135" r="9" fill="#FEF08A" />
+  </g>
 </svg>
