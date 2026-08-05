@@ -428,13 +428,106 @@ body {
 }
 
 .mobile-logo {
-  font-size: 1.2rem;
-  font-weight: 800;
-  color: var(--accent-primary);
   display: flex;
   align-items: center;
-  gap: 8px;
-  letter-spacing: -0.02em;
+}
+
+/* ==========================================================================
+   Ultra-Premium All-Device DayScore Brand Logo Title
+   ========================================================================== */
+
+.dayscore-brand-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  user-select: none;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.dayscore-brand-logo:hover .brand-logo-icon-wrapper {
+  transform: scale(1.08) rotate(4deg);
+  box-shadow: 0 0 18px rgba(99, 102, 241, 0.6);
+}
+
+.brand-logo-icon-wrapper {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.25) 0%, rgba(56, 189, 248, 0.15) 100%);
+  border: 1px solid rgba(129, 140, 248, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.35);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  flex-shrink: 0;
+}
+
+.brand-logo-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.brand-logo-text {
+  font-size: 1.25rem;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  display: inline-flex;
+  align-items: center;
+}
+
+.brand-text-day {
+  color: var(--text-primary, #ffffff);
+  font-weight: 900;
+}
+
+.brand-text-score {
+  background: linear-gradient(135deg, #818cf8 0%, #38bdf8 50%, #34d399 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 8px rgba(129, 140, 248, 0.45));
+  font-weight: 900;
+  margin-left: 1px;
+}
+
+/* Size Variants */
+.dayscore-brand-logo.small .brand-logo-icon-wrapper {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  padding: 3px;
+}
+
+.dayscore-brand-logo.small .brand-logo-text {
+  font-size: 1.05rem;
+}
+
+.dayscore-brand-logo.large .brand-logo-icon-wrapper {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  padding: 5px;
+}
+
+.dayscore-brand-logo.large .brand-logo-text {
+  font-size: 1.5rem;
+}
+
+/* Mobile Responsive Optimization */
+@media (max-width: 640px) {
+  .dayscore-brand-logo .brand-logo-icon-wrapper {
+    width: 28px;
+    height: 28px;
+    padding: 3px;
+  }
+
+  .dayscore-brand-logo .brand-logo-text {
+    font-size: 1.15rem;
+  }
 }
 
 .mobile-theme-toggle {

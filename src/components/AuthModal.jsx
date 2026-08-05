@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, LogIn, UserPlus, ShieldCheck, Mail, Lock, User } from 'lucide-react';
+import { X, LogIn, UserPlus, Mail, Lock, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import BrandLogo from './BrandLogo';
 
 export default function AuthModal({ isOpen, onClose }) {
-  const { login, register } = useAuth();
+  const { login, register: signup, user, logout } = useAuth();
   const [isSignUp, setIsSignUp] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -22,6 +23,30 @@ export default function AuthModal({ isOpen, onClose }) {
   }, [isOpen]);
 
   if (!isOpen) return null;
+
+  if (user) {
+    return createPortal(
+      <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-content auth-modal" onClick={e => e.stopPropagation()}>
+          <div className="modal-header">
+            <div className="auth-modal-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <BrandLogo size="small" />
+            </div>
+            <button className="btn-icon" onClick={onClose} aria-label="Close modal">
+              <X size={20} />
+            </button>
+          </div>
+          <div className="modal-form-body" style={{ padding: '20px', textAlign: 'center' }}>
+            <p>You are already signed in as {user.email}.</p>
+            <button className="btn btn-secondary" style={{ marginTop: '16px' }} onClick={() => { logout(); onClose(); }}>
+              Sign Out
+            </button>
+          </div>
+        </div>
+      </div>,
+      document.body
+    );
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -47,8 +72,8 @@ export default function AuthModal({ isOpen, onClose }) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content auth-modal" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
-          <div className="auth-modal-title">
-            <span className="logo-icon">◉</span> {isSignUp ? 'Create DayScore Account' : 'Welcome Back'}
+          <div className="auth-modal-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <BrandLogo size="small" />
           </div>
           <button className="btn-icon" onClick={onClose} aria-label="Close modal">
             <X size={20} />

@@ -5,6 +5,8 @@ import { useTheme } from '../hooks/useTheme';
 import { useAuth } from '../context/AuthContext';
 import AuthModal from './AuthModal';
 
+import BrandLogo from './BrandLogo';
+
 export default function Navigation() {
   const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
@@ -27,7 +29,7 @@ export default function Navigation() {
     <>
       <header className="mobile-topbar">
         <div className="mobile-logo">
-          <span className="logo-icon">◉</span> DayScore
+          <BrandLogo size="medium" />
         </div>
         <div className="mobile-topbar-actions">
           {user ? (
@@ -47,7 +49,7 @@ export default function Navigation() {
 
       <nav className="sidebar">
         <div className="sidebar-logo">
-          <span className="logo-icon">◉</span> DayScore
+          <BrandLogo size="medium" />
         </div>
 
         {user ? (
