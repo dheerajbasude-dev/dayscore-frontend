@@ -2152,18 +2152,17 @@ export default function TodayView() {
         document.body
       )}
 
-      {showScrollTopBtn && (
-        <div className="scroll-top-btn-container">
-          <button
-            type="button"
-            className="scroll-to-top-btn"
-            onClick={scrollToTop}
-            title="Scroll to Top"
-            aria-label="Scroll to Top"
-          >
-            <ChevronUp size={20} strokeWidth={2.5} />
-          </button>
-        </div>
+      {showScrollTopBtn && createPortal(
+        <button
+          type="button"
+          className="scroll-to-top-btn"
+          onClick={scrollToTop}
+          title="Scroll to Top"
+          aria-label="Scroll to Top"
+        >
+          <ChevronUp size={20} strokeWidth={2.5} />
+        </button>,
+        document.body
       )}
 
       <ConfettiCelebration trigger={showConfetti} />
