@@ -5496,3 +5496,162 @@ body {
   border: 1px solid rgba(10, 255, 255, 0.4);
   box-shadow: 0 0 10px rgba(10, 255, 255, 0.3);
 }
+
+/* ==========================================================================
+   Master Application-Wide Glassmorphism & Micro-Animation System
+   ========================================================================== */
+
+/* Ambient Glowing Background Orbs */
+body::before {
+  content: '';
+  position: fixed;
+  top: -160px;
+  left: -160px;
+  width: 550px;
+  height: 550px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.16) 0%, rgba(0, 0, 0, 0) 70%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  bottom: -220px;
+  right: -120px;
+  width: 650px;
+  height: 650px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.14) 0%, rgba(0, 0, 0, 0) 70%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Master Glassmorphic Card Surface Overrides */
+.card-glass,
+.task-controls-card,
+.reflection-section-top,
+.score-display-card,
+.task-card,
+.modal-content,
+.sidebar,
+.mobile-topbar {
+  background: rgba(18, 22, 42, 0.72) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.15) !important;
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.28s ease !important;
+}
+
+/* Light Mode Glass Overrides */
+[data-theme='light'] .card-glass,
+[data-theme='light'] .task-controls-card,
+[data-theme='light'] .reflection-section-top,
+[data-theme='light'] .score-display-card,
+[data-theme='light'] .task-card,
+[data-theme='light'] .modal-content,
+[data-theme='light'] .sidebar,
+[data-theme='light'] .mobile-topbar {
+  background: rgba(255, 255, 255, 0.82) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.06), inset 0 1px 1px rgba(255, 255, 255, 0.8) !important;
+}
+
+/* Task Card Interactive Glass & Lift Micro-Animation */
+.task-card:hover {
+  transform: translateY(-3px) scale(1.004) !important;
+  border-color: rgba(129, 140, 248, 0.4) !important;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.55), 0 0 20px rgba(99, 102, 241, 0.2) !important;
+}
+
+/* Master Button Micro-Animations & Glow Effects */
+.btn {
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.22s ease, border-color 0.22s ease !important;
+}
+
+.btn:hover {
+  transform: translateY(-2px) !important;
+}
+
+.btn:active {
+  transform: translateY(0) scale(0.96) !important;
+}
+
+.btn-primary:hover {
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.45), 0 0 16px rgba(99, 102, 241, 0.3) !important;
+}
+
+.btn-secondary:hover {
+  box-shadow: 0 6px 20px rgba(255, 255, 255, 0.12) !important;
+}
+
+.btn-danger:hover {
+  box-shadow: 0 8px 24px rgba(248, 113, 113, 0.45) !important;
+}
+
+.btn-success:hover {
+  box-shadow: 0 8px 24px rgba(52, 211, 153, 0.45) !important;
+}
+
+/* Input & Select Focus Glow Ring */
+input:focus,
+textarea:focus,
+select:focus,
+.task-search-input:focus,
+.custom-select-trigger:focus {
+  border-color: rgba(129, 140, 248, 0.6) !important;
+  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.25), 0 0 16px rgba(99, 102, 241, 0.2) !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+/* Glass Modal Entry Animation */
+@keyframes glassModalPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.92) translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.modal-overlay {
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  background: rgba(4, 6, 16, 0.75) !important;
+  transition: all 0.3s ease !important;
+}
+
+.modal-content {
+  animation: glassModalPop 0.32s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  border-radius: 20px !important;
+}
+
+/* Navigation Links Smooth Micro-Transitional Glow */
+.nav-link {
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.nav-link:hover {
+  transform: translateX(3px) !important;
+  background: rgba(255, 255, 255, 0.07) !important;
+}
+
+.nav-link.active {
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.25) !important;
+}
+
+/* Stat Chips Glow Hover Animation */
+.task-stat-chip {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.task-stat-chip:hover {
+  transform: translateY(-1px) scale(1.03) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+}
