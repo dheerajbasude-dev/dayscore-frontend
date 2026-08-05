@@ -2007,17 +2007,6 @@ export default function TodayView() {
         document.body
       )}
 
-      <MissedTasksModal
-        isOpen={isMissedModalOpen}
-        onClose={() => setIsMissedModalOpen(false)}
-        pastUnfinishedTasks={pastUnfinishedTasks}
-        onCarryOverTask={handleCarryOverMissedTask}
-        onCompleteTask={handleCompleteMissedTask}
-        onDeleteTask={handleDeleteMissedTask}
-        onCarryOverAll={handleCarryOverAllMissedTasks}
-        onJumpToDate={(d) => setCurrentDateStr(d)}
-      />
-
       {dateWarningToast && (
         <div className="animate-fade-in" style={{
           position: 'fixed',
