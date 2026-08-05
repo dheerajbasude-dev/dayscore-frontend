@@ -2107,27 +2107,12 @@ export default function TodayView() {
         document.body
       )}
 
-      {dateWarningToast && (
-        <div className="animate-fade-in" style={{
-          position: 'fixed',
-          bottom: '24px',
-          right: '24px',
-          zIndex: 999999,
-          background: 'rgba(239, 68, 68, 0.95)',
-          color: '#fff',
-          padding: '12px 18px',
-          borderRadius: 'var(--radius-md)',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
-          fontSize: '0.85rem',
-          fontWeight: 600,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          border: '1px solid rgba(255, 255, 255, 0.2)'
-        }}>
-          <AlertTriangle size={16} color="#fff" />
-          {dateWarningToast}
-        </div>
+      {dateWarningToast && createPortal(
+        <div className="responsive-toast-notification">
+          <AlertTriangle size={18} color="#ffffff" style={{ flexShrink: 0 }} />
+          <span>{dateWarningToast}</span>
+        </div>,
+        document.body
       )}
 
       {showScrollTopBtn && (
