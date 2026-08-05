@@ -4870,9 +4870,9 @@ body {
   }
 
   .task-stat-chip {
-    padding: 3px 8px;
-    font-size: 0.72rem;
-    border-radius: 8px;
+    padding: 3px 6px;
+    font-size: 0.70rem;
+    border-radius: 15px;
     gap: 4px;
     white-space: nowrap;
     flex-shrink: 0;
