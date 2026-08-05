@@ -290,15 +290,29 @@ export default function TaskCard({
     }
   };
 
+  const effectiveRating = useMemo(() => {
+    if (effectiveNotesList && effectiveNotesList.length > 0) {
+      const validNotes = effectiveNotesList.filter(n => n && n.rating != null && !isNaN(Number(n.rating)));
+      if (validNotes.length > 0) {
+        const totalSum = validNotes.reduce((sum, n) => sum + Math.max(0, Number(n.rating)), 0);
+        return Math.round((totalSum / validNotes.length) * 10) / 10;
+      }
+    }
+    if (task.rating != null && !isNaN(Number(task.rating))) {
+      return Number(task.rating);
+    }
+    return null;
+  }, [effectiveNotesList, task.rating]);
+
   const getRatingBadgeClass = () => {
-    const num = Number(task.rating);
+    const num = Number(effectiveRating);
     if (isNaN(num) || num <= 4.0) return 'rating-badge-low';
     if (num <= 8.5) return 'rating-badge-medium';
     return 'rating-badge-high';
   };
 
   const maxR = task.maxRating || task.max_rating || 10;
-  const ratingDisplay = task.status === 'done' && task.rating != null;
+  const ratingDisplay = (task.status === 'done' || (hasRatingNote ?? false)) && effectiveRating != null;
   const getStartDateISO = () => {
     if (task.createdAt || task.created_at) return task.createdAt || task.created_at;
     if (task.date) return `${task.date}T00:00:00`;
@@ -483,7 +497,7 @@ export default function TaskCard({
           {ratingDisplay && (
             <>
               <span className="meta-dot">·</span>
-              <span className={`rating-badge ${getRatingBadgeClass()}`}>★ {task.rating}/{maxR}</span>
+              <span className={`rating-badge ${getRatingBadgeClass()}`}>★ {effectiveRating}/{maxR}</span>
             </>
           )}
           {(createdFormatted || dueFormatted) && (

@@ -431,9 +431,10 @@ export default function TodayView() {
           };
           if (finalStatus === 'done') {
             updates.completed = true;
-            if (ratedNotes.length > 0) {
-              const avgRating = Math.round((ratedNotes.reduce((sum, n) => sum + Number(n.rating), 0) / ratedNotes.length) * 10) / 10;
-              updates.rating = avgRating;
+            const validNotes = notes.filter(n => n && n.rating != null && !isNaN(Number(n.rating)));
+            if (validNotes.length > 0) {
+              const totalSum = validNotes.reduce((acc, n) => acc + Math.max(0, Number(n.rating)), 0);
+              updates.rating = Math.round((totalSum / validNotes.length) * 10) / 10;
             }
           }
           await store.updateTask(todayStr, t.id || t._id, updates);
@@ -759,7 +760,9 @@ export default function TodayView() {
                 if (task.status !== finalStatus) {
                   const updates = { status: finalStatus };
                   if (finalStatus === 'done') {
-                    const avgRating = Math.round((ratedNotes.reduce((sum, n) => sum + Number(n.rating), 0) / ratedNotes.length) * 10) / 10;
+                    const validNotes = notes.filter(n => n && n.rating != null && !isNaN(Number(n.rating)));
+                    const totalSum = validNotes.reduce((acc, n) => acc + Math.max(0, Number(n.rating)), 0);
+                    const avgRating = validNotes.length > 0 ? Math.round((totalSum / validNotes.length) * 10) / 10 : 0;
                     updates.completed = true;
                     updates.completedAt = now.toISOString();
                     updates.completed_at = now.toISOString();
@@ -774,7 +777,9 @@ export default function TodayView() {
               if (task.status !== finalStatus) {
                 const updates = { status: finalStatus };
                 if (finalStatus === 'done') {
-                  const avgRating = Math.round((ratedNotes.reduce((sum, n) => sum + Number(n.rating), 0) / ratedNotes.length) * 10) / 10;
+                  const validNotes = notes.filter(n => n && n.rating != null && !isNaN(Number(n.rating)));
+                  const totalSum = validNotes.reduce((acc, n) => acc + Math.max(0, Number(n.rating)), 0);
+                  const avgRating = validNotes.length > 0 ? Math.round((totalSum / validNotes.length) * 10) / 10 : 0;
                   updates.completed = true;
                   updates.completedAt = now.toISOString();
                   updates.completed_at = now.toISOString();
@@ -943,10 +948,12 @@ export default function TodayView() {
       const taskDate = task.date || task.dateLabel || currentDateStr;
 
       if (ratedNotes.length > 0) {
-        if (task.status !== 'done') {
-          modified = true;
-          const avgRating = Math.round((ratedNotes.reduce((sum, n) => sum + Number(n.rating), 0) / ratedNotes.length) * 10) / 10;
+        const validNotes = notes.filter(n => n && n.rating != null && !isNaN(Number(n.rating)));
+        const totalSum = validNotes.reduce((acc, n) => acc + Math.max(0, Number(n.rating)), 0);
+        const avgRating = validNotes.length > 0 ? Math.round((totalSum / validNotes.length) * 10) / 10 : 0;
 
+        if (task.status !== 'done' || task.rating !== avgRating) {
+          modified = true;
           await store.updateTask(taskDate, targetId, {
             status: 'done',
             completed: true,
@@ -1016,7 +1023,9 @@ export default function TodayView() {
     // ONLY perform automatic completion/missed status calculation IF task end date & time has overed (0s time remaining)
     if (isTaskTimeOver(targetTask)) {
       if (ratedNotes.length > 0) {
-        const avgRating = Math.round((ratedNotes.reduce((sum, n) => sum + Number(n.rating), 0) / ratedNotes.length) * 10) / 10;
+        const validNotes = updatedNotes.filter(n => n && n.rating != null && !isNaN(Number(n.rating)));
+        const totalSum = validNotes.reduce((acc, n) => acc + Math.max(0, Number(n.rating)), 0);
+        const avgRating = validNotes.length > 0 ? Math.round((totalSum / validNotes.length) * 10) / 10 : 0;
         const maxRating = targetTask.maxRating || targetTask.max_rating || 10;
 
         updates.status = 'done';
