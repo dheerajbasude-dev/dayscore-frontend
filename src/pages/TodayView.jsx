@@ -1890,38 +1890,36 @@ export default function TodayView() {
                   )}
                 </div>
 
-                <div className="task-actions-group-controls">
-                  {/* Inline Sort Selection */}
-                  <div className="task-sort-wrapper">
-                    <CustomSelect
-                      value={sortOption}
-                      onChange={val => setSortOption(val)}
-                      options={[
-                        { label: '⚡Default', value: 'default' },
-                        { label: '⏰Due Time', value: 'urgency' },
-                        { label: '★High Rating', value: 'rating_desc' },
-                        { label: '★Low Rating', value: 'rating_asc' },
-                        { label: '🔤Title (A-Z)', value: 'title_asc' },
-                        { label: '📁Category', value: 'category' },
-                        { label: '🆕Newest', value: 'created_desc' }
-                      ]}
-                    />
-                  </div>
-
-                  <button
-                    type="button"
-                    className={`btn btn-secondary btn-sm task-filter-btn ${activeFilterCount > 0 ? 'active' : ''}`}
-                    onClick={() => setShowFilterModal(true)}
-                  >
-                    <SlidersHorizontal size={14} />
-                    <span>Filters</span>
-                    {activeFilterCount > 0 && (
-                      <span className="badge badge-pri" style={{ fontSize: '0.65rem', padding: '1px 5px', borderRadius: '10px' }}>
-                        {activeFilterCount}
-                      </span>
-                    )}
-                  </button>
+                {/* Inline Sort Selection */}
+                <div className="task-sort-wrapper">
+                  <CustomSelect
+                    value={sortOption}
+                    onChange={val => setSortOption(val)}
+                    options={[
+                      { label: '⚡Default', value: 'default' },
+                      { label: '⏰Due Time', value: 'urgency' },
+                      { label: '★High Rating', value: 'rating_desc' },
+                      { label: '★Low Rating', value: 'rating_asc' },
+                      { label: '🔤Title (A-Z)', value: 'title_asc' },
+                      { label: '📁Category', value: 'category' },
+                      { label: '🆕Newest', value: 'created_desc' }
+                    ]}
+                  />
                 </div>
+
+                <button
+                  type="button"
+                  className={`btn btn-secondary btn-sm task-filter-btn ${activeFilterCount > 0 ? 'active' : ''}`}
+                  onClick={() => setShowFilterModal(true)}
+                >
+                  <SlidersHorizontal size={14} />
+                  <span>Filters</span>
+                  {activeFilterCount > 0 && (
+                    <span className="badge badge-pri" style={{ fontSize: '0.65rem', padding: '1px 5px', borderRadius: '10px' }}>
+                      {activeFilterCount}
+                    </span>
+                  )}
+                </button>
               </div>
 
             </div>
