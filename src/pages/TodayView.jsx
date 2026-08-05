@@ -297,25 +297,38 @@ export default function TodayView() {
   }, [currentDateStr]);
 
   // --- Automated Background Carry-Over Toast Notification State ---
-  const [autoCarriedCount, setAutoCarriedCount] = useState(0);
-  const [showAutoCarriedBanner, setShowAutoCarriedBanner] = useState(false);
-  const autoCarryOverDoneRef = useRef(false);
+  const initialTodayTasks = useMemo(() => store.getTasks(todayStr), [todayStr]);
+  const initialCarriedCount = useMemo(() => {
+    return initialTodayTasks.filter(t => {
+      if (!t) return false;
+      const isCarried = Boolean(t.carriedOver || t.carried_over || t.wasCarried || t.isCarried);
+      const orig = t.originalDate || t.original_date;
+      const origDate = orig ? (typeof orig === 'string' ? orig.trim().substring(0, 10) : '') : '';
+      const createdDate = t.createdAt ? (typeof t.createdAt === 'string' ? t.createdAt.substring(0, 10) : '') : 
+                         (t.created_at ? (typeof t.created_at === 'string' ? t.created_at.substring(0, 10) : '') : '');
+      const effectiveOrig = origDate || createdDate;
+      if (effectiveOrig && effectiveOrig >= todayStr) return false;
+      if (isCarried) return true;
+      if (effectiveOrig && effectiveOrig < todayStr) return true;
+      return false;
+    }).length;
+  }, [initialTodayTasks, todayStr]);
 
-  // Display carried task toast notification ONCE PER DAY on first visit
-  useEffect(() => {
-    const todayTasks = store.getTasks(todayStr);
-    const count = todayTasks.filter(t => isCarriedTask(t)).length;
-    if (count > 0) {
-      setAutoCarriedCount(count);
+  const shouldShowInitialToast = useMemo(() => {
+    if (initialCarriedCount <= 0) return false;
+    try {
       const isAlreadyShown = localStorage.getItem(`dayscore_shown_carried_${todayStr}`);
       if (!isAlreadyShown) {
-        setShowAutoCarriedBanner(true);
-        try {
-          localStorage.setItem(`dayscore_shown_carried_${todayStr}`, 'true');
-        } catch (e) {}
+        localStorage.setItem(`dayscore_shown_carried_${todayStr}`, 'true');
+        return true;
       }
-    }
-  }, [todayStr, isCarriedTask]);
+    } catch (e) {}
+    return false;
+  }, [initialCarriedCount, todayStr]);
+
+  const [autoCarriedCount, setAutoCarriedCount] = useState(() => initialCarriedCount);
+  const [showAutoCarriedBanner, setShowAutoCarriedBanner] = useState(() => shouldShowInitialToast);
+  const autoCarryOverDoneRef = useRef(false);
 
   useEffect(() => {
     const runAutoCarryOver = async () => {
