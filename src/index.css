@@ -5095,115 +5095,17 @@ body {
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 1023px) {
   .scroll-to-top-btn {
-    bottom: 20px;
-    width: 38px;
-    height: 38px;
-  }
-}
-
-/* ==========================================================================
-   Blinking Carried-Over Logo Badge & Pulse Glow Animation (#0AFFFF)
-   ========================================================================== */
-
-.carried-over-blinking-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  padding: 0;
-  border-radius: 50%;
-  color: #0AFFFF;
-  background: rgba(10, 255, 255, 0.12);
-  border: 1px solid rgba(10, 255, 255, 0.45);
-  box-shadow: 0 0 10px rgba(10, 255, 255, 0.3);
-  animation: carriedBlinkGlow 2s ease-in-out infinite;
-  user-select: none;
-  flex-shrink: 0;
-}
-
-@keyframes carriedBlinkGlow {
-  0%, 100% {
-    opacity: 1;
-    border-color: rgba(10, 255, 255, 0.65);
-    box-shadow: 0 0 12px rgba(10, 255, 255, 0.45);
-  }
-  50% {
-    opacity: 0.5;
-    border-color: rgba(10, 255, 255, 0.25);
-    box-shadow: 0 0 4px rgba(10, 255, 255, 0.15);
-  }
-}
-
-.carried-icon-spin-subtle {
-  animation: subtleRotate 6s linear infinite;
-  color: #0AFFFF;
-}
-
-@keyframes subtleRotate {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(-360deg); }
-}
-
-/* ==========================================================================
-   Fully Responsive All-Device Friendly Toast Notification
-   ========================================================================== */
-
-.responsive-toast-notification {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  z-index: 9999999;
-  background: rgba(18, 20, 38, 0.88);
-  color: #ffffff;
-  padding: 12px 16px;
-  border-radius: 16px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75), 0 0 25px rgba(245, 158, 11, 0.2);
-  font-size: 0.85rem;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  border: 1px solid rgba(245, 158, 11, 0.45);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  max-width: 440px;
-  width: calc(100vw - 32px);
-  word-break: break-word;
-  line-height: 1.45;
-  box-sizing: border-box;
-  animation: toastSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.toast-icon-wrapper {
-  width: 32px;
-  height: 32px;
-  border-radius: 10px;
-  background: rgba(245, 158, 11, 0.18);
-  border: 1px solid rgba(245, 158, 11, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  color: #fbbf24;
-}
-
-@keyframes toastSlideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
+    bottom: calc(var(--bottom-nav-height, 68px) + 16px + env(safe-area-inset-bottom, 0px));
+    width: 40px;
+    height: 40px;
   }
 }
 
 @media (max-width: 640px) {
   .responsive-toast-notification {
-    bottom: 16px;
+    bottom: calc(var(--bottom-nav-height, 68px) + 16px + env(safe-area-inset-bottom, 0px));
     left: 16px;
     right: 16px;
     width: auto;
