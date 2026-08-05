@@ -1785,12 +1785,13 @@ export default function TodayView() {
           <div className="card-glass task-controls-card" style={{ marginBottom: '16px' }}>
             <div className="compact-task-toolbar">
               
-              {/* Left Group: Total Tasks Badge & Stat Chips */}
+              {/* Row 1 / Left Group: Total Tasks Badge, Scrollable Stat Chips & Mobile Filters Button */}
               <div className="total-tasks-badge-group">
                 <div className="total-tasks-badge">
                   <Layers size={15} style={{ color: 'var(--accent-primary)', flexShrink: 0 }} />
                   <span><strong>{displayTasksList.length}</strong></span>
                 </div>
+
                 <div className="total-tasks-stat-group">
                   {displayTasksList.filter(t => t.status !== 'done' && t.status !== 'missed').length > 0 && (
                     <span className="task-stat-chip chip-pending" title="Pending Tasks">
@@ -1813,9 +1814,24 @@ export default function TodayView() {
                     </span>
                   )}
                 </div>
+
+                <button
+                  type="button"
+                  className={`btn btn-secondary btn-sm mobile-filter-btn ${activeFilterCount > 0 ? 'active' : ''}`}
+                  onClick={() => setShowFilterModal(true)}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap', padding: '6px 12px', height: '32px', fontSize: '0.8rem' }}
+                >
+                  <SlidersHorizontal size={14} />
+                  <span>Filters</span>
+                  {activeFilterCount > 0 && (
+                    <span className="badge badge-pri" style={{ fontSize: '0.65rem', padding: '1px 5px', borderRadius: '10px' }}>
+                      {activeFilterCount}
+                    </span>
+                  )}
+                </button>
               </div>
 
-              {/* Right Group: Search, Sort & Filters */}
+              {/* Row 2 / Right Group: Search, Sort & Desktop Filters */}
               <div className="task-actions-group">
                 <div className="task-search-input-wrapper">
                   <Search size={15} className="search-icon" />
@@ -1846,12 +1862,12 @@ export default function TodayView() {
                     { label: '📁Category', value: 'category' },
                     { label: '🆕Newest', value: 'created_desc' }
                   ]}
-                  style={{ width: 'auto', minWidth: '135px' }}
+                  style={{ width: 'auto', minWidth: '120px', flex: '0 0 auto' }}
                 />
 
                 <button
                   type="button"
-                  className={`btn btn-secondary btn-sm ${activeFilterCount > 0 ? 'active' : ''}`}
+                  className={`btn btn-secondary btn-sm desktop-filter-btn ${activeFilterCount > 0 ? 'active' : ''}`}
                   onClick={() => setShowFilterModal(true)}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap', padding: '6px 12px', height: '36px', fontSize: '0.82rem' }}
                 >
@@ -1866,6 +1882,7 @@ export default function TodayView() {
               </div>
 
             </div>
+          </div>
 
             {/* Active Filters Bar & Reset Action */}
             {activeFilterCount > 0 && (
@@ -1924,7 +1941,6 @@ export default function TodayView() {
                 </button>
               </div>
             )}
-          </div>
 
           <div className="tasks-section">
             {displayTasksList.length === 0 ? (
