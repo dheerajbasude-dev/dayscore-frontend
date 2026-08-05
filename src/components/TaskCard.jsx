@@ -279,9 +279,8 @@ export default function TaskCard({
     const orig = task.originalDate || task.original_date;
     const origDate = orig ? (typeof orig === 'string' ? orig.trim().substring(0, 10) : '') : '';
     if (origDate && origDate < targetDateCompareStr) return true;
-    if (taskCreatedDateStr && taskCreatedDateStr < targetDateCompareStr) return true;
     return false;
-  }, [task.carriedOver, task.carried_over, task.wasCarried, task.isCarried, task.originalDate, task.original_date, targetDateCompareStr, taskCreatedDateStr]);
+  }, [task.carriedOver, task.carried_over, task.wasCarried, task.isCarried, task.originalDate, task.original_date, targetDateCompareStr]);
 
   const checkExtendsBeyondToday = () => {
     if (isCarriedOver) return true;
