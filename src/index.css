@@ -4834,21 +4834,15 @@ body {
     gap: 8px;
   }
 
-  /* Row 1: Unified Horizontal Stats Bar */
+  /* Row 1: Unified Wrapping Stats Bar */
   .total-tasks-badge-group {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
     width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 4px;
+    flex-wrap: wrap;
+    padding-bottom: 6px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    scrollbar-width: none;
-  }
-
-  .total-tasks-badge-group::-webkit-scrollbar {
-    display: none;
   }
 
   .total-tasks-badge {
@@ -4872,8 +4866,7 @@ body {
     display: flex;
     align-items: center;
     gap: 5px;
-    flex-wrap: nowrap;
-    flex-shrink: 0;
+    flex-wrap: wrap;
   }
 
   .task-stat-chip {
