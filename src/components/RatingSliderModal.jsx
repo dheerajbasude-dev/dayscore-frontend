@@ -21,6 +21,10 @@ export default function RatingSliderModal({ task, onConfirm, onCancel }) {
     }
   }, [task.status, task.dueDateTime, task.due_date_time]);
 
+  const maxRating = useMemo(() => {
+    return task.maxRating || task.max_rating || (isOverdue ? 3 : 10);
+  }, [task.maxRating, task.max_rating, isOverdue]);
+
   const initialDefaultRating = useMemo(() => {
     if (isOverdue) return 1.5;
     const notes = Array.isArray(task.daily_notes || task.dailyNotes) ? (task.daily_notes || task.dailyNotes) : [];
