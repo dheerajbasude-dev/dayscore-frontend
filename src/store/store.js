@@ -1,4 +1,4 @@
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { calculateDailyScore } from './scoring';
 
 export const getDateKey = (date) => format(date || new Date(), 'yyyy-MM-dd');
@@ -44,8 +44,68 @@ const authFetch = async (url, options = {}) => {
 export function getTasks(dateStr) {
   const uid = getUserId();
   const cleanDate = dateStr ? (dateStr.includes('T') ? dateStr.split('T')[0] : dateStr.trim().substring(0, 10)) : format(new Date(), 'yyyy-MM-dd');
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+
   const data = localStorage.getItem(`dayscore_${uid}_tasks_${cleanDate}`);
-  return data ? JSON.parse(data) : [];
+  let tasks = data ? JSON.parse(data) : [];
+
+  if (cleanDate === todayStr) {
+    const prefix = `dayscore_${uid}_tasks_`;
+    const pastCarried = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(prefix) && key !== `dayscore_${uid}_tasks_${todayStr}`) {
+        const pastDate = key.replace(prefix, '');
+        if (pastDate < todayStr) {
+          try {
+            const pastList = JSON.parse(localStorage.getItem(key)) || [];
+            pastList.forEach(t => {
+              if (t.status !== 'done') {
+                const dueIso = t.dueDateTime || t.due_date_time;
+                let shouldCarry = true;
+                if (dueIso) {
+                  try {
+                    const dueObj = typeof dueIso === 'string' ? parseISO(dueIso) : new Date(dueIso);
+                    const dueDateStr = format(dueObj, 'yyyy-MM-dd');
+                    if (dueDateStr < todayStr) shouldCarry = false;
+                  } catch (e) {}
+                }
+                if (shouldCarry) {
+                  pastCarried.push({
+                    ...t,
+                    date: todayStr,
+                    status: t.status === 'done' ? 'done' : 'pending',
+                    carriedOver: true,
+                    carried_over: 1,
+                    originalDate: t.originalDate || t.original_date || pastDate,
+                    original_date: t.originalDate || t.original_date || pastDate
+                  });
+                }
+              }
+            });
+          } catch (e) {}
+        }
+      }
+    }
+
+    if (pastCarried.length > 0) {
+      const existingIds = new Set(tasks.map(t => String(t.id || t._id)));
+      let added = false;
+      pastCarried.forEach(pt => {
+        const pid = String(pt.id || pt._id);
+        if (!existingIds.has(pid)) {
+          tasks.push(pt);
+          existingIds.add(pid);
+          added = true;
+        }
+      });
+      if (added) {
+        localStorage.setItem(`dayscore_${uid}_tasks_${cleanDate}`, JSON.stringify(tasks));
+      }
+    }
+  }
+
+  return tasks;
 }
 
 export function isTasksCached(dateStr) {
@@ -129,14 +189,52 @@ export async function fetchAllTasksApi() {
     if (res.ok) {
       const data = await res.json();
       const serverTasks = (data.tasks || []).map(formatServerTask);
+      const todayStr = format(new Date(), 'yyyy-MM-dd');
 
       const tasksByDate = new Map();
       serverTasks.forEach(t => {
-        const d = t.date || format(new Date(), 'yyyy-MM-dd');
+        const d = t.date || todayStr;
         if (!tasksByDate.has(d)) {
           tasksByDate.set(d, []);
         }
         tasksByDate.get(d).push(t);
+      });
+
+      // Synchronously assign carried-over tasks to todayStr
+      tasksByDate.forEach((tasksList, d) => {
+        if (d < todayStr) {
+          tasksList.forEach(t => {
+            if (t.status !== 'done') {
+              const dueIso = t.dueDateTime || t.due_date_time;
+              let shouldCarry = true;
+              if (dueIso) {
+                try {
+                  const dueObj = typeof dueIso === 'string' ? parseISO(dueIso) : new Date(dueIso);
+                  const dueDateStr = format(dueObj, 'yyyy-MM-dd');
+                  if (dueDateStr < todayStr) shouldCarry = false;
+                } catch (e) {}
+              }
+              if (shouldCarry) {
+                if (!tasksByDate.has(todayStr)) {
+                  tasksByDate.set(todayStr, []);
+                }
+                const todayList = tasksByDate.get(todayStr);
+                const exists = todayList.some(existing => String(existing.id || existing._id) === String(t.id || t._id));
+                if (!exists) {
+                  todayList.push({
+                    ...t,
+                    date: todayStr,
+                    status: t.status === 'done' ? 'done' : 'pending',
+                    carriedOver: true,
+                    carried_over: 1,
+                    originalDate: t.originalDate || t.original_date || d,
+                    original_date: t.originalDate || t.original_date || d
+                  });
+                }
+              }
+            }
+          });
+        }
       });
 
       // Clear local task cache for this user to remove stale/guest/un-synced items
