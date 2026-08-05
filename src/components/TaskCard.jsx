@@ -290,30 +290,12 @@ export default function TaskCard({
     }
   };
 
-  const getRatingBadgeClass = (overrideRating) => {
-    const num = Number(overrideRating != null ? overrideRating : task.rating);
+  const getRatingBadgeClass = () => {
+    const num = Number(task.rating);
     if (isNaN(num) || num <= 4.0) return 'rating-badge-low';
     if (num <= 8.5) return 'rating-badge-medium';
     return 'rating-badge-high';
   };
-
-  const displayRating = useMemo(() => {
-    if (effectiveNotesList && effectiveNotesList.length > 0) {
-      const totalSum = effectiveNotesList.reduce((acc, n) => {
-        if (!n) return acc;
-        const r = parseFloat(n.rating != null ? n.rating : (n.score != null ? n.score : 0));
-        return acc + (isNaN(r) ? 0 : Math.max(0, r));
-      }, 0);
-      const totalCount = effectiveNotesList.length;
-      if (totalCount > 0) {
-        return Math.round((totalSum / totalCount) * 10) / 10;
-      }
-    }
-    if (task.rating != null && !isNaN(Number(task.rating))) {
-      return Number(task.rating);
-    }
-    return null;
-  }, [effectiveNotesList, task.rating]);
 
   const maxR = task.maxRating || task.max_rating || 10;
   const ratingDisplay = task.status === 'done' && task.rating != null;
@@ -498,10 +480,10 @@ export default function TaskCard({
           <span className={`badge badge-${task.category.toLowerCase()}`}>{task.category}</span>
           <span className="meta-dot">·</span>
           <span className={`priority-text priority-${task.priority.toLowerCase()}`}>{task.priority}</span>
-          {displayRating != null && (
+          {ratingDisplay && (
             <>
               <span className="meta-dot">·</span>
-              <span className={`rating-badge ${getRatingBadgeClass(displayRating)}`}>★ {displayRating}/{maxR}</span>
+              <span className={`rating-badge ${getRatingBadgeClass()}`}>★ {task.rating}/{maxR}</span>
             </>
           )}
           {(createdFormatted || dueFormatted) && (

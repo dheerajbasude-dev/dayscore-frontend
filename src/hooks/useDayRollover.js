@@ -17,12 +17,8 @@ export function useDayRollover(currentDateStr, tasks, onRollover) {
             const notes = Array.isArray(task.daily_notes || task.dailyNotes) ? (task.daily_notes || task.dailyNotes) : [];
             const ratedNotes = notes.filter(n => n && n.rating != null && Number(n.rating) > 0 && !n.isAutoMissed);
 
-            if (notes.length > 0) {
-              const totalSum = notes.reduce((sum, n) => {
-                const r = parseFloat(n ? (n.rating != null ? n.rating : (n.score != null ? n.score : 0)) : 0);
-                return sum + (isNaN(r) ? 0 : Math.max(0, r));
-              }, 0);
-              const avgRating = Math.round((totalSum / notes.length) * 10) / 10;
+            if (ratedNotes.length > 0) {
+              const avgRating = Math.round((ratedNotes.reduce((sum, n) => sum + Number(n.rating), 0) / ratedNotes.length) * 10) / 10;
               return {
                 ...task,
                 status: 'done',

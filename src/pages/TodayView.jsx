@@ -431,12 +431,8 @@ export default function TodayView() {
           };
           if (finalStatus === 'done') {
             updates.completed = true;
-            if (notes.length > 0) {
-              const totalSum = notes.reduce((sum, n) => {
-                const r = parseFloat(n ? (n.rating != null ? n.rating : (n.score != null ? n.score : 0)) : 0);
-                return sum + (isNaN(r) ? 0 : Math.max(0, r));
-              }, 0);
-              const avgRating = Math.round((totalSum / notes.length) * 10) / 10;
+            if (ratedNotes.length > 0) {
+              const avgRating = Math.round((ratedNotes.reduce((sum, n) => sum + Number(n.rating), 0) / ratedNotes.length) * 10) / 10;
               updates.rating = avgRating;
             }
           }
@@ -760,14 +756,10 @@ export default function TodayView() {
                 }
               } else if (dueDateObj < now) {
                 const finalStatus = ratedNotes.length > 0 ? 'done' : 'missed';
-                if (task.status !== finalStatus || (finalStatus === 'done' && (task.rating == null || Number(task.rating) > 3.9))) {
+                if (task.status !== finalStatus) {
                   const updates = { status: finalStatus };
                   if (finalStatus === 'done') {
-                    const totalSum = notes.reduce((sum, n) => {
-                      const r = parseFloat(n ? (n.rating != null ? n.rating : (n.score != null ? n.score : 0)) : 0);
-                      return sum + (isNaN(r) ? 0 : Math.max(0, r));
-                    }, 0);
-                    const avgRating = Math.round((totalSum / notes.length) * 10) / 10;
+                    const avgRating = Math.round((ratedNotes.reduce((sum, n) => sum + Number(n.rating), 0) / ratedNotes.length) * 10) / 10;
                     updates.completed = true;
                     updates.completedAt = now.toISOString();
                     updates.completed_at = now.toISOString();
@@ -779,14 +771,10 @@ export default function TodayView() {
               }
             } else if (arc.date < todayStr) {
               const finalStatus = ratedNotes.length > 0 ? 'done' : 'missed';
-              if (task.status !== finalStatus || (finalStatus === 'done' && (task.rating == null || Number(task.rating) > 3.9))) {
+              if (task.status !== finalStatus) {
                 const updates = { status: finalStatus };
                 if (finalStatus === 'done') {
-                  const totalSum = notes.reduce((sum, n) => {
-                    const r = parseFloat(n ? (n.rating != null ? n.rating : (n.score != null ? n.score : 0)) : 0);
-                    return sum + (isNaN(r) ? 0 : Math.max(0, r));
-                  }, 0);
-                  const avgRating = Math.round((totalSum / notes.length) * 10) / 10;
+                  const avgRating = Math.round((ratedNotes.reduce((sum, n) => sum + Number(n.rating), 0) / ratedNotes.length) * 10) / 10;
                   updates.completed = true;
                   updates.completedAt = now.toISOString();
                   updates.completed_at = now.toISOString();
@@ -955,14 +943,10 @@ export default function TodayView() {
       const taskDate = task.date || task.dateLabel || currentDateStr;
 
       if (ratedNotes.length > 0) {
-        const totalSum = notes.reduce((sum, n) => {
-          const r = parseFloat(n ? (n.rating != null ? n.rating : (n.score != null ? n.score : 0)) : 0);
-          return sum + (isNaN(r) ? 0 : Math.max(0, r));
-        }, 0);
-        const avgRating = Math.round((totalSum / notes.length) * 10) / 10;
-
-        if (task.status !== 'done' || task.rating !== avgRating) {
+        if (task.status !== 'done') {
           modified = true;
+          const avgRating = Math.round((ratedNotes.reduce((sum, n) => sum + Number(n.rating), 0) / ratedNotes.length) * 10) / 10;
+
           await store.updateTask(taskDate, targetId, {
             status: 'done',
             completed: true,
@@ -1032,15 +1016,10 @@ export default function TodayView() {
     // ONLY perform automatic completion/missed status calculation IF task end date & time has overed (0s time remaining)
     if (isTaskTimeOver(targetTask)) {
       if (ratedNotes.length > 0) {
-        const totalSum = updatedNotes.reduce((sum, n) => {
-          const r = parseFloat(n ? (n.rating != null ? n.rating : (n.score != null ? n.score : 0)) : 0);
-          return sum + (isNaN(r) ? 0 : Math.max(0, r));
-        }, 0);
-        const avgRating = Math.round((totalSum / updatedNotes.length) * 10) / 10;
+        const avgRating = Math.round((ratedNotes.reduce((sum, n) => sum + Number(n.rating), 0) / ratedNotes.length) * 10) / 10;
         const maxRating = targetTask.maxRating || targetTask.max_rating || 10;
 
         updates.status = 'done';
-        updates.completed = true;
         updates.completedAt = now.toISOString();
         updates.completed_at = now.toISOString();
         updates.rating = avgRating;
