@@ -300,19 +300,57 @@ export default function TodayView() {
       if (autoCarryOverDoneRef.current) return;
       autoCarryOverDoneRef.current = true;
 
+      // 1. Clean up any tasks currently attached to todayStr whose due date expired on a past date
+      const currentTodayTasks = store.getTasks(todayStr);
+      let cleanedUpCount = 0;
+      for (const t of currentTodayTasks) {
+        const dueIso = t.dueDateTime || t.due_date_time;
+        const orig = t.originalDate || t.original_date;
+        const origDate = orig ? (typeof orig === 'string' ? orig.trim().substring(0, 10) : '') : '';
+        let dueDateStr = '';
+        if (dueIso) {
+          try {
+            const dueObj = typeof dueIso === 'string' ? parseISO(dueIso) : new Date(dueIso);
+            dueDateStr = format(dueObj, 'yyyy-MM-dd');
+          } catch (e) {}
+        }
+        const targetPastDate = (dueDateStr && dueDateStr < todayStr) ? dueDateStr : (origDate && origDate < todayStr ? origDate : '');
+        if (targetPastDate) {
+          await store.updateTask(todayStr, t.id || t._id, {
+            date: targetPastDate,
+            carriedOver: false,
+            carried_over: 0,
+            status: t.status === 'pending' || t.status === 'inprogress' ? 'missed' : t.status
+          });
+          cleanedUpCount++;
+        }
+      }
+
+      // 2. Scan past pending tasks, but skip tasks whose end date / due date expired on a past date
       const allArcs = archives.length > 0 ? archives : store.getArchivesFromTasks();
       const pastPending = [];
       allArcs.forEach(arc => {
         if (arc.date && arc.date < todayStr && Array.isArray(arc.tasks)) {
           arc.tasks.forEach(t => {
             if (t.status === 'pending' || t.status === 'inprogress') {
-              pastPending.push({ ...t, taskDate: arc.date });
+              const dueIso = t.dueDateTime || t.due_date_time;
+              let isExpiredOnPastDate = false;
+              if (dueIso) {
+                try {
+                  const dueObj = typeof dueIso === 'string' ? parseISO(dueIso) : new Date(dueIso);
+                  const dueDateStr = format(dueObj, 'yyyy-MM-dd');
+                  if (dueDateStr < todayStr) {
+                    isExpiredOnPastDate = true;
+                  }
+                } catch (e) {}
+              }
+              if (!isExpiredOnPastDate) {
+                pastPending.push({ ...t, taskDate: arc.date });
+              }
             }
           });
         }
       });
-
-      if (pastPending.length === 0) return;
 
       let carriedCount = 0;
       for (const task of pastPending) {
@@ -330,16 +368,18 @@ export default function TodayView() {
         carriedCount++;
       }
 
-      if (carriedCount > 0) {
+      if (carriedCount > 0 || cleanedUpCount > 0) {
         await store.fetchAllTasksApi();
         setCurrentDateStr(todayStr);
         setTasks(store.getTasks(todayStr));
         setArchives(store.getArchivesFromTasks());
 
-        setAutoCarriedCount(carriedCount);
-        const isDismissed = sessionStorage.getItem(`dayscore_dismiss_carried_${todayStr}`);
-        if (!isDismissed) {
-          setShowAutoCarriedBanner(true);
+        if (carriedCount > 0) {
+          setAutoCarriedCount(carriedCount);
+          const isDismissed = sessionStorage.getItem(`dayscore_dismiss_carried_${todayStr}`);
+          if (!isDismissed) {
+            setShowAutoCarriedBanner(true);
+          }
         }
       }
     };
