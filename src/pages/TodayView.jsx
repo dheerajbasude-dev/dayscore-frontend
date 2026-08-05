@@ -1834,26 +1834,26 @@ export default function TodayView() {
                 </div>
 
                 {/* Inline Sort Selection */}
-                <CustomSelect
-                  value={sortOption}
-                  onChange={val => setSortOption(val)}
-                  options={[
-                    { label: '⚡Default', value: 'default' },
-                    { label: '⏰Due Time', value: 'urgency' },
-                    { label: '★High Rating', value: 'rating_desc' },
-                    { label: '★Low Rating', value: 'rating_asc' },
-                    { label: '🔤Title (A-Z)', value: 'title_asc' },
-                    { label: '📁Category', value: 'category' },
-                    { label: '🆕Newest', value: 'created_desc' }
-                  ]}
-                  style={{ width: 'auto', minWidth: '135px' }}
-                />
+                <div className="task-sort-wrapper">
+                  <CustomSelect
+                    value={sortOption}
+                    onChange={val => setSortOption(val)}
+                    options={[
+                      { label: '⚡Default', value: 'default' },
+                      { label: '⏰Due Time', value: 'urgency' },
+                      { label: '★High Rating', value: 'rating_desc' },
+                      { label: '★Low Rating', value: 'rating_asc' },
+                      { label: '🔤Title (A-Z)', value: 'title_asc' },
+                      { label: '📁Category', value: 'category' },
+                      { label: '🆕Newest', value: 'created_desc' }
+                    ]}
+                  />
+                </div>
 
                 <button
                   type="button"
-                  className={`btn btn-secondary btn-sm ${activeFilterCount > 0 ? 'active' : ''}`}
+                  className={`btn btn-secondary btn-sm task-filter-btn ${activeFilterCount > 0 ? 'active' : ''}`}
                   onClick={() => setShowFilterModal(true)}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap', padding: '6px 12px', height: '36px', fontSize: '0.82rem' }}
                 >
                   <SlidersHorizontal size={14} />
                   <span>Filters</span>
