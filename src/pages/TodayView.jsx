@@ -351,8 +351,8 @@ export default function TodayView() {
           });
           cleanedUpCount++;
         }
-        // B: If task carried over to today AND its due date is today or future, ensure status is 'pending'
-        else if (t.status === 'missed' && (!dueDateStr || dueDateStr >= todayStr)) {
+        // B: If a task originating from a PAST date carried over to today AND its due date is today or future, ensure status is 'pending'
+        else if (t.status === 'missed' && origDate && origDate < todayStr && (!dueDateStr || dueDateStr >= todayStr)) {
           await store.updateTask(todayStr, t.id || t._id, {
             status: 'pending',
             carriedOver: true,

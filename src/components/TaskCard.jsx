@@ -341,12 +341,23 @@ export default function TaskCard({
   }, [isDone, task.status, task.dueDateTime, task.due_date_time, targetDateCompareStr]);
 
   const isCarriedOver = useMemo(() => {
-    if (task.carriedOver || task.carried_over || task.wasCarried || task.isCarried) return true;
     const orig = task.originalDate || task.original_date;
     const origDate = orig ? (typeof orig === 'string' ? orig.trim().substring(0, 10) : '') : '';
+    const createdDate = taskCreatedDateStr || '';
+
+    // If task originated/created on or after the targetDate, it is NOT carried over!
+    const effectiveOrig = origDate || createdDate;
+    if (effectiveOrig && effectiveOrig >= targetDateCompareStr) {
+      return false;
+    }
+
+    if (task.carriedOver || task.carried_over || task.wasCarried || task.isCarried) {
+      if (effectiveOrig && effectiveOrig < targetDateCompareStr) return true;
+      if (!effectiveOrig) return true;
+    }
     if (origDate && origDate < targetDateCompareStr) return true;
     return false;
-  }, [task.carriedOver, task.carried_over, task.wasCarried, task.isCarried, task.originalDate, task.original_date, targetDateCompareStr]);
+  }, [task.carriedOver, task.carried_over, task.wasCarried, task.isCarried, task.originalDate, task.original_date, taskCreatedDateStr, targetDateCompareStr]);
 
   const checkExtendsBeyondToday = () => {
     if (isCarriedOver) return true;
