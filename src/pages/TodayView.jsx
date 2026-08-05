@@ -854,10 +854,32 @@ export default function TodayView() {
     if (!task) return;
     if (task.status === 'missed' && currentDateStr < todayStr) return;
 
+    const isCarried = Boolean(
+      task.carriedOver ||
+      task.carried_over ||
+      task.wasCarried ||
+      task.isCarried ||
+      (task.originalDate && task.originalDate.trim().substring(0, 10) !== currentDateStr) ||
+      (task.original_date && task.original_date.trim().substring(0, 10) !== currentDateStr)
+    );
+
     const notes = Array.isArray(task.daily_notes || task.dailyNotes) ? (task.daily_notes || task.dailyNotes) : [];
+    const hasNotes = notes.length > 0;
+
+    const dueIso = task.dueDateTime || task.due_date_time;
+    let isMultiDay = false;
+    if (dueIso) {
+      try {
+        const d = typeof dueIso === 'string' ? parseISO(dueIso) : new Date(dueIso);
+        const dueDateStr = format(d, 'yyyy-MM-dd');
+        if (dueDateStr > todayStr) isMultiDay = true;
+      } catch (e) {}
+    }
+
+    const requiresDailyNote = isCarried || isMultiDay || hasNotes;
     const hasNoteForToday = notes.some(n => n && n.date && String(n.date).split('T')[0] === todayStr);
 
-    if (!hasNoteForToday) {
+    if (requiresDailyNote && !hasNoteForToday) {
       showToast("Please submit today's progress note & rating before marking as completed!");
       return;
     }
