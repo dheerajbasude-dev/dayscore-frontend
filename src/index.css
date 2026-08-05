@@ -5048,12 +5048,20 @@ body {
    Floating Center "Scroll to Top" Circular Icon Button
    ========================================================================== */
 
-.scroll-to-top-btn {
-  position: fixed;
+.scroll-top-btn-container {
+  position: sticky;
   bottom: 24px;
-  left: calc(50% + (var(--sidebar-width, 260px) / 2));
-  transform: translateX(-50%);
-  z-index: 99999;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+  z-index: 9999;
+  margin-top: 16px;
+}
+
+.scroll-to-top-btn {
+  pointer-events: auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -5073,7 +5081,7 @@ body {
 }
 
 .scroll-to-top-btn:hover {
-  transform: translateX(-50%) translateY(-3px);
+  transform: translateY(-3px);
   background: rgba(99, 102, 241, 0.95);
   color: #ffffff;
   border-color: rgba(165, 180, 252, 0.8);
@@ -5081,24 +5089,25 @@ body {
 }
 
 .scroll-to-top-btn:active {
-  transform: translateX(-50%) translateY(0);
+  transform: translateY(0);
 }
 
 @keyframes floatInUp {
   0% {
     opacity: 0;
-    transform: translateX(-50%) translateY(15px) scale(0.9);
+    transform: translateY(15px) scale(0.9);
   }
   100% {
     opacity: 1;
-    transform: translateX(-50%) translateY(0) scale(1);
+    transform: translateY(0) scale(1);
   }
 }
 
 @media (max-width: 1023px) {
-  .scroll-to-top-btn {
-    left: 50%;
+  .scroll-top-btn-container {
     bottom: calc(var(--bottom-nav-height, 68px) + 16px + env(safe-area-inset-bottom, 0px));
+  }
+  .scroll-to-top-btn {
     width: 40px;
     height: 40px;
   }
