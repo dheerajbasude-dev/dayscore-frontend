@@ -355,17 +355,37 @@ export default function TodayView() {
     if (initialCarriedCount <= 0) return false;
     try {
       const isAlreadyShown = localStorage.getItem(`dayscore_shown_carried_${todayStr}`);
-      if (!isAlreadyShown) {
-        localStorage.setItem(`dayscore_shown_carried_${todayStr}`, 'true');
-        return true;
-      }
-    } catch (e) {}
-    return false;
+      return !isAlreadyShown;
+    } catch (e) {
+      return false;
+    }
   }, [initialCarriedCount, todayStr]);
 
   const [autoCarriedCount, setAutoCarriedCount] = useState(() => initialCarriedCount);
   const [showAutoCarriedBanner, setShowAutoCarriedBanner] = useState(() => shouldShowInitialToast);
   const autoCarryOverDoneRef = useRef(false);
+
+  // Mark localStorage when toast is actually shown
+  useEffect(() => {
+    if (showAutoCarriedBanner) {
+      try {
+        localStorage.setItem(`dayscore_shown_carried_${todayStr}`, 'true');
+      } catch (e) {}
+    }
+  }, [showAutoCarriedBanner, todayStr]);
+
+  // Synchronously update carried task toast for both Date View and All Tasks mode instantly
+  useEffect(() => {
+    const todayTasks = store.getTasks(todayStr);
+    const count = todayTasks.filter(t => isCarriedTask(t)).length || initialCarriedCount;
+    if (count > 0) {
+      setAutoCarriedCount(count);
+      const isAlreadyShown = localStorage.getItem(`dayscore_shown_carried_${todayStr}`);
+      if (!isAlreadyShown) {
+        setShowAutoCarriedBanner(true);
+      }
+    }
+  }, [tasks, todayStr, isCarriedTask, initialCarriedCount]);
 
   useEffect(() => {
     const runAutoCarryOver = async () => {
