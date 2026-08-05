@@ -858,7 +858,7 @@ export default function TodayView() {
     const hasNoteForToday = notes.some(n => n && n.date && String(n.date).split('T')[0] === todayStr);
 
     if (!hasNoteForToday) {
-      showToast("⚠️ Please submit today's progress note & rating before marking as completed!");
+      showToast("Please submit today's progress note & rating before marking as completed!");
       return;
     }
 
@@ -2109,8 +2109,29 @@ export default function TodayView() {
 
       {dateWarningToast && createPortal(
         <div className="responsive-toast-notification">
-          <AlertTriangle size={18} color="#ffffff" style={{ flexShrink: 0 }} />
-          <span>{dateWarningToast}</span>
+          <div className="toast-icon-wrapper">
+            <AlertTriangle size={18} color="#fbbf24" />
+          </div>
+          <span style={{ flex: 1, color: '#f8fafc' }}>{dateWarningToast}</span>
+          <button
+            type="button"
+            onClick={() => setDateWarningToast(null)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+              padding: '2px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '4px',
+              transition: 'color 0.15s'
+            }}
+            title="Close"
+          >
+            <X size={16} />
+          </button>
         </div>,
         document.body
       )}

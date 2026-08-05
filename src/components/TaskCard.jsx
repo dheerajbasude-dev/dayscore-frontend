@@ -169,7 +169,7 @@ export default function TaskCard({
 
     if (!hasNoteForToday) {
       if (onShowToast) {
-        onShowToast("⚠️ Please submit today's progress note & rating before marking as completed!");
+        onShowToast("Please submit today's progress note & rating before marking as completed!");
       }
       return;
     }
