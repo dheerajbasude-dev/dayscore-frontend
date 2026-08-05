@@ -4822,129 +4822,111 @@ body {
 
 @media (max-width: 768px) {
   .task-controls-card {
-    padding: 8px 10px !important;
-    margin-bottom: 10px !important;
+    padding: 10px 12px !important;
+    margin-bottom: 12px !important;
     border-radius: 12px !important;
   }
 
   .compact-task-toolbar {
-    display: flex;
     flex-direction: column;
     align-items: stretch;
-    gap: 6px;
+    gap: 8px;
   }
 
-  /* Row 1: Single line horizontal scrollable badge bar */
   .total-tasks-badge-group {
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    gap: 6px !important;
-    width: 100% !important;
-    overflow-x: auto !important;
-    scrollbar-width: none !important;
-    -ms-overflow-style: none !important;
-    flex-wrap: nowrap !important;
-    padding-bottom: 2px;
-  }
-
-  .total-tasks-badge-group::-webkit-scrollbar {
-    display: none !important;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
   }
 
   .total-tasks-badge {
-    font-size: 0.76rem !important;
-    padding: 3px 8px !important;
-    background: rgba(255, 255, 255, 0.06) !important;
-    border-radius: 8px !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    flex-shrink: 0 !important;
-    white-space: nowrap !important;
+    font-size: 0.78rem;
+    padding: 3px 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
   }
 
   .total-tasks-badge strong {
-    font-size: 0.85rem !important;
+    font-size: 0.88rem;
   }
 
   .total-tasks-stat-group {
-    display: flex !important;
-    align-items: center !important;
-    gap: 5px !important;
-    flex-shrink: 0 !important;
-    flex-wrap: nowrap !important;
+    gap: 4px;
+    flex-wrap: wrap;
   }
 
   .task-stat-chip {
-    padding: 2px 7px !important;
-    font-size: 0.72rem !important;
-    border-radius: 10px !important;
-    gap: 3px !important;
-    flex-shrink: 0 !important;
-    white-space: nowrap !important;
+    padding: 2px 7px;
+    font-size: 0.72rem;
+    border-radius: 10px;
+    gap: 3px;
   }
 
-  /* Row 2: Search + Sort + Filters side-by-side in 1 single row */
   .task-actions-group {
-    display: flex !important;
+    display: flex;
     flex-direction: row !important;
-    align-items: center !important;
-    gap: 5px !important;
-    width: 100% !important;
-    flex-wrap: nowrap !important;
-    justify-content: space-between !important;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    justify-content: space-between;
   }
 
   .task-actions-group .task-search-input-wrapper {
-    flex: 1 1 auto !important;
-    min-width: 0 !important;
-    width: 0 !important;
-    max-width: none !important;
+    flex: 1 1 auto;
+    min-width: 0;
+    width: auto;
+    max-width: none;
   }
 
   .task-actions-group .task-search-input {
-    height: 32px !important;
-    padding: 4px 6px 4px 26px !important;
-    font-size: 0.75rem !important;
+    height: 34px !important;
+    padding: 4px 8px 4px 28px !important;
+    font-size: 0.78rem !important;
     border-radius: 8px !important;
   }
 
   .task-sort-wrapper {
-    min-width: unset !important;
-    width: auto !important;
-    flex-shrink: 0 !important;
+    min-width: 110px;
+    flex-shrink: 0;
   }
 
   .task-actions-group .custom-select-trigger {
-    height: 32px !important;
-    padding: 4px 6px !important;
-    font-size: 0.75rem !important;
+    height: 34px !important;
+    padding: 4px 8px !important;
+    font-size: 0.76rem !important;
     border-radius: 8px !important;
-    gap: 3px !important;
-    flex-shrink: 0 !important;
-    white-space: nowrap !important;
+    gap: 4px !important;
   }
 
   .task-filter-btn {
-    height: 32px !important;
-    padding: 4px 8px !important;
-    font-size: 0.75rem !important;
+    height: 34px !important;
+    padding: 4px 10px !important;
+    font-size: 0.76rem !important;
     border-radius: 8px !important;
-    flex-shrink: 0 !important;
-    gap: 3px !important;
-    white-space: nowrap !important;
+    flex-shrink: 0;
   }
 }
 
 @media (max-width: 480px) {
   .task-controls-card {
-    padding: 6px 8px !important;
+    padding: 8px 10px !important;
+  }
+
+  .task-sort-wrapper {
+    min-width: 95px;
   }
 
   .task-actions-group .custom-select-trigger span {
-    max-width: 55px;
+    max-width: 65px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .task-filter-btn {
+    padding: 4px 8px !important;
   }
 }
 
