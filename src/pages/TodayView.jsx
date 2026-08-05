@@ -297,22 +297,59 @@ export default function TodayView() {
   }, [currentDateStr]);
 
   // --- Automated Background Carry-Over Toast Notification State ---
-  const initialTodayTasks = useMemo(() => store.getTasks(todayStr), [todayStr]);
   const initialCarriedCount = useMemo(() => {
-    return initialTodayTasks.filter(t => {
-      if (!t) return false;
+    const uid = store.getUserId();
+    const prefix = `dayscore_${uid}_tasks_`;
+    const todayTasks = store.getTasks(todayStr);
+
+    let carriedSet = new Set();
+    // 1. Check current today tasks
+    todayTasks.forEach(t => {
+      if (!t) return;
       const isCarried = Boolean(t.carriedOver || t.carried_over || t.wasCarried || t.isCarried);
       const orig = t.originalDate || t.original_date;
       const origDate = orig ? (typeof orig === 'string' ? orig.trim().substring(0, 10) : '') : '';
       const createdDate = t.createdAt ? (typeof t.createdAt === 'string' ? t.createdAt.substring(0, 10) : '') : 
                          (t.created_at ? (typeof t.created_at === 'string' ? t.created_at.substring(0, 10) : '') : '');
       const effectiveOrig = origDate || createdDate;
-      if (effectiveOrig && effectiveOrig >= todayStr) return false;
-      if (isCarried) return true;
-      if (effectiveOrig && effectiveOrig < todayStr) return true;
-      return false;
-    }).length;
-  }, [initialTodayTasks, todayStr]);
+      if (effectiveOrig && effectiveOrig < todayStr && t.status !== 'done') {
+        carriedSet.add(String(t.id || t._id));
+      } else if (isCarried && (!effectiveOrig || effectiveOrig < todayStr) && t.status !== 'done') {
+        carriedSet.add(String(t.id || t._id));
+      }
+    });
+
+    // 2. Pre-scan all past keys in localStorage for guest/user
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.includes('_tasks_') && !key.endsWith(`_tasks_${todayStr}`)) {
+        const parts = key.split('_tasks_');
+        const pastDate = parts[1] ? parts[1].trim().substring(0, 10) : '';
+        if (pastDate && pastDate < todayStr) {
+          try {
+            const pastList = JSON.parse(localStorage.getItem(key)) || [];
+            pastList.forEach(t => {
+              if (t.status !== 'done') {
+                const dueIso = t.dueDateTime || t.due_date_time;
+                let shouldCarry = true;
+                if (dueIso) {
+                  try {
+                    const dueObj = typeof dueIso === 'string' ? parseISO(dueIso) : new Date(dueIso);
+                    const dueDateStr = format(dueObj, 'yyyy-MM-dd');
+                    if (dueDateStr < todayStr) shouldCarry = false;
+                  } catch (e) {}
+                }
+                if (shouldCarry) {
+                  carriedSet.add(String(t.id || t._id));
+                }
+              }
+            });
+          } catch (e) {}
+        }
+      }
+    }
+    return carriedSet.size;
+  }, [todayStr]);
 
   const shouldShowInitialToast = useMemo(() => {
     if (initialCarriedCount <= 0) return false;
