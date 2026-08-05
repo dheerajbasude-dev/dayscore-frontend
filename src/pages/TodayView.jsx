@@ -5,7 +5,6 @@ import ScoreRing from '../components/ScoreRing'
 import TaskCard from '../components/TaskCard'
 import AddTaskModal from '../components/AddTaskModal'
 import RatingSliderModal from '../components/RatingSliderModal'
-import MissedTasksModal from '../components/MissedTasksModal'
 import CustomDatePicker from '../components/CustomDatePicker'
 import CustomSelect from '../components/CustomSelect'
 import ReflectionBox from '../components/ReflectionBox'
@@ -291,9 +290,9 @@ export default function TodayView() {
     return false;
   }, [currentDateStr]);
 
-  const [isMissedModalOpen, setIsMissedModalOpen] = useState(false)
-
-  // --- Automated Carry-Over for Past Unfinished Tasks ---
+  // --- Automated Background Carry-Over Toast Notification State ---
+  const [autoCarriedCount, setAutoCarriedCount] = useState(0);
+  const [showAutoCarriedBanner, setShowAutoCarriedBanner] = useState(false);
   const autoCarryOverDoneRef = useRef(false);
 
   useEffect(() => {
@@ -336,99 +335,16 @@ export default function TodayView() {
         setTasks(store.getTasks(currentDateStr));
         setArchives(store.getArchivesFromTasks());
 
-        const ackKey = `dayscore_auto_carried_ack_${todayStr}_${carriedCount}`;
-        if (!sessionStorage.getItem(ackKey)) {
-          setAutoCarriedToastInfo({
-            count: carriedCount,
-            ackKey
-          });
+        setAutoCarriedCount(carriedCount);
+        const isDismissed = sessionStorage.getItem(`dayscore_dismiss_carried_${todayStr}`);
+        if (!isDismissed) {
+          setShowAutoCarriedBanner(true);
         }
       }
     };
 
     runAutoCarryOver();
   }, [currentDateStr, todayStr, archives]);
-
-  const pastUnfinishedTasks = useMemo(() => {
-    const list = [];
-    const allArcs = archives.length > 0 ? archives : store.getArchivesFromTasks();
-    allArcs.forEach(arc => {
-      if (arc.date && arc.date < todayStr && Array.isArray(arc.tasks)) {
-        arc.tasks.forEach(t => {
-          if (t.status === 'pending' || t.status === 'inprogress') {
-            list.push({ ...t, taskDate: arc.date });
-          }
-        });
-      }
-    });
-    return list;
-  }, [archives, todayStr]);
-
-  const handleCarryOverMissedTask = async (task) => {
-    const originDate = task.taskDate || task.date || task.dateLabel;
-    const taskId = task.id || task._id;
-    await store.updateTask(originDate, taskId, {
-      date: todayStr,
-      carriedOver: true,
-      carried_over: 1,
-      originalDate: originDate,
-      original_date: originDate,
-      reward: null,
-      penalty: null,
-      rewardClaimed: false,
-      reward_claimed: 0,
-      penaltyAccepted: false,
-      penalty_accepted: 0
-    });
-    await store.fetchAllTasksApi();
-    setTasks(store.getTasks(currentDateStr));
-    setArchives(store.getArchivesFromTasks());
-  };
-
-  const handleCompleteMissedTask = async (task) => {
-    const originDate = task.taskDate || task.date || task.dateLabel;
-    const taskId = task.id || task._id;
-    await store.updateTask(originDate, taskId, {
-      status: 'completed',
-      completedAt: new Date().toISOString(),
-      completed_at: new Date().toISOString()
-    });
-    await store.fetchAllTasksApi();
-    setTasks(store.getTasks(currentDateStr));
-    setArchives(store.getArchivesFromTasks());
-  };
-
-  const handleDeleteMissedTask = async (task) => {
-    const originDate = task.taskDate || task.date || task.dateLabel;
-    const taskId = task.id || task._id;
-    await store.deleteTask(originDate, taskId);
-    await store.fetchAllTasksApi();
-    setTasks(store.getTasks(currentDateStr));
-    setArchives(store.getArchivesFromTasks());
-  };
-
-  const handleCarryOverAllMissedTasks = async () => {
-    for (const t of pastUnfinishedTasks) {
-      const originDate = t.taskDate || t.date || t.dateLabel;
-      const taskId = t.id || t._id;
-      await store.updateTask(originDate, taskId, {
-        date: todayStr,
-        carriedOver: true,
-        carried_over: 1,
-        originalDate: originDate,
-        original_date: originDate,
-        reward: null,
-        penalty: null,
-        rewardClaimed: false,
-        reward_claimed: 0,
-        penaltyAccepted: false,
-        penalty_accepted: 0
-      });
-    }
-    await store.fetchAllTasksApi();
-    setTasks(store.getTasks(currentDateStr));
-    setArchives(store.getArchivesFromTasks());
-  };
 
   // Compute all dates that contain recorded task data or archives (plus today)
   const validTaskDates = useMemo(() => {
@@ -1374,95 +1290,68 @@ export default function TodayView() {
   return (
     <div className="today-view animate-slide-up">
 
-      {/* Notification Banner for Unfinished / Missed Days */}
-      {showPastPendingBanner && pastUnfinishedTasks.length > 0 && (
+      {/* Automated Carry-Over Toast Notification */}
+      {autoCarriedCount > 0 && showAutoCarriedBanner && (
         <div className="card-glass animate-slide-up" style={{
-          padding: '16px 20px',
+          padding: '14px 20px',
           marginBottom: '20px',
           borderRadius: 'var(--radius-lg)',
-          border: '1px solid rgba(245, 158, 11, 0.4)',
-          background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(99, 102, 241, 0.04) 100%)',
+          border: '1px solid rgba(10, 255, 255, 0.4)',
+          background: 'linear-gradient(135deg, rgba(10, 255, 255, 0.08) 0%, rgba(99, 102, 241, 0.05) 100%)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
-          gap: '14px',
-          boxShadow: '0 8px 24px rgba(245, 158, 11, 0.12)'
+          gap: '12px',
+          boxShadow: '0 8px 24px rgba(10, 255, 255, 0.12)'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{
-              width: '38px',
-              height: '38px',
+              width: '36px',
+              height: '36px',
               borderRadius: '12px',
-              background: 'rgba(245, 158, 11, 0.18)',
-              border: '1px solid rgba(245, 158, 11, 0.35)',
+              background: 'rgba(10, 255, 255, 0.15)',
+              border: '1px solid rgba(10, 255, 255, 0.4)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              color: '#0AFFFF',
               flexShrink: 0
             }}>
-              <Clock size={20} color="#f59e0b" />
+              <RotateCcw size={18} />
             </div>
             <div>
-              <strong style={{ fontSize: '0.95rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                Pending & Missed Tasks From Previous Days
-                <span style={{
-                  fontSize: '0.72rem',
-                  padding: '2px 8px',
-                  borderRadius: '12px',
-                  background: 'rgba(245, 158, 11, 0.25)',
-                  color: '#fbbf24',
-                  fontWeight: 600
-                }}>
-                  {pastUnfinishedTasks.length} {pastUnfinishedTasks.length === 1 ? 'Task' : 'Tasks'}
-                </span>
+              <strong style={{ fontSize: '0.92rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                ⚡ {autoCarriedCount} {autoCarriedCount === 1 ? 'task' : 'tasks'} automatically carried over to Today!
               </strong>
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginTop: '2px' }}>
-                Recorded across {pastUnfinishedDates.length} {pastUnfinishedDates.length === 1 ? 'day' : 'days'} ({pastUnfinishedDates.join(', ')}). Resolve or bring them to today.
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginTop: '2px' }}>
+                Unfinished tasks from previous days have been brought forward automatically.
               </span>
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <button
-              className="btn btn-primary"
-              onClick={() => setIsMissedModalOpen(true)}
-              style={{
-                fontSize: '0.82rem',
-                padding: '7px 14px',
-                background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                border: 'none',
-                color: '#fff',
-                fontWeight: 600,
-                boxShadow: '0 4px 12px rgba(245, 158, 11, 0.3)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}
-            >
-              <Zap size={14} />
-              Manage Missed Tasks
-            </button>
-            <button
-              className="btn btn-secondary btn-sm"
-              onClick={handleCarryOverAllMissedTasks}
-              style={{ fontSize: '0.82rem', padding: '7px 12px' }}
-              title="Bring all missed tasks to today instantly"
-            >
-              Carry Over All
-            </button>
-            <button
-              className="btn-icon"
-              onClick={() => {
-                setShowPastPendingBanner(false);
-                try {
-                  sessionStorage.setItem(`dayscore_dismiss_pending_${todayStr}`, 'true');
-                } catch (e) {}
-              }}
-              title="Dismiss Banner"
-            >
-              <X size={18} />
-            </button>
-          </div>
+
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => {
+              setShowAutoCarriedBanner(false);
+              try {
+                sessionStorage.setItem(`dayscore_dismiss_carried_${todayStr}`, 'true');
+              } catch (e) {}
+            }}
+            style={{
+              padding: '6px 16px',
+              fontSize: '0.82rem',
+              fontWeight: 700,
+              background: 'rgba(10, 255, 255, 0.15)',
+              border: '1px solid rgba(10, 255, 255, 0.4)',
+              color: '#0AFFFF',
+              borderRadius: 'var(--radius-md)',
+              cursor: 'pointer'
+            }}
+          >
+            OK
+          </button>
         </div>
       )}
 
