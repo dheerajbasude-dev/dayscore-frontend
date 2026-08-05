@@ -321,9 +321,17 @@ export default function TaskCard({
     return todayDateStr;
   }, [task.date, todayDateStr]);
 
-  const isDone = task.status === 'done';
+  const hasRatingNote = useMemo(() => {
+    const list = Array.isArray(task.daily_notes || task.dailyNotes || task.notes)
+      ? (task.daily_notes || task.dailyNotes || task.notes)
+      : [];
+    return list.some(n => n && n.rating != null && Number(n.rating) > 0 && !n.isAutoMissed);
+  }, [task.daily_notes, task.dailyNotes, task.notes]);
+
+  const isDone = task.status === 'done' || (isOverdue && hasRatingNote);
+
   const isMissed = useMemo(() => {
-    if (isDone) return false;
+    if (isDone || hasRatingNote) return false;
     if (task.status === 'missed') {
       const dueIso = task.dueDateTime || task.due_date_time;
       if (dueIso) {
@@ -338,7 +346,7 @@ export default function TaskCard({
       return true;
     }
     return false;
-  }, [isDone, task.status, task.dueDateTime, task.due_date_time, targetDateCompareStr]);
+  }, [isDone, hasRatingNote, task.status, task.dueDateTime, task.due_date_time, targetDateCompareStr]);
 
   const isCarriedOver = useMemo(() => {
     const orig = task.originalDate || task.original_date;

@@ -419,12 +419,24 @@ export default function TodayView() {
         }
 
         if (pastEndDate) {
-          await store.updateTask(todayStr, t.id || t._id, {
+          const notes = Array.isArray(t.daily_notes || t.dailyNotes || t.notes) ? (t.daily_notes || t.dailyNotes || t.notes) : [];
+          const ratedNotes = notes.filter(n => n && n.rating != null && Number(n.rating) > 0 && !n.isAutoMissed);
+          const finalStatus = (t.status === 'done' || ratedNotes.length > 0) ? 'done' : 'missed';
+          
+          const updates = {
             date: pastEndDate,
             carriedOver: false,
             carried_over: 0,
-            status: t.status === 'done' ? 'done' : 'missed'
-          });
+            status: finalStatus
+          };
+          if (finalStatus === 'done') {
+            updates.completed = true;
+            if (ratedNotes.length > 0) {
+              const avgRating = Math.round((ratedNotes.reduce((sum, n) => sum + Number(n.rating), 0) / ratedNotes.length) * 10) / 10;
+              updates.rating = avgRating;
+            }
+          }
+          await store.updateTask(todayStr, t.id || t._id, updates);
           cleanedUpCount++;
         }
         // B: If a task originating from a PAST date carried over to today AND its due date is today or future, ensure status is 'pending'
@@ -725,22 +737,52 @@ export default function TodayView() {
         if (!arc.date || !Array.isArray(arc.tasks)) continue;
 
         for (const task of arc.tasks) {
-          if (task.status === 'pending' || task.status === 'inprogress') {
+          if (task.status !== 'done') {
             const due = task.dueDateTime || task.due_date_time;
+            const notes = Array.isArray(task.daily_notes || task.dailyNotes || task.notes) ? (task.daily_notes || task.dailyNotes || task.notes) : [];
+            const ratedNotes = notes.filter(n => n && n.rating != null && Number(n.rating) > 0 && !n.isAutoMissed);
+            
             if (due) {
               const dueDateObj = new Date(due);
               const targetDueDateStr = format(dueDateObj, 'yyyy-MM-dd');
 
               if (targetDueDateStr > arc.date && targetDueDateStr <= todayStr && dueDateObj >= now) {
-                await store.updateTask(arc.date, task.id || task._id, { date: targetDueDateStr });
-                updated = true;
+                if (task.status === 'missed') {
+                  await store.updateTask(arc.date, task.id || task._id, { status: 'pending' });
+                  updated = true;
+                } else {
+                  await store.updateTask(arc.date, task.id || task._id, { date: targetDueDateStr });
+                  updated = true;
+                }
               } else if (dueDateObj < now) {
-                await store.updateTask(arc.date, task.id || task._id, { status: 'missed' });
-                updated = true;
+                const finalStatus = ratedNotes.length > 0 ? 'done' : 'missed';
+                if (task.status !== finalStatus) {
+                  const updates = { status: finalStatus };
+                  if (finalStatus === 'done') {
+                    const avgRating = Math.round((ratedNotes.reduce((sum, n) => sum + Number(n.rating), 0) / ratedNotes.length) * 10) / 10;
+                    updates.completed = true;
+                    updates.completedAt = now.toISOString();
+                    updates.completed_at = now.toISOString();
+                    updates.rating = avgRating;
+                  }
+                  await store.updateTask(arc.date, task.id || task._id, updates);
+                  updated = true;
+                }
               }
             } else if (arc.date < todayStr) {
-              await store.updateTask(arc.date, task.id || task._id, { status: 'missed' });
-              updated = true;
+              const finalStatus = ratedNotes.length > 0 ? 'done' : 'missed';
+              if (task.status !== finalStatus) {
+                const updates = { status: finalStatus };
+                if (finalStatus === 'done') {
+                  const avgRating = Math.round((ratedNotes.reduce((sum, n) => sum + Number(n.rating), 0) / ratedNotes.length) * 10) / 10;
+                  updates.completed = true;
+                  updates.completedAt = now.toISOString();
+                  updates.completed_at = now.toISOString();
+                  updates.rating = avgRating;
+                }
+                await store.updateTask(arc.date, task.id || task._id, updates);
+                updated = true;
+              }
             }
           }
         }
@@ -893,31 +935,35 @@ export default function TodayView() {
     const now = new Date();
 
     tasks.forEach(async (task) => {
-      if (task.status === 'done' || task.status === 'missed') return;
       if (!isTaskTimeOver(task)) return; // ONLY evaluate if task end date & time has overed (0s time)
 
-      const notes = Array.isArray(task.daily_notes || task.dailyNotes) ? (task.daily_notes || task.dailyNotes) : [];
+      const notes = Array.isArray(task.daily_notes || task.dailyNotes || task.notes) ? (task.daily_notes || task.dailyNotes || task.notes) : [];
       const ratedNotes = notes.filter(n => n && n.rating != null && Number(n.rating) > 0 && !n.isAutoMissed);
       const targetId = task.id || task._id;
       const taskDate = task.date || task.dateLabel || currentDateStr;
 
       if (ratedNotes.length > 0) {
-        modified = true;
-        const avgRating = Math.round((ratedNotes.reduce((sum, n) => sum + Number(n.rating), 0) / ratedNotes.length) * 10) / 10;
+        if (task.status !== 'done') {
+          modified = true;
+          const avgRating = Math.round((ratedNotes.reduce((sum, n) => sum + Number(n.rating), 0) / ratedNotes.length) * 10) / 10;
 
-        await store.updateTask(taskDate, targetId, {
-          status: 'done',
-          completedAt: now.toISOString(),
-          completed_at: now.toISOString(),
-          rating: avgRating,
-          maxRating: task.maxRating || task.max_rating || 10,
-          max_rating: task.maxRating || task.max_rating || 10
-        });
+          await store.updateTask(taskDate, targetId, {
+            status: 'done',
+            completed: true,
+            completedAt: task.completedAt || task.completed_at || now.toISOString(),
+            completed_at: task.completedAt || task.completed_at || now.toISOString(),
+            rating: avgRating,
+            maxRating: task.maxRating || task.max_rating || 10,
+            max_rating: task.maxRating || task.max_rating || 10
+          });
+        }
       } else {
-        modified = true;
-        await store.updateTask(taskDate, targetId, {
-          status: 'missed'
-        });
+        if (task.status !== 'done' && task.status !== 'missed') {
+          modified = true;
+          await store.updateTask(taskDate, targetId, {
+            status: 'missed'
+          });
+        }
       }
     });
 
