@@ -5051,7 +5051,7 @@ body {
 .scroll-to-top-btn {
   position: fixed;
   bottom: 24px;
-  left: 50%;
+  left: calc(50% + (var(--sidebar-width, 260px) / 2));
   transform: translateX(-50%);
   z-index: 99999;
   display: inline-flex;
@@ -5097,6 +5097,7 @@ body {
 
 @media (max-width: 1023px) {
   .scroll-to-top-btn {
+    left: 50%;
     bottom: calc(var(--bottom-nav-height, 68px) + 16px + env(safe-area-inset-bottom, 0px));
     width: 40px;
     height: 40px;
