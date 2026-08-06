@@ -1106,41 +1106,8 @@ export default function TodayView() {
   // Rating flow: open slider modal instead of directly completing
   const handleRequestComplete = (task) => {
     if (!task) return;
-    if (task.status === 'missed' && currentDateStr < todayStr) return;
-
-    const targetDateStr = (task.date && typeof task.date === 'string' && task.date.length >= 10)
-      ? task.date.trim().substring(0, 10)
-      : currentDateStr;
-
-    const isCarried = Boolean(
-      task.carriedOver ||
-      task.carried_over ||
-      task.wasCarried ||
-      task.isCarried ||
-      (task.originalDate && String(task.originalDate).trim().substring(0, 10) < targetDateStr) ||
-      (task.original_date && String(task.original_date).trim().substring(0, 10) < targetDateStr)
-    );
-
-    const notes = Array.isArray(task.daily_notes || task.dailyNotes) ? (task.daily_notes || task.dailyNotes) : [];
-    const hasNotes = notes.length > 0;
-
-    const dueIso = task.dueDateTime || task.due_date_time;
-    let isMultiDay = false;
-    if (dueIso) {
-      try {
-        const d = typeof dueIso === 'string' ? parseISO(dueIso) : new Date(dueIso);
-        const dueDateStr = format(d, 'yyyy-MM-dd');
-        if (dueDateStr > todayStr) isMultiDay = true;
-      } catch (e) {}
-    }
-
-    const requiresDailyNote = isCarried || hasNotes;
-    const hasNoteForToday = notes.some(n => n && n.date && String(n.date).split('T')[0] === todayStr);
-
-    if (requiresDailyNote && !hasNoteForToday) {
-      showToast("Please submit today's progress note & rating before marking as completed!");
-      return;
-    }
+    // On older/past dates (currentDateStr < todayStr), past tasks cannot be completed
+    if (currentDateStr < todayStr) return;
 
     setRatingTask(task);
   }

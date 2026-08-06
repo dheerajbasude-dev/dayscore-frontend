@@ -214,31 +214,19 @@ export default function TaskCard({
   const cycleStatus = async () => {
     if (task.status === 'done' || isUpdatingStatus) return;
 
-    const requiresNote = Boolean(isCarriedOver || (notesList && notesList.length > 0));
+    // On older/past dates (not Today), silently return without showing toast!
+    if (!isToday) return;
 
-    if (requiresNote && !hasNoteForToday) {
-      if (onShowToast) {
-        onShowToast("Please submit today's progress note & rating before marking as completed!");
-      }
-      return;
-    }
-
-    if (task.status === 'missed') {
-      if (!isToday) return;
-      if (onRequestComplete) {
-        onRequestComplete(task);
-      }
+    // On Today: open rating modal directly so user can rate & complete for today!
+    if (onRequestComplete) {
+      onRequestComplete(task);
       return;
     }
 
     if (task.status === 'pending' || task.status === 'inprogress') {
       setIsUpdatingStatus(true);
       try {
-        if (onRequestComplete) {
-          await onRequestComplete(task);
-          setIsJustCompleted(true);
-          setTimeout(() => setIsJustCompleted(false), 2500);
-        } else if (onStatusChange) {
+        if (onStatusChange) {
           await onStatusChange(task, 'done');
           setIsJustCompleted(true);
           setTimeout(() => setIsJustCompleted(false), 2500);
