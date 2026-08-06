@@ -1109,6 +1109,19 @@ export default function TodayView() {
     // On older/past dates (currentDateStr < todayStr), past tasks cannot be completed
     if (currentDateStr < todayStr) return;
 
+    // On intermediate multi-day dates (dueDateStr > todayStr), prompt for today's note & rating!
+    const dueIso = task.dueDateTime || task.due_date_time;
+    if (dueIso) {
+      try {
+        const d = typeof dueIso === 'string' ? parseISO(dueIso) : new Date(dueIso);
+        const dueDateStr = format(d, 'yyyy-MM-dd');
+        if (dueDateStr > todayStr && task.status !== 'done' && task.status !== 'missed') {
+          showToast("Please submit today's progress note & rating before marking as completed!");
+          return;
+        }
+      } catch (e) {}
+    }
+
     setRatingTask(task);
   }
 
