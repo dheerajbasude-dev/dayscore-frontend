@@ -198,7 +198,7 @@ export default function TaskCard({
 
   const handleNoteSubmit = async (e) => {
     e.preventDefault();
-    if (!newNoteText.trim() || submittingNote || !onAddDailyNote || !isToday || isDone || hasNoteForToday) return;
+    if (!newNoteText.trim() || submittingNote || !onAddDailyNote || !isToday || isDone || isMissed || hasNoteForToday) return;
     setSubmittingNote(true);
     try {
       await onAddDailyNote(task, newNoteText.trim(), dailyRating);
@@ -214,19 +214,19 @@ export default function TaskCard({
   const cycleStatus = async () => {
     if (task.status === 'done' || isUpdatingStatus) return;
 
-    if (task.status === 'missed' || isMissed) {
-      if (!isToday) return;
-      if (onRequestComplete) {
-        onRequestComplete(task);
+    const requiresNote = Boolean(isCarriedOver || (notesList && notesList.length > 0));
+
+    if (requiresNote && !hasNoteForToday) {
+      if (onShowToast) {
+        onShowToast("Please submit today's progress note & rating before marking as completed!");
       }
       return;
     }
 
-    const requiresNote = Boolean(isCarriedOver || (notesList && notesList.length > 0));
-
-    if (requiresNote && !hasNoteForToday) {
-      if (isToday && onShowToast) {
-        onShowToast("Please submit today's progress note & rating before marking as completed!");
+    if (task.status === 'missed') {
+      if (!isToday) return;
+      if (onRequestComplete) {
+        onRequestComplete(task);
       }
       return;
     }
