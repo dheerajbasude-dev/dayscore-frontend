@@ -291,39 +291,14 @@ export default function TaskCard({
   };
 
   const getRatingBadgeClass = () => {
-    const num = Number(effectiveRating);
+    const num = Number(task.rating);
     if (isNaN(num) || num <= 4.0) return 'rating-badge-low';
     if (num <= 8.5) return 'rating-badge-medium';
     return 'rating-badge-high';
   };
 
   const maxR = task.maxRating || task.max_rating || 10;
-
-  const computedAutoRating = useMemo(() => {
-    const list = Array.isArray(task.daily_notes || task.dailyNotes || task.notes)
-      ? (task.daily_notes || task.dailyNotes || task.notes)
-      : [];
-    if (list.length === 0) return null;
-
-    let sumRating = 0;
-    let hasRatedNote = false;
-
-    list.forEach(n => {
-      if (!n) return;
-      const r = parseFloat(n.rating != null ? n.rating : (n.score != null ? n.score : 0));
-      if (!isNaN(r) && r > 0 && !n.isAutoMissed) {
-        sumRating += r;
-        hasRatedNote = true;
-      }
-    });
-
-    if (!hasRatedNote) return null;
-    const totalCount = list.length;
-    return Math.round((sumRating / totalCount) * 10) / 10;
-  }, [task.daily_notes, task.dailyNotes, task.notes]);
-
-  const effectiveRating = computedAutoRating !== null ? computedAutoRating : task.rating;
-  const ratingDisplay = isDone && effectiveRating != null;
+  const ratingDisplay = task.status === 'done' && task.rating != null;
   const getStartDateISO = () => {
     if (task.createdAt || task.created_at) return task.createdAt || task.created_at;
     if (task.date) return `${task.date}T00:00:00`;
@@ -508,7 +483,7 @@ export default function TaskCard({
           {ratingDisplay && (
             <>
               <span className="meta-dot">·</span>
-              <span className={`rating-badge ${getRatingBadgeClass()}`}>★ {effectiveRating}/{maxR}</span>
+              <span className={`rating-badge ${getRatingBadgeClass()}`}>★ {task.rating}/{maxR}</span>
             </>
           )}
           {(createdFormatted || dueFormatted) && (
