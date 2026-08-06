@@ -211,33 +211,7 @@ export default function TaskCard({
     }
   };
 
-  const cycleStatus = async () => {
-    if (task.status === 'done' || isUpdatingStatus) return;
 
-    // On older/past dates (not Today), silently return without showing toast!
-    if (!isToday) return;
-
-    // On Today: open rating modal directly so user can rate & complete for today!
-    if (onRequestComplete) {
-      onRequestComplete(task);
-      return;
-    }
-
-    if (task.status === 'pending' || task.status === 'inprogress') {
-      setIsUpdatingStatus(true);
-      try {
-        if (onStatusChange) {
-          await onStatusChange(task, 'done');
-          setIsJustCompleted(true);
-          setTimeout(() => setIsJustCompleted(false), 2500);
-        }
-      } catch (err) {
-        console.error('Status update error:', err);
-      } finally {
-        setIsUpdatingStatus(false);
-      }
-    }
-  };
 
   const getCheckboxClass = () => {
     switch (task.status) {
@@ -388,6 +362,79 @@ export default function TaskCard({
 
   const isCheckboxLocked = isDone || (isMissed && !isToday);
 
+  const isFutureDueTask = useMemo(() => {
+    if (isDone) return false;
+    const dueIso = task.dueDateTime || task.due_date_time;
+    if (dueIso) {
+      try {
+        const dueObj = typeof dueIso === 'string' ? parseISO(dueIso) : new Date(dueIso);
+        const dueDateStr = format(dueObj, 'yyyy-MM-dd');
+        if (dueDateStr > todayDateStr) return true;
+      } catch (e) {}
+    }
+    return false;
+  }, [isDone, task.dueDateTime, task.due_date_time, todayDateStr]);
+
+  const cycleStatus = async () => {
+    if (task.status === 'done' || isUpdatingStatus || isFutureDueTask) return;
+
+    // On older/past dates (not Today), silently return without showing toast!
+    if (!isToday) return;
+
+    const isMultiDayOrCarried = Boolean(isCarriedOver || (notesList && notesList.length > 0) || task.dueDateTime || task.due_date_time);
+
+    if (isMultiDayOrCarried) {
+      // If user hasn't submitted today's daily progress note & rating yet, show toast!
+      if (!hasNoteForToday) {
+        if (onShowToast) {
+          onShowToast("Please submit today's progress note & rating before marking as completed!");
+        }
+        return;
+      }
+
+      // If user HAS submitted today's daily progress note & rating:
+      // AUTOMATICALLY COMPLETE the task based on task rating notes averages (WITHOUT opening rating modal!)
+      if (onAutoCompleteWithRating) {
+        const allNotesList = Array.isArray(task.daily_notes || task.dailyNotes || task.notes)
+          ? (task.daily_notes || task.dailyNotes || task.notes)
+          : [];
+        
+        let sumRating = 0;
+        let hasRated = false;
+        allNotesList.forEach(n => {
+          if (!n) return;
+          const r = parseFloat(n.rating != null ? n.rating : (n.score != null ? n.score : 0));
+          if (!isNaN(r) && r > 0 && !n.isAutoMissed) {
+            sumRating += r;
+            hasRated = true;
+          }
+        });
+
+        // Denominator includes ALL daily note entries (user rated days + missed 0-rating days)
+        const count = allNotesList.length || 1;
+        const computedAvg = hasRated ? Math.round((sumRating / count) * 10) / 10 : 8.0;
+
+        setIsUpdatingStatus(true);
+        try {
+          await onAutoCompleteWithRating(task, computedAvg);
+          setIsJustCompleted(true);
+          setTimeout(() => setIsJustCompleted(false), 2500);
+        } catch (err) {
+          console.error('Auto completion error:', err);
+        } finally {
+          setIsUpdatingStatus(false);
+        }
+        return;
+      }
+    }
+
+    // Standard single-day tasks: open rating slider modal
+    if (onRequestComplete) {
+      onRequestComplete(task);
+      return;
+    }
+  };
+
   const wasOriginallyMissed = Boolean(
     task.wasMissed || 
     task.was_missed || 
@@ -403,28 +450,30 @@ export default function TaskCard({
       className={`task-card ${task.status} ${isJustCompleted ? 'just-completed-highlight' : ''} ${(hasUnclaimedReward || hasUnacknowledgedPenalty) ? 'has-pending-action' : ''} ${isDeleting ? 'task-exit' : 'task-enter'}`}
       style={{ animationDelay: isDeleting ? '0s' : `${animDelay}s` }}
     >
-      <div
-        className={`task-checkbox ${getCheckboxClass()} ${isUpdatingStatus ? 'is-loading' : ''} ${isCheckboxLocked ? 'locked' : ''}`}
-        onClick={cycleStatus}
-        title={
-          isDone 
-            ? 'Task completed' 
-            : isMissed 
-              ? (isToday ? 'Mark missed task as done (max rating 3)' : 'Missed task on past date (cannot be modified)') 
-              : 'Mark as done'
-        }
-        style={{ cursor: (isCheckboxLocked || isUpdatingStatus) ? 'not-allowed' : 'pointer' }}
-      >
-        {isUpdatingStatus ? (
-          <Loader2 size={14} className="task-checkbox-spinner btn-spinner" />
-        ) : (
-          <>
-            {isDone && <Check size={14} strokeWidth={3} />}
-            {isMissed && '✕'}
-            {task.status === 'inprogress' && '⟳'}
-          </>
-        )}
-      </div>
+      {!isFutureDueTask && (
+        <div
+          className={`task-checkbox ${getCheckboxClass()} ${isUpdatingStatus ? 'is-loading' : ''} ${isCheckboxLocked ? 'locked' : ''}`}
+          onClick={cycleStatus}
+          title={
+            isDone 
+              ? 'Task completed' 
+              : isMissed 
+                ? (isToday ? 'Mark missed task as done (max rating 3)' : 'Missed task on past date (cannot be modified)') 
+                : 'Mark as done'
+          }
+          style={{ cursor: (isCheckboxLocked || isUpdatingStatus) ? 'not-allowed' : 'pointer' }}
+        >
+          {isUpdatingStatus ? (
+            <Loader2 size={14} className="task-checkbox-spinner btn-spinner" />
+          ) : (
+            <>
+              {isDone && <Check size={14} strokeWidth={3} />}
+              {isMissed && '✕'}
+              {task.status === 'inprogress' && '⟳'}
+            </>
+          )}
+        </div>
+      )}
 
       <div className="task-info">
         <div className="task-header-row">
