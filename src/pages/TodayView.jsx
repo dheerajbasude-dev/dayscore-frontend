@@ -18,19 +18,75 @@ import { useDayRollover } from '../hooks/useDayRollover'
 import { useNotifications } from '../hooks/useNotifications'
 import { useAuth } from '../context/AuthContext'
 
-const calculateTaskAutoRating = (taskOrNotes) => {
-  const notes = Array.isArray(taskOrNotes)
-    ? taskOrNotes
-    : (Array.isArray(taskOrNotes?.daily_notes || taskOrNotes?.dailyNotes || taskOrNotes?.notes)
-        ? (taskOrNotes.daily_notes || taskOrNotes.dailyNotes || taskOrNotes.notes)
-        : []);
+export const calculateTaskAutoRating = (taskOrNotes, todayStrParam) => {
+  let taskObj = null;
+  let notes = [];
+  
+  if (Array.isArray(taskOrNotes)) {
+    notes = taskOrNotes;
+  } else if (taskOrNotes && typeof taskOrNotes === 'object') {
+    taskObj = taskOrNotes;
+    notes = Array.isArray(taskObj.daily_notes || taskObj.dailyNotes || taskObj.notes)
+      ? (taskObj.daily_notes || taskObj.dailyNotes || taskObj.notes)
+      : [];
+  }
 
-  if (notes.length === 0) return { hasRatedNote: false, avgRating: 0, sumRating: 0, totalCount: 0 };
+  const todayStr = todayStrParam || format(new Date(), 'yyyy-MM-dd');
+  let effectiveNotes = [...notes];
+
+  if (taskObj) {
+    let startStr = taskObj.originalDate || taskObj.original_date || taskObj.date;
+    if (!startStr) {
+      const iso = taskObj.createdAt || taskObj.created_at;
+      if (iso) startStr = String(iso).split('T')[0];
+    }
+
+    if (startStr) {
+      const cleanStartStr = String(startStr).split('T')[0];
+      const existingDates = new Set(notes.map(n => n && n.date ? String(n.date).split('T')[0] : ''));
+
+      let endStr = todayStr;
+      const dueIso = taskObj.dueDateTime || taskObj.due_date_time;
+      if (dueIso) {
+        try {
+          const dueObj = typeof dueIso === 'string' ? parseISO(dueIso) : new Date(dueIso);
+          const dueStr = format(dueObj, 'yyyy-MM-dd');
+          if (dueStr < endStr) endStr = dueStr;
+        } catch (e) {}
+      }
+
+      try {
+        const startDate = parseISO(cleanStartStr);
+        const endDate = parseISO(endStr);
+
+        if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime()) && startDate <= endDate) {
+          let curr = new Date(startDate);
+          while (curr <= endDate) {
+            const currStr = format(curr, 'yyyy-MM-dd');
+            if (!existingDates.has(currStr)) {
+              effectiveNotes.push({
+                id: `missed-${currStr}`,
+                date: currStr,
+                note: 'Missed',
+                rating: 0,
+                isAutoMissed: true
+              });
+            }
+            curr.setDate(curr.getDate() + 1);
+          }
+        }
+      } catch (e) {
+        console.error('Error filling missed days in rating calc:', e);
+      }
+    }
+  }
+
+  if (effectiveNotes.length === 0) return { hasRatedNote: false, avgRating: 0, sumRating: 0, totalCount: 0 };
 
   let sumRating = 0;
   let hasRatedNote = false;
 
-  notes.forEach(n => {
+  effectiveNotes.forEach(n => {
     if (!n) return;
     const r = parseFloat(n.rating != null ? n.rating : (n.score != null ? n.score : 0));
     if (!isNaN(r) && r > 0 && !n.isAutoMissed) {
@@ -39,9 +95,9 @@ const calculateTaskAutoRating = (taskOrNotes) => {
     }
   });
 
-  if (!hasRatedNote) return { hasRatedNote: false, avgRating: 0, sumRating: 0, totalCount: notes.length };
+  if (!hasRatedNote) return { hasRatedNote: false, avgRating: 0, sumRating: 0, totalCount: effectiveNotes.length };
 
-  const totalCount = notes.length;
+  const totalCount = effectiveNotes.length;
   const avgRating = Math.round((sumRating / totalCount) * 10) / 10;
 
   return { hasRatedNote: true, avgRating, sumRating, totalCount };

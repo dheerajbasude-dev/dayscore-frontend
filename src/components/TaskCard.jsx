@@ -395,13 +395,10 @@ export default function TaskCard({
       // If user HAS submitted today's daily progress note & rating:
       // AUTOMATICALLY COMPLETE the task based on task rating notes averages (WITHOUT opening rating modal!)
       if (onAutoCompleteWithRating) {
-        const allNotesList = Array.isArray(task.daily_notes || task.dailyNotes || task.notes)
-          ? (task.daily_notes || task.dailyNotes || task.notes)
-          : [];
-        
+        const listToUse = effectiveNotesList && effectiveNotesList.length > 0 ? effectiveNotesList : notesList;
         let sumRating = 0;
         let hasRated = false;
-        allNotesList.forEach(n => {
+        listToUse.forEach(n => {
           if (!n) return;
           const r = parseFloat(n.rating != null ? n.rating : (n.score != null ? n.score : 0));
           if (!isNaN(r) && r > 0 && !n.isAutoMissed) {
@@ -411,7 +408,7 @@ export default function TaskCard({
         });
 
         // Denominator includes ALL daily note entries (user rated days + missed 0-rating days)
-        const count = allNotesList.length || 1;
+        const count = listToUse.length || 1;
         const computedAvg = hasRated ? Math.round((sumRating / count) * 10) / 10 : 8.0;
 
         setIsUpdatingStatus(true);
