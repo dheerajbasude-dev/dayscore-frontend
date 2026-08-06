@@ -32,35 +32,6 @@ export const getRatingTheme = (val) => {
   }
 };
 
-const calculateTaskAutoRating = (taskOrNotes) => {
-  const notes = Array.isArray(taskOrNotes)
-    ? taskOrNotes
-    : (Array.isArray(taskOrNotes?.daily_notes || taskOrNotes?.dailyNotes || taskOrNotes?.notes)
-        ? (taskOrNotes.daily_notes || taskOrNotes.dailyNotes || taskOrNotes.notes)
-        : []);
-
-  if (notes.length === 0) return { hasRatedNote: false, avgRating: 0, sumRating: 0, totalCount: 0 };
-
-  let sumRating = 0;
-  let hasRatedNote = false;
-
-  notes.forEach(n => {
-    if (!n) return;
-    const r = parseFloat(n.rating != null ? n.rating : (n.score != null ? n.score : 0));
-    if (!isNaN(r) && r > 0 && !n.isAutoMissed) {
-      sumRating += r;
-      hasRatedNote = true;
-    }
-  });
-
-  if (!hasRatedNote) return { hasRatedNote: false, avgRating: 0, sumRating: 0, totalCount: notes.length };
-
-  const totalCount = notes.length;
-  const avgRating = Math.round((sumRating / totalCount) * 10) / 10;
-
-  return { hasRatedNote: true, avgRating, sumRating, totalCount };
-};
-
 export default function TaskCard({
   index,
   task,
@@ -243,39 +214,28 @@ export default function TaskCard({
   const cycleStatus = async () => {
     if (task.status === 'done' || isUpdatingStatus) return;
 
-    // 1. On older/past dates (not Today), silently return without showing toast!
+    // On older/past dates (not Today), silently return without showing toast!
     if (!isToday) return;
 
-    // 2. Check if task requires daily progress note & rating:
-    const requiresNote = Boolean(isCarriedOver || (notesList && notesList.length > 0));
-
-    if (requiresNote && !hasNoteForToday) {
-      if (onShowToast) {
-        onShowToast("Please submit today's progress note & rating before marking as completed!");
-      }
+    // On Today: open rating modal directly so user can rate & complete for today!
+    if (onRequestComplete) {
+      onRequestComplete(task);
       return;
     }
 
-    // 3. Today's note HAS been submitted for today (hasNoteForToday = true):
-    // Automatically complete task with average rating across all daily notes WITHOUT opening slider modal!
-    setIsUpdatingStatus(true);
-    try {
-      const { hasRatedNote, avgRating } = calculateTaskAutoRating(task);
-      const finalRating = hasRatedNote ? avgRating : 8.0;
-
-      if (onAutoCompleteWithRating) {
-        await onAutoCompleteWithRating(task, finalRating);
-        setIsJustCompleted(true);
-        setTimeout(() => setIsJustCompleted(false), 2500);
-      } else if (onStatusChange) {
-        await onStatusChange(task, 'done');
-        setIsJustCompleted(true);
-        setTimeout(() => setIsJustCompleted(false), 2500);
+    if (task.status === 'pending' || task.status === 'inprogress') {
+      setIsUpdatingStatus(true);
+      try {
+        if (onStatusChange) {
+          await onStatusChange(task, 'done');
+          setIsJustCompleted(true);
+          setTimeout(() => setIsJustCompleted(false), 2500);
+        }
+      } catch (err) {
+        console.error('Status update error:', err);
+      } finally {
+        setIsUpdatingStatus(false);
       }
-    } catch (err) {
-      console.error('Status update error:', err);
-    } finally {
-      setIsUpdatingStatus(false);
     }
   };
 
@@ -395,19 +355,6 @@ export default function TaskCard({
     return false;
   }, [task.carriedOver, task.carried_over, task.wasCarried, task.isCarried, task.originalDate, task.original_date, taskCreatedDateStr, targetDateCompareStr]);
 
-  const isFutureCarriedTask = useMemo(() => {
-    if (isDone) return false;
-    const dueIso = task.dueDateTime || task.due_date_time;
-    if (dueIso) {
-      try {
-        const d = typeof dueIso === 'string' ? parseISO(dueIso) : new Date(dueIso);
-        const dueDateStr = format(d, 'yyyy-MM-dd');
-        return dueDateStr > todayDateStr;
-      } catch (e) {}
-    }
-    return false;
-  }, [isDone, task.dueDateTime, task.due_date_time, todayDateStr]);
-
   const checkExtendsBeyondToday = () => {
     if (isCarriedOver) return true;
     if (notesList && notesList.length > 0) return true;
@@ -456,30 +403,28 @@ export default function TaskCard({
       className={`task-card ${task.status} ${isJustCompleted ? 'just-completed-highlight' : ''} ${(hasUnclaimedReward || hasUnacknowledgedPenalty) ? 'has-pending-action' : ''} ${isDeleting ? 'task-exit' : 'task-enter'}`}
       style={{ animationDelay: isDeleting ? '0s' : `${animDelay}s` }}
     >
-      {!isFutureCarriedTask && (
-        <div
-          className={`task-checkbox ${getCheckboxClass()} ${isUpdatingStatus ? 'is-loading' : ''} ${isCheckboxLocked ? 'locked' : ''}`}
-          onClick={cycleStatus}
-          title={
-            isDone 
-              ? 'Task completed' 
-              : isMissed 
-                ? (isToday ? 'Mark missed task as done (max rating 3)' : 'Missed task on past date (cannot be modified)') 
-                : 'Mark as done'
-          }
-          style={{ cursor: (isCheckboxLocked || isUpdatingStatus) ? 'not-allowed' : 'pointer' }}
-        >
-          {isUpdatingStatus ? (
-            <Loader2 size={14} className="task-checkbox-spinner btn-spinner" />
-          ) : (
-            <>
-              {isDone && <Check size={14} strokeWidth={3} />}
-              {isMissed && '✕'}
-              {task.status === 'inprogress' && '⟳'}
-            </>
-          )}
-        </div>
-      )}
+      <div
+        className={`task-checkbox ${getCheckboxClass()} ${isUpdatingStatus ? 'is-loading' : ''} ${isCheckboxLocked ? 'locked' : ''}`}
+        onClick={cycleStatus}
+        title={
+          isDone 
+            ? 'Task completed' 
+            : isMissed 
+              ? (isToday ? 'Mark missed task as done (max rating 3)' : 'Missed task on past date (cannot be modified)') 
+              : 'Mark as done'
+        }
+        style={{ cursor: (isCheckboxLocked || isUpdatingStatus) ? 'not-allowed' : 'pointer' }}
+      >
+        {isUpdatingStatus ? (
+          <Loader2 size={14} className="task-checkbox-spinner btn-spinner" />
+        ) : (
+          <>
+            {isDone && <Check size={14} strokeWidth={3} />}
+            {isMissed && '✕'}
+            {task.status === 'inprogress' && '⟳'}
+          </>
+        )}
+      </div>
 
       <div className="task-info">
         <div className="task-header-row">
