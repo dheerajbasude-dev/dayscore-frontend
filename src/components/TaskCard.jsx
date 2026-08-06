@@ -403,30 +403,28 @@ export default function TaskCard({
       className={`task-card ${task.status} ${isJustCompleted ? 'just-completed-highlight' : ''} ${(hasUnclaimedReward || hasUnacknowledgedPenalty) ? 'has-pending-action' : ''} ${isDeleting ? 'task-exit' : 'task-enter'}`}
       style={{ animationDelay: isDeleting ? '0s' : `${animDelay}s` }}
     >
-      {!isFutureMultiDay && (
-        <div
-          className={`task-checkbox ${getCheckboxClass()} ${isUpdatingStatus ? 'is-loading' : ''} ${isCheckboxLocked ? 'locked' : ''}`}
-          onClick={cycleStatus}
-          title={
-            isDone 
-              ? 'Task completed' 
-              : isMissed 
-                ? (isToday ? 'Mark missed task as done (max rating 3)' : 'Missed task on past date (cannot be modified)') 
-                : 'Mark as done'
-          }
-          style={{ cursor: (isCheckboxLocked || isUpdatingStatus) ? 'not-allowed' : 'pointer' }}
-        >
-          {isUpdatingStatus ? (
-            <Loader2 size={14} className="task-checkbox-spinner btn-spinner" />
-          ) : (
-            <>
-              {isDone && <Check size={14} strokeWidth={3} />}
-              {isMissed && '✕'}
-              {task.status === 'inprogress' && '⟳'}
-            </>
-          )}
-        </div>
-      )}
+      <div
+        className={`task-checkbox ${getCheckboxClass()} ${isUpdatingStatus ? 'is-loading' : ''} ${isCheckboxLocked ? 'locked' : ''}`}
+        onClick={cycleStatus}
+        title={
+          isDone 
+            ? 'Task completed' 
+            : isMissed 
+              ? (isToday ? 'Mark missed task as done (max rating 3)' : 'Missed task on past date (cannot be modified)') 
+              : 'Mark as done'
+        }
+        style={{ cursor: (isCheckboxLocked || isUpdatingStatus) ? 'not-allowed' : 'pointer' }}
+      >
+        {isUpdatingStatus ? (
+          <Loader2 size={14} className="task-checkbox-spinner btn-spinner" />
+        ) : (
+          <>
+            {isDone && <Check size={14} strokeWidth={3} />}
+            {isMissed && '✕'}
+            {task.status === 'inprogress' && '⟳'}
+          </>
+        )}
+      </div>
 
       <div className="task-info">
         <div className="task-header-row">
