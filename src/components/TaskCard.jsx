@@ -32,10 +32,86 @@ export const getRatingTheme = (val) => {
   }
 };
 
+export function computeCarriedTaskAutoRating(task, endOrTodayStr) {
+  if (!task) return 0;
+  const notesList = Array.isArray(task.daily_notes || task.dailyNotes || task.notes)
+    ? (task.daily_notes || task.dailyNotes || task.notes)
+    : [];
+
+  let startStr = task.originalDate || task.original_date || task.date;
+  if (!startStr) {
+    const iso = task.createdAt || task.created_at;
+    if (iso) startStr = String(iso).split('T')[0];
+  }
+
+  let endStr = endOrTodayStr || format(new Date(), 'yyyy-MM-dd');
+  const dueIso = task.dueDateTime || task.due_date_time;
+  if (dueIso) {
+    try {
+      const dueObj = typeof dueIso === 'string' ? parseISO(dueIso) : new Date(dueIso);
+      const dueDateFormatted = format(dueObj, 'yyyy-MM-dd');
+      if (dueDateFormatted) endStr = dueDateFormatted;
+    } catch (e) {}
+  }
+
+  const existingNotesMap = new Map();
+  notesList.forEach(n => {
+    if (n && n.date) {
+      const dStr = String(n.date).split('T')[0];
+      existingNotesMap.set(dStr, n);
+    }
+  });
+
+  const allEntries = [];
+
+  if (startStr && endStr) {
+    try {
+      const cleanStartStr = String(startStr).split('T')[0];
+      const cleanEndStr = String(endStr).split('T')[0];
+      let curr = parseISO(cleanStartStr);
+      const endD = parseISO(cleanEndStr);
+
+      if (!isNaN(curr.getTime()) && !isNaN(endD.getTime()) && curr <= endD) {
+        while (curr <= endD) {
+          const currStr = format(curr, 'yyyy-MM-dd');
+          if (existingNotesMap.has(currStr)) {
+            allEntries.push(existingNotesMap.get(currStr));
+          } else {
+            allEntries.push({
+              date: currStr,
+              rating: 0,
+              isAutoMissed: true
+            });
+          }
+          curr.setDate(curr.getDate() + 1);
+        }
+      }
+    } catch (e) {}
+  }
+
+  const listToUse = allEntries.length > 0 ? allEntries : notesList;
+
+  if (listToUse.length === 0) {
+    return task.rating != null ? Number(task.rating) : 0;
+  }
+
+  const totalSum = listToUse.reduce((sum, n) => {
+    if (!n) return sum;
+    const r = parseFloat(n.rating != null ? n.rating : (n.score != null ? n.score : 0));
+    return sum + (isNaN(r) || r < 0 ? 0 : r);
+  }, 0);
+
+  const totalCount = listToUse.length;
+  const avg = Math.round((totalSum / totalCount) * 10) / 10;
+  return avg;
+}
+
 export default function TaskCard({
   index,
   task,
   isToday = true,
+  animDelay = 0,
+  isDeleting = false,
   onStatusChange,
   onDelete,
   onRequestComplete,
@@ -43,9 +119,7 @@ export default function TaskCard({
   onClaimReward,
   onAcceptPenalty,
   onAddDailyNote,
-  onShowToast,
-  isDeleting,
-  animDelay = 0
+  onShowToast
 }) {
   const { timeLeft, urgencyClass, isOverdue } = useTimer(task.dueDateTime);
   const [claiming, setClaiming] = useState(false);
@@ -290,15 +364,36 @@ export default function TaskCard({
     }
   };
 
+  const displayRating = useMemo(() => {
+    const isCarriedTask = Boolean(
+      task.carriedOver ||
+      task.carried_over ||
+      task.wasCarried ||
+      task.isCarried ||
+      task.originalDate ||
+      task.original_date
+    );
+    if ((isDone || isOverdue) && (isCarriedTask || effectiveNotesList.length > 1)) {
+      return computeCarriedTaskAutoRating(task);
+    }
+    if (task.rating != null && !isNaN(Number(task.rating))) {
+      return Math.round(Number(task.rating) * 10) / 10;
+    }
+    if (isDone && hasRatingNote) {
+      return computeCarriedTaskAutoRating(task);
+    }
+    return null;
+  }, [task, isDone, isOverdue, hasRatingNote, effectiveNotesList]);
+
   const getRatingBadgeClass = () => {
-    const num = Number(task.rating);
+    const num = Number(displayRating != null ? displayRating : task.rating);
     if (isNaN(num) || num <= 4.0) return 'rating-badge-low';
     if (num <= 8.5) return 'rating-badge-medium';
     return 'rating-badge-high';
   };
 
   const maxR = task.maxRating || task.max_rating || 10;
-  const ratingDisplay = task.status === 'done' && task.rating != null;
+  const ratingDisplay = isDone && displayRating != null;
   const getStartDateISO = () => {
     if (task.createdAt || task.created_at) return task.createdAt || task.created_at;
     if (task.date) return `${task.date}T00:00:00`;
@@ -483,7 +578,7 @@ export default function TaskCard({
           {ratingDisplay && (
             <>
               <span className="meta-dot">·</span>
-              <span className={`rating-badge ${getRatingBadgeClass()}`}>★ {task.rating}/{maxR}</span>
+              <span className={`rating-badge ${getRatingBadgeClass()}`}>★ {displayRating}/{maxR}</span>
             </>
           )}
           {(createdFormatted || dueFormatted) && (

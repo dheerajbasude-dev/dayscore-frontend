@@ -18,6 +18,80 @@ import { useDayRollover } from '../hooks/useDayRollover'
 import { useNotifications } from '../hooks/useNotifications'
 import { useAuth } from '../context/AuthContext'
 
+export function computeCarriedTaskAutoRating(task, endOrTodayStr) {
+  if (!task) return 0;
+  const notesList = Array.isArray(task.daily_notes || task.dailyNotes || task.notes)
+    ? (task.daily_notes || task.dailyNotes || task.notes)
+    : [];
+
+  let startStr = task.originalDate || task.original_date || task.date;
+  if (!startStr) {
+    const iso = task.createdAt || task.created_at;
+    if (iso) startStr = String(iso).split('T')[0];
+  }
+
+  let endStr = endOrTodayStr || format(new Date(), 'yyyy-MM-dd');
+  const dueIso = task.dueDateTime || task.due_date_time;
+  if (dueIso) {
+    try {
+      const dueObj = typeof dueIso === 'string' ? parseISO(dueIso) : new Date(dueIso);
+      const dueDateFormatted = format(dueObj, 'yyyy-MM-dd');
+      if (dueDateFormatted) endStr = dueDateFormatted;
+    } catch (e) {}
+  }
+
+  const existingNotesMap = new Map();
+  notesList.forEach(n => {
+    if (n && n.date) {
+      const dStr = String(n.date).split('T')[0];
+      existingNotesMap.set(dStr, n);
+    }
+  });
+
+  const allEntries = [];
+
+  if (startStr && endStr) {
+    try {
+      const cleanStartStr = String(startStr).split('T')[0];
+      const cleanEndStr = String(endStr).split('T')[0];
+      let curr = parseISO(cleanStartStr);
+      const endD = parseISO(cleanEndStr);
+
+      if (!isNaN(curr.getTime()) && !isNaN(endD.getTime()) && curr <= endD) {
+        while (curr <= endD) {
+          const currStr = format(curr, 'yyyy-MM-dd');
+          if (existingNotesMap.has(currStr)) {
+            allEntries.push(existingNotesMap.get(currStr));
+          } else {
+            allEntries.push({
+              date: currStr,
+              rating: 0,
+              isAutoMissed: true
+            });
+          }
+          curr.setDate(curr.getDate() + 1);
+        }
+      }
+    } catch (e) {}
+  }
+
+  const listToUse = allEntries.length > 0 ? allEntries : notesList;
+
+  if (listToUse.length === 0) {
+    return task.rating != null ? Number(task.rating) : 0;
+  }
+
+  const totalSum = listToUse.reduce((sum, n) => {
+    if (!n) return sum;
+    const r = parseFloat(n.rating != null ? n.rating : (n.score != null ? n.score : 0));
+    return sum + (isNaN(r) || r < 0 ? 0 : r);
+  }, 0);
+
+  const totalCount = listToUse.length;
+  const avg = Math.round((totalSum / totalCount) * 10) / 10;
+  return avg;
+}
+
 export default function TodayView() {
   const { user } = useAuth()
   const realTodayStr = format(new Date(), 'yyyy-MM-dd')
@@ -432,8 +506,7 @@ export default function TodayView() {
           if (finalStatus === 'done') {
             updates.completed = true;
             if (ratedNotes.length > 0) {
-              const avgRating = Math.round((ratedNotes.reduce((sum, n) => sum + Number(n.rating), 0) / ratedNotes.length) * 10) / 10;
-              updates.rating = avgRating;
+              updates.rating = computeCarriedTaskAutoRating(t, pastEndDate);
             }
           }
           await store.updateTask(todayStr, t.id || t._id, updates);
@@ -759,7 +832,7 @@ export default function TodayView() {
                 if (task.status !== finalStatus) {
                   const updates = { status: finalStatus };
                   if (finalStatus === 'done') {
-                    const avgRating = Math.round((ratedNotes.reduce((sum, n) => sum + Number(n.rating), 0) / ratedNotes.length) * 10) / 10;
+                    const avgRating = computeCarriedTaskAutoRating(task, targetDueDateStr);
                     updates.completed = true;
                     updates.completedAt = now.toISOString();
                     updates.completed_at = now.toISOString();
@@ -774,7 +847,7 @@ export default function TodayView() {
               if (task.status !== finalStatus) {
                 const updates = { status: finalStatus };
                 if (finalStatus === 'done') {
-                  const avgRating = Math.round((ratedNotes.reduce((sum, n) => sum + Number(n.rating), 0) / ratedNotes.length) * 10) / 10;
+                  const avgRating = computeCarriedTaskAutoRating(task, arc.date);
                   updates.completed = true;
                   updates.completedAt = now.toISOString();
                   updates.completed_at = now.toISOString();
@@ -943,9 +1016,9 @@ export default function TodayView() {
       const taskDate = task.date || task.dateLabel || currentDateStr;
 
       if (ratedNotes.length > 0) {
-        if (task.status !== 'done') {
+        const avgRating = computeCarriedTaskAutoRating(task);
+        if (task.status !== 'done' || task.rating !== avgRating) {
           modified = true;
-          const avgRating = Math.round((ratedNotes.reduce((sum, n) => sum + Number(n.rating), 0) / ratedNotes.length) * 10) / 10;
 
           await store.updateTask(taskDate, targetId, {
             status: 'done',
@@ -1016,7 +1089,7 @@ export default function TodayView() {
     // ONLY perform automatic completion/missed status calculation IF task end date & time has overed (0s time remaining)
     if (isTaskTimeOver(targetTask)) {
       if (ratedNotes.length > 0) {
-        const avgRating = Math.round((ratedNotes.reduce((sum, n) => sum + Number(n.rating), 0) / ratedNotes.length) * 10) / 10;
+        const avgRating = computeCarriedTaskAutoRating({ ...targetTask, daily_notes: updatedNotes });
         const maxRating = targetTask.maxRating || targetTask.max_rating || 10;
 
         updates.status = 'done';
