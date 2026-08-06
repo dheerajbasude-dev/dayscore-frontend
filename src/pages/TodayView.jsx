@@ -1138,7 +1138,9 @@ export default function TodayView() {
     const hasNoteForToday = notes.some(n => n && n.date && String(n.date).split('T')[0] === todayStr);
 
     if (requiresDailyNote && !hasNoteForToday) {
-      showToast("Please submit today's progress note & rating before marking as completed!");
+      if (currentDateStr === todayStr) {
+        showToast("Please submit today's progress note & rating before marking as completed!");
+      }
       return;
     }
 
