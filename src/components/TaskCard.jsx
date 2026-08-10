@@ -173,7 +173,7 @@ export default function TaskCard({
         let curr = new Date(startDate);
         while (curr <= endDate && curr <= todayDate) {
           const currStr = format(curr, 'yyyy-MM-dd');
-          if (!existingDates.has(currStr)) {
+          if (currStr < todayDateStr && !existingDates.has(currStr)) {
             filled.push({
               id: `missed-${currStr}`,
               date: currStr,
@@ -515,8 +515,8 @@ export default function TaskCard({
                 #{index}
               </span>
             )}
-            {isCarriedOver && (
-              <span className="carried-over-blinking-badge" title={`Carried over from ${task.originalDate || task.original_date || taskCreatedDateStr || 'previous date'}`}>
+            {(isCarriedOver || isMultiDayOrCarried) && (
+              <span className="carried-over-blinking-badge" title={isCarriedOver ? `Carried over from ${task.originalDate || task.original_date || taskCreatedDateStr || 'previous date'}` : "Multi-day Task"}>
                 <RotateCcw size={11} className="carried-icon-spin-subtle" />
               </span>
             )}
