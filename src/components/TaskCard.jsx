@@ -350,29 +350,58 @@ export default function TaskCard({
 
   const isCarriedOver = useMemo(() => {
     if (!task) return false;
-    if (Boolean(task.carriedOver || task.carried_over || task.wasCarried || task.isCarried)) {
-      return true;
-    }
+
+    const dueIso = task.dueDateTime || task.due_date_time;
     const orig = task.originalDate || task.original_date;
     const origDate = orig ? (typeof orig === 'string' ? orig.trim().substring(0, 10) : '') : '';
     const createdDate = taskCreatedDateStr || '';
     const viewDate = task.date ? (typeof task.date === 'string' ? task.date.trim().substring(0, 10) : '') : todayDateStr;
 
-    if (origDate && (origDate < viewDate || origDate < todayDateStr)) return true;
-    if (createdDate && (createdDate < viewDate || createdDate < todayDateStr)) return true;
+    let dueDateStr = '';
+    if (dueIso) {
+      try {
+        const d = typeof dueIso === 'string' ? parseISO(dueIso) : new Date(dueIso);
+        dueDateStr = format(d, 'yyyy-MM-dd');
+      } catch (e) {}
+    }
+
+    const startDateStr = origDate || createdDate || viewDate;
+
+    // Single-day tasks created and due on the same day are NOT carried tasks
+    if (startDateStr && dueDateStr && startDateStr === dueDateStr && !Boolean(task.carriedOver || task.carried_over || task.wasCarried || task.isCarried)) {
+      return false;
+    }
+
+    if (Boolean(task.carriedOver || task.carried_over || task.wasCarried || task.isCarried)) {
+      return true;
+    }
+
+    if (origDate && viewDate && origDate < viewDate) return true;
+    if (createdDate && viewDate && createdDate < viewDate) return true;
 
     return false;
   }, [task, taskCreatedDateStr, todayDateStr]);
 
   const checkExtendsBeyondToday = () => {
     if (isCarriedOver) return true;
-    if (notesList && notesList.length > 0) return true;
     const dueIso = task.dueDateTime || task.due_date_time;
     if (!dueIso) return false;
     try {
       const d = typeof dueIso === 'string' ? parseISO(dueIso) : new Date(dueIso);
       const dueDateStr = format(d, 'yyyy-MM-dd');
-      return dueDateStr > todayDateStr;
+
+      const orig = task.originalDate || task.original_date;
+      const origDate = orig ? (typeof orig === 'string' ? orig.trim().substring(0, 10) : '') : '';
+      const createdDate = taskCreatedDateStr || '';
+      const viewDate = task.date ? (typeof task.date === 'string' ? task.date.trim().substring(0, 10) : '') : todayDateStr;
+      const startDateStr = origDate || createdDate || viewDate;
+
+      // If start date and due date are the exact same day, it is a single-day task
+      if (startDateStr && dueDateStr && startDateStr === dueDateStr) {
+        return false;
+      }
+
+      return dueDateStr > startDateStr;
     } catch (e) {
       return false;
     }

@@ -370,14 +370,32 @@ export default function TodayView() {
 
   const isCarriedTask = useCallback((t) => {
     if (!t) return false;
-    if (Boolean(t.carriedOver || t.carried_over || t.wasCarried || t.isCarried)) {
-      return true;
-    }
+
+    const dueIso = t.dueDateTime || t.due_date_time;
     const taskDate = t.date ? (typeof t.date === 'string' ? t.date.trim().substring(0, 10) : '') : currentDateStr;
     const orig = t.originalDate || t.original_date;
     const origDate = orig ? (typeof orig === 'string' ? orig.trim().substring(0, 10) : '') : '';
     const createdDate = t.createdAt ? (typeof t.createdAt === 'string' ? t.createdAt.substring(0, 10) : '') : 
                        (t.created_at ? (typeof t.created_at === 'string' ? t.created_at.substring(0, 10) : '') : '');
+
+    let dueDateStr = '';
+    if (dueIso) {
+      try {
+        const d = typeof dueIso === 'string' ? parseISO(dueIso) : new Date(dueIso);
+        dueDateStr = format(d, 'yyyy-MM-dd');
+      } catch (e) {}
+    }
+
+    const startDateStr = origDate || createdDate || taskDate;
+
+    // Single-day tasks created and due on the same day are NOT carried tasks
+    if (startDateStr && dueDateStr && startDateStr === dueDateStr && !Boolean(t.carriedOver || t.carried_over || t.wasCarried || t.isCarried)) {
+      return false;
+    }
+
+    if (Boolean(t.carriedOver || t.carried_over || t.wasCarried || t.isCarried)) {
+      return true;
+    }
 
     if (origDate && taskDate && origDate < taskDate) return true;
     if (createdDate && taskDate && createdDate < taskDate) return true;
