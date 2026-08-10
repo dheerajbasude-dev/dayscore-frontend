@@ -35,15 +35,24 @@ export const calculateTaskAutoRating = (taskOrNotes, todayStrParam) => {
   let effectiveNotes = [...notes];
 
   if (taskObj) {
-    let startStr = taskObj.originalDate || taskObj.original_date || taskObj.date;
-    if (!startStr) {
-      const iso = taskObj.createdAt || taskObj.created_at;
-      if (iso) startStr = String(iso).split('T')[0];
+    const dates = [];
+    const createdIso = taskObj.createdAt || taskObj.created_at;
+    if (createdIso) {
+      const d = String(createdIso).split('T')[0];
+      if (d && d.length >= 10) dates.push(d.substring(0, 10));
     }
-
-    if (startStr) {
-      const cleanStartStr = String(startStr).split('T')[0];
-      const existingDates = new Set(notes.map(n => n && n.date ? String(n.date).split('T')[0] : ''));
+    const orig = taskObj.originalDate || taskObj.original_date;
+    if (orig) {
+      const d = String(orig).split('T')[0];
+      if (d && d.length >= 10) dates.push(d.substring(0, 10));
+    }
+    if (taskObj.date) {
+      const d = String(taskObj.date).split('T')[0];
+      if (d && d.length >= 10) dates.push(d.substring(0, 10));
+    }
+    dates.sort();
+    const cleanStartStr = dates.length > 0 ? dates[0] : todayStr;
+    const existingDates = new Set(notes.map(n => n && n.date ? String(n.date).split('T')[0] : ''));
 
       let endStr = todayStr;
       const dueIso = taskObj.dueDateTime || taskObj.due_date_time;
@@ -82,7 +91,6 @@ export const calculateTaskAutoRating = (taskOrNotes, todayStrParam) => {
         console.error('Error filling missed days in rating calc:', e);
       }
     }
-  }
 
   if (effectiveNotes.length === 0) return { hasRatedNote: false, avgRating: 0, sumRating: 0, totalCount: 0 };
 
@@ -1096,7 +1104,7 @@ export default function TodayView() {
     };
 
     const now = new Date();
-    const { hasRatedNote, avgRating } = calculateTaskAutoRating(updatedNotes);
+    const { hasRatedNote, avgRating } = calculateTaskAutoRating({ ...targetTask, daily_notes: updatedNotes, dailyNotes: updatedNotes });
 
     // ONLY perform automatic completion/missed status calculation IF task end date & time has overed (0s time remaining)
     if (isTaskTimeOver(targetTask) || hasRatedNote) {

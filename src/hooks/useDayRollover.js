@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { format } from 'date-fns';
 import { saveTasks } from '../store/store';
+import { calculateTaskAutoRating } from '../pages/TodayView';
 
 export function useDayRollover(currentDateStr, tasks, onRollover) {
   const lastSystemDateRef = useRef(format(new Date(), 'yyyy-MM-dd'));
@@ -14,11 +15,9 @@ export function useDayRollover(currentDateStr, tasks, onRollover) {
         if ((task.status === 'pending' || task.status === 'inprogress') && task.dueDateTime) {
           if (new Date(task.dueDateTime) < now) {
             tasksUpdated = true;
-            const notes = Array.isArray(task.daily_notes || task.dailyNotes) ? (task.daily_notes || task.dailyNotes) : [];
-            const ratedNotes = notes.filter(n => n && n.rating != null && Number(n.rating) > 0 && !n.isAutoMissed);
+            const { hasRatedNote, avgRating } = calculateTaskAutoRating(task);
 
-            if (ratedNotes.length > 0) {
-              const avgRating = Math.round((ratedNotes.reduce((sum, n) => sum + Number(n.rating), 0) / ratedNotes.length) * 10) / 10;
+            if (hasRatedNote) {
               return {
                 ...task,
                 status: 'done',

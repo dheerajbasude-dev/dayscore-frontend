@@ -122,17 +122,23 @@ export default function TaskCard({
       task.original_date
     );
 
-    // Stop adding auto-missed notes automatically for carried missed tasks
-    if (isCarriedTask && isMissedTask) {
-      return notesList;
+    const dates = [];
+    const createdIso = task.createdAt || task.created_at;
+    if (createdIso) {
+      const d = String(createdIso).split('T')[0];
+      if (d && d.length >= 10) dates.push(d.substring(0, 10));
     }
-
-    let startStr = task.originalDate || task.original_date || task.date;
-    if (!startStr) {
-      const iso = task.createdAt || task.created_at;
-      if (iso) startStr = String(iso).split('T')[0];
+    const orig = task.originalDate || task.original_date;
+    if (orig) {
+      const d = String(orig).split('T')[0];
+      if (d && d.length >= 10) dates.push(d.substring(0, 10));
     }
-    if (!startStr) return notesList;
+    if (task.date) {
+      const d = String(task.date).split('T')[0];
+      if (d && d.length >= 10) dates.push(d.substring(0, 10));
+    }
+    dates.sort();
+    const cleanStartStr = dates.length > 0 ? dates[0] : todayDateStr;
 
     const existingDates = new Set(
       notesList.map(n => n && n.date ? String(n.date).split('T')[0] : '')
@@ -141,7 +147,6 @@ export default function TaskCard({
     const filled = [...notesList];
 
     try {
-      const cleanStartStr = String(startStr).split('T')[0];
       const startDate = parseISO(cleanStartStr);
       
       let maxEndStr = todayDateStr;
@@ -166,7 +171,7 @@ export default function TaskCard({
 
       if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime()) && startDate <= endDate) {
         let curr = new Date(startDate);
-        while (curr <= endDate && curr < todayDate) {
+        while (curr <= endDate && curr <= todayDate) {
           const currStr = format(curr, 'yyyy-MM-dd');
           if (!existingDates.has(currStr)) {
             filled.push({
