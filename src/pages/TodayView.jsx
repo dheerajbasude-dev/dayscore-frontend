@@ -879,6 +879,12 @@ export default function TodayView() {
                 updated = true;
               }
             }
+          } else {
+            const { hasRatedNote, avgRating } = calculateTaskAutoRating(task);
+            if (hasRatedNote && task.rating !== avgRating) {
+              await store.updateTask(arc.date, task.id || task._id, { rating: avgRating });
+              updated = true;
+            }
           }
         }
       }

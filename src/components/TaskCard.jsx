@@ -276,15 +276,38 @@ export default function TaskCard({
     }
   };
 
+  const effectiveRating = useMemo(() => {
+    if (!effectiveNotesList || effectiveNotesList.length === 0) {
+      return task.rating != null ? Number(task.rating) : null;
+    }
+    let sum = 0;
+    let hasUserRating = false;
+    effectiveNotesList.forEach(n => {
+      if (!n) return;
+      const r = parseFloat(n.rating != null ? n.rating : 0);
+      if (!isNaN(r) && r > 0 && !n.isAutoMissed) {
+        sum += r;
+        hasUserRating = true;
+      }
+    });
+    if (!hasUserRating) {
+      return task.rating != null ? Number(task.rating) : null;
+    }
+    const totalDaysCount = effectiveNotesList.length;
+    return Math.round((sum / totalDaysCount) * 10) / 10;
+  }, [effectiveNotesList, task.rating]);
+
+  const displayRatingVal = effectiveRating != null ? effectiveRating : (task.rating != null ? Number(task.rating) : null);
+
   const getRatingBadgeClass = () => {
-    const num = Number(task.rating);
+    const num = Number(displayRatingVal != null ? displayRatingVal : task.rating);
     if (isNaN(num) || num <= 4.0) return 'rating-badge-low';
     if (num <= 8.5) return 'rating-badge-medium';
     return 'rating-badge-high';
   };
 
   const maxR = task.maxRating || task.max_rating || 10;
-  const ratingDisplay = task.status === 'done' && task.rating != null;
+  const ratingDisplay = task.status === 'done' && displayRatingVal != null;
   const getStartDateISO = () => {
     if (task.createdAt || task.created_at) return task.createdAt || task.created_at;
     if (task.date) return `${task.date}T00:00:00`;
@@ -529,7 +552,7 @@ export default function TaskCard({
           {ratingDisplay && (
             <>
               <span className="meta-dot">·</span>
-              <span className={`rating-badge ${getRatingBadgeClass()}`}>★ {task.rating}/{maxR}</span>
+              <span className={`rating-badge ${getRatingBadgeClass()}`}>★ {displayRatingVal}/{maxR}</span>
             </>
           )}
           {(createdFormatted || dueFormatted) && (
