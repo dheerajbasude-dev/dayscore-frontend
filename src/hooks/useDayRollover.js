@@ -15,19 +15,16 @@ export function useDayRollover(currentDateStr, tasks, onRollover) {
         if ((task.status === 'pending' || task.status === 'inprogress') && task.dueDateTime) {
           if (new Date(task.dueDateTime) < now) {
             tasksUpdated = true;
-            const { hasRatedNote, avgRating } = calculateTaskAutoRating(task);
+            const { avgRating } = calculateTaskAutoRating(task);
 
-            if (hasRatedNote) {
-              return {
-                ...task,
-                status: 'done',
-                rating: avgRating,
-                completedAt: task.completedAt || now.toISOString(),
-                completed_at: task.completed_at || now.toISOString()
-              };
-            } else {
-              return { ...task, status: 'missed' };
-            }
+            return {
+              ...task,
+              status: 'done',
+              completed: true,
+              rating: avgRating,
+              completedAt: task.completedAt || now.toISOString(),
+              completed_at: task.completed_at || now.toISOString()
+            };
           }
         }
         return task;

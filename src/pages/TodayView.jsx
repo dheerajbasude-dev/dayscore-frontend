@@ -515,21 +515,16 @@ export default function TodayView() {
         }
 
         if (pastEndDate) {
-          const { hasRatedNote, avgRating } = calculateTaskAutoRating(t);
-          const finalStatus = (t.status === 'done' || hasRatedNote) ? 'done' : 'missed';
+          const { avgRating } = calculateTaskAutoRating(t);
           
           const updates = {
             date: pastEndDate,
             carriedOver: false,
             carried_over: 0,
-            status: finalStatus
+            status: 'done',
+            completed: true,
+            rating: avgRating
           };
-          if (finalStatus === 'done') {
-            updates.completed = true;
-            if (hasRatedNote) {
-              updates.rating = avgRating;
-            }
-          }
           await store.updateTask(todayStr, t.id || t._id, updates);
           cleanedUpCount++;
         }
@@ -848,40 +843,40 @@ export default function TodayView() {
                   updated = true;
                 }
               } else if (dueDateObj < now) {
-                const finalStatus = hasRatedNote ? 'done' : 'missed';
+                const finalStatus = 'done';
                 const shouldMoveDate = targetDueDateStr && targetDueDateStr !== arc.date && targetDueDateStr <= todayStr;
-                if (task.status !== finalStatus || (finalStatus === 'done' && task.rating !== avgRating) || shouldMoveDate) {
-                  const updates = { status: finalStatus };
+                if (task.status !== finalStatus || task.rating !== avgRating || shouldMoveDate) {
+                  const updates = {
+                    status: finalStatus,
+                    completed: true,
+                    completedAt: task.completedAt || task.completed_at || now.toISOString(),
+                    completed_at: task.completedAt || task.completed_at || now.toISOString(),
+                    rating: avgRating
+                  };
                   if (shouldMoveDate) {
                     updates.date = targetDueDateStr;
-                  }
-                  if (finalStatus === 'done') {
-                    updates.completed = true;
-                    updates.completedAt = task.completedAt || task.completed_at || now.toISOString();
-                    updates.completed_at = task.completedAt || task.completed_at || now.toISOString();
-                    updates.rating = avgRating;
                   }
                   await store.updateTask(arc.date, task.id || task._id, updates);
                   updated = true;
                 }
               }
             } else if (arc.date < todayStr) {
-              const finalStatus = hasRatedNote ? 'done' : 'missed';
-              if (task.status !== finalStatus || (finalStatus === 'done' && task.rating !== avgRating)) {
-                const updates = { status: finalStatus };
-                if (finalStatus === 'done') {
-                  updates.completed = true;
-                  updates.completedAt = task.completedAt || task.completed_at || now.toISOString();
-                  updates.completed_at = task.completedAt || task.completed_at || now.toISOString();
-                  updates.rating = avgRating;
-                }
+              const finalStatus = 'done';
+              if (task.status !== finalStatus || task.rating !== avgRating) {
+                const updates = {
+                  status: finalStatus,
+                  completed: true,
+                  completedAt: task.completedAt || task.completed_at || now.toISOString(),
+                  completed_at: task.completedAt || task.completed_at || now.toISOString(),
+                  rating: avgRating
+                };
                 await store.updateTask(arc.date, task.id || task._id, updates);
                 updated = true;
               }
             }
           } else {
-            const { hasRatedNote, avgRating } = calculateTaskAutoRating(task);
-            if (hasRatedNote && task.rating !== avgRating) {
+            const { avgRating } = calculateTaskAutoRating(task);
+            if (task.rating !== avgRating) {
               await store.updateTask(arc.date, task.id || task._id, { rating: avgRating });
               updated = true;
             }
