@@ -128,6 +128,14 @@ export function formatServerTask(t) {
   if (taskDate && typeof taskDate === 'string' && taskDate.includes('T')) {
     taskDate = taskDate.split('T')[0];
   }
+  const dueIso = t.dueDateTime || t.due_date_time;
+  if (dueIso && (t.status === 'missed' || t.status === 'done' || t.completed === true)) {
+    try {
+      const dueObj = typeof dueIso === 'string' ? parseISO(dueIso) : new Date(dueIso);
+      const dueStr = format(dueObj, 'yyyy-MM-dd');
+      if (dueStr) taskDate = dueStr;
+    } catch (e) {}
+  }
   if (!taskDate && createdDate) {
     taskDate = typeof createdDate === 'string' ? createdDate.substring(0, 10) : format(new Date(), 'yyyy-MM-dd');
   }

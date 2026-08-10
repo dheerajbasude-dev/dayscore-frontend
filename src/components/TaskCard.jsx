@@ -143,11 +143,30 @@ export default function TaskCard({
     try {
       const cleanStartStr = String(startStr).split('T')[0];
       const startDate = parseISO(cleanStartStr);
+      
+      let maxEndStr = todayDateStr;
+      const dueIso = task.dueDateTime || task.due_date_time;
+      if (dueIso) {
+        try {
+          const dueObj = typeof dueIso === 'string' ? parseISO(dueIso) : new Date(dueIso);
+          const dueStr = format(dueObj, 'yyyy-MM-dd');
+          if (dueStr < maxEndStr) {
+            maxEndStr = dueStr;
+          }
+        } catch (e) {}
+      } else if (task.date && (task.status === 'missed' || task.status === 'done')) {
+        const taskDateClean = String(task.date).split('T')[0];
+        if (taskDateClean < maxEndStr) {
+          maxEndStr = taskDateClean;
+        }
+      }
+
+      const endDate = parseISO(maxEndStr);
       const todayDate = parseISO(todayDateStr);
 
-      if (!isNaN(startDate.getTime()) && startDate < todayDate) {
+      if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime()) && startDate <= endDate) {
         let curr = new Date(startDate);
-        while (curr < todayDate) {
+        while (curr <= endDate && curr < todayDate) {
           const currStr = format(curr, 'yyyy-MM-dd');
           if (!existingDates.has(currStr)) {
             filled.push({

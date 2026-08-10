@@ -53,6 +53,9 @@ export const calculateTaskAutoRating = (taskOrNotes, todayStrParam) => {
           const dueStr = format(dueObj, 'yyyy-MM-dd');
           if (dueStr < endStr) endStr = dueStr;
         } catch (e) {}
+      } else if (taskObj.date && (taskObj.status === 'missed' || taskObj.status === 'done')) {
+        const taskDateClean = String(taskObj.date).split('T')[0];
+        if (taskDateClean < endStr) endStr = taskDateClean;
       }
 
       try {
@@ -838,8 +841,12 @@ export default function TodayView() {
                 }
               } else if (dueDateObj < now) {
                 const finalStatus = hasRatedNote ? 'done' : 'missed';
-                if (task.status !== finalStatus || (finalStatus === 'done' && task.rating !== avgRating)) {
+                const shouldMoveDate = targetDueDateStr && targetDueDateStr !== arc.date && targetDueDateStr <= todayStr;
+                if (task.status !== finalStatus || (finalStatus === 'done' && task.rating !== avgRating) || shouldMoveDate) {
                   const updates = { status: finalStatus };
+                  if (shouldMoveDate) {
+                    updates.date = targetDueDateStr;
+                  }
                   if (finalStatus === 'done') {
                     updates.completed = true;
                     updates.completedAt = task.completedAt || task.completed_at || now.toISOString();
