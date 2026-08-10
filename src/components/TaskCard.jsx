@@ -445,9 +445,9 @@ export default function TaskCard({
     // On older/past dates (not Today), silently return without showing toast!
     if (!isToday) return;
 
-    const isMultiDayOrCarried = Boolean(isCarriedOver || (notesList && notesList.length > 0) || task.dueDateTime || task.due_date_time);
+    const isMultiDayTaskOrCarried = checkExtendsBeyondToday();
 
-    if (isMultiDayOrCarried) {
+    if (isMultiDayTaskOrCarried) {
       // If user hasn't submitted today's daily progress note & rating yet, show toast!
       if (!hasNoteForToday) {
         if (onShowToast) {
