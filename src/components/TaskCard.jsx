@@ -294,40 +294,28 @@ export default function TaskCard({
 
   const isMissed = useMemo(() => {
     if (isDone || hasRatingNote) return false;
-    if (task.status === 'missed') {
-      const dueIso = task.dueDateTime || task.due_date_time;
-      if (dueIso) {
-        try {
-          const dueObj = typeof dueIso === 'string' ? parseISO(dueIso) : new Date(dueIso);
-          const dueDateStr = format(dueObj, 'yyyy-MM-dd');
-          if (targetDateCompareStr && dueDateStr > targetDateCompareStr) {
-            return false;
-          }
-        } catch (e) {}
-      }
+    if (task.status === 'missed' || task.missed === true || task.wasMissed === true || task.was_missed === true) {
       return true;
     }
+    if (isOverdue) return true;
     return false;
-  }, [isDone, hasRatingNote, task.status, task.dueDateTime, task.due_date_time, targetDateCompareStr]);
+  }, [isDone, hasRatingNote, task.status, task.missed, task.wasMissed, task.was_missed, isOverdue]);
 
   const isCarriedOver = useMemo(() => {
+    if (!task) return false;
+    if (Boolean(task.carriedOver || task.carried_over || task.wasCarried || task.isCarried)) {
+      return true;
+    }
     const orig = task.originalDate || task.original_date;
     const origDate = orig ? (typeof orig === 'string' ? orig.trim().substring(0, 10) : '') : '';
     const createdDate = taskCreatedDateStr || '';
+    const viewDate = task.date ? (typeof task.date === 'string' ? task.date.trim().substring(0, 10) : '') : todayDateStr;
 
-    // If task originated/created on or after the targetDate, it is NOT carried over!
-    const effectiveOrig = origDate || createdDate;
-    if (effectiveOrig && effectiveOrig >= targetDateCompareStr) {
-      return false;
-    }
+    if (origDate && (origDate < viewDate || origDate < todayDateStr)) return true;
+    if (createdDate && (createdDate < viewDate || createdDate < todayDateStr)) return true;
 
-    if (task.carriedOver || task.carried_over || task.wasCarried || task.isCarried) {
-      if (effectiveOrig && effectiveOrig < targetDateCompareStr) return true;
-      if (!effectiveOrig) return true;
-    }
-    if (origDate && origDate < targetDateCompareStr) return true;
     return false;
-  }, [task.carriedOver, task.carried_over, task.wasCarried, task.isCarried, task.originalDate, task.original_date, taskCreatedDateStr, targetDateCompareStr]);
+  }, [task, taskCreatedDateStr, todayDateStr]);
 
   const checkExtendsBeyondToday = () => {
     if (isCarriedOver) return true;

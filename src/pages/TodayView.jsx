@@ -359,25 +359,19 @@ export default function TodayView() {
 
   const isCarriedTask = useCallback((t) => {
     if (!t) return false;
+    if (Boolean(t.carriedOver || t.carried_over || t.wasCarried || t.isCarried)) {
+      return true;
+    }
     const taskDate = t.date ? (typeof t.date === 'string' ? t.date.trim().substring(0, 10) : '') : currentDateStr;
     const orig = t.originalDate || t.original_date;
     const origDate = orig ? (typeof orig === 'string' ? orig.trim().substring(0, 10) : '') : '';
     const createdDate = t.createdAt ? (typeof t.createdAt === 'string' ? t.createdAt.substring(0, 10) : '') : 
                        (t.created_at ? (typeof t.created_at === 'string' ? t.created_at.substring(0, 10) : '') : '');
 
-    const effectiveOrig = origDate || createdDate;
-    // If task originated/was created on or after taskDate, it is NOT a carried task!
-    if (effectiveOrig && effectiveOrig >= taskDate) {
-      return false;
-    }
-
-    if (Boolean(t.carriedOver || t.carried_over || t.wasCarried || t.isCarried)) {
-      if (effectiveOrig && effectiveOrig < taskDate) return true;
-      if (!effectiveOrig) return true;
-    }
-
     if (origDate && taskDate && origDate < taskDate) return true;
     if (createdDate && taskDate && createdDate < taskDate) return true;
+    if (origDate && origDate < currentDateStr) return true;
+    if (createdDate && createdDate < currentDateStr && taskDate === currentDateStr) return true;
     return false;
   }, [currentDateStr]);
 
@@ -1957,7 +1951,7 @@ export default function TodayView() {
                   )}
                   {displayTasksList.filter(t => isCarriedTask(t)).length > 0 && (
                     <span className="task-stat-chip chip-carried" title="Carried Over Tasks">
-                      <RotateCcw size={12} /> <strong>{displayTasksList.filter(t => isCarriedTask(t)).length}</strong> Carried
+                      <RotateCcw size={12} className="carried-icon-spin-subtle" /> <strong>{displayTasksList.filter(t => isCarriedTask(t)).length}</strong> Carried
                     </span>
                   )}
                 </div>
