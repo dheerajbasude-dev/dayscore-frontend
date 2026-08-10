@@ -1117,6 +1117,42 @@ export default function TodayView() {
       if (hasRatedNote) {
         const maxRating = targetTask.maxRating || targetTask.max_rating || 10;
 
+        let dueDateObj = null;
+        if (targetTask?.dueDateTime) {
+          dueDateObj = new Date(targetTask.dueDateTime);
+        } else if (targetTask?.due_date_time) {
+          dueDateObj = new Date(targetTask.due_date_time);
+        }
+        const isOverdue = dueDateObj && !isNaN(dueDateObj.getTime()) && dueDateObj < now;
+
+        const isLowRating = avgRating <= 4;
+        const isHighRating = avgRating >= 9;
+
+        let taskReward = null;
+        let taskPenalty = null;
+        let shouldTriggerPenalty = false;
+        let shouldTriggerReward = false;
+
+        const triggeredPenalty = isLowRating || isOverdue;
+
+        if (triggeredPenalty) {
+          const punishments = store.getPunishments();
+          if (punishments && punishments.length > 0) {
+            taskPenalty = punishments[Math.floor(Math.random() * punishments.length)];
+            shouldTriggerPenalty = true;
+          }
+        }
+
+        const currentPunishment = store.getActivePunishment();
+        const isPenaltyCurrentlyActive = currentPunishment && !currentPunishment.acknowledged;
+        if (isHighRating && !isOverdue && !isPenaltyCurrentlyActive) {
+          const rewards = store.getRewards();
+          taskReward = (rewards && rewards.length > 0)
+            ? rewards[Math.floor(Math.random() * rewards.length)]
+            : "Treat yourself!";
+          shouldTriggerReward = true;
+        }
+
         updates.status = 'done';
         updates.completed = true;
         updates.completedAt = now.toISOString();
@@ -1124,6 +1160,27 @@ export default function TodayView() {
         updates.rating = avgRating;
         updates.maxRating = maxRating;
         updates.max_rating = maxRating;
+        updates.reward = taskReward;
+        updates.penalty = taskPenalty;
+        updates.rewardClaimed = false;
+        updates.reward_claimed = 0;
+        updates.rewardAcknowledged = false;
+        updates.reward_acknowledged = 0;
+        updates.penaltyAccepted = false;
+        updates.penalty_accepted = 0;
+
+        if (shouldTriggerPenalty && taskPenalty) {
+          store.setActivePunishment(taskPenalty);
+          setActivePunishment(store.getActivePunishment());
+          setShowConfetti(false);
+          setShowPenaltyFlash(true);
+          setTimeout(() => setShowPenaltyFlash(false), 3000);
+        } else if (shouldTriggerReward && taskReward) {
+          setTodaysReward(taskReward);
+          setShowPenaltyFlash(false);
+          setShowConfetti(true);
+          setTimeout(() => setShowConfetti(false), 3000);
+        }
       } else if (isTaskTimeOver(targetTask)) {
         updates.status = 'missed';
       }
@@ -1242,20 +1299,7 @@ export default function TodayView() {
       shouldTriggerReward = true
     }
 
-    const isCarriedOver = Boolean(
-      targetTask?.carriedOver ||
-      targetTask?.carried_over ||
-      targetTask?.originalDate ||
-      targetTask?.original_date
-    );
 
-    // Carried over missed tasks do NOT trigger rewards or penalties
-    if (isCarriedOver) {
-      taskReward = null;
-      taskPenalty = null;
-      shouldTriggerPenalty = false;
-      shouldTriggerReward = false;
-    }
 
     const wasMissedTask = targetTask?.status === 'missed' || targetTask?.wasMissed || targetTask?.was_missed;
 
