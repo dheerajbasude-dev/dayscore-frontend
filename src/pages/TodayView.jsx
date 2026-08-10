@@ -370,22 +370,14 @@ export default function TodayView() {
 
   const isCarriedTask = useCallback((t) => {
     if (!t) return false;
+    if (Boolean(t.carriedOver || t.carried_over || t.wasCarried || t.isCarried)) {
+      return true;
+    }
     const taskDate = t.date ? (typeof t.date === 'string' ? t.date.trim().substring(0, 10) : '') : currentDateStr;
     const orig = t.originalDate || t.original_date;
     const origDate = orig ? (typeof orig === 'string' ? orig.trim().substring(0, 10) : '') : '';
     const createdDate = t.createdAt ? (typeof t.createdAt === 'string' ? t.createdAt.substring(0, 10) : '') : 
                        (t.created_at ? (typeof t.created_at === 'string' ? t.created_at.substring(0, 10) : '') : '');
-
-    const effectiveOrig = origDate || createdDate;
-    // If task originated/was created on or after taskDate, it is NOT a carried task!
-    if (effectiveOrig && effectiveOrig >= taskDate) {
-      return false;
-    }
-
-    if (Boolean(t.carriedOver || t.carried_over || t.wasCarried || t.isCarried)) {
-      if (effectiveOrig && effectiveOrig < taskDate) return true;
-      if (!effectiveOrig) return true;
-    }
 
     if (origDate && taskDate && origDate < taskDate) return true;
     if (createdDate && taskDate && createdDate < taskDate) return true;
@@ -848,33 +840,35 @@ export default function TodayView() {
                   updated = true;
                 }
               } else if (dueDateObj < now) {
-                const finalStatus = hasRatedNote ? 'done' : 'missed';
+                const finalStatus = 'done';
+                const finalRating = hasRatedNote ? avgRating : 0;
                 const shouldMoveDate = targetDueDateStr && targetDueDateStr !== arc.date && targetDueDateStr <= todayStr;
-                if (task.status !== finalStatus || (finalStatus === 'done' && task.rating !== avgRating) || shouldMoveDate) {
-                  const updates = { status: finalStatus };
+                if (task.status !== finalStatus || task.rating !== finalRating || shouldMoveDate) {
+                  const updates = {
+                    status: finalStatus,
+                    completed: true,
+                    completedAt: task.completedAt || task.completed_at || now.toISOString(),
+                    completed_at: task.completedAt || task.completed_at || now.toISOString(),
+                    rating: finalRating
+                  };
                   if (shouldMoveDate) {
                     updates.date = targetDueDateStr;
-                  }
-                  if (finalStatus === 'done') {
-                    updates.completed = true;
-                    updates.completedAt = task.completedAt || task.completed_at || now.toISOString();
-                    updates.completed_at = task.completedAt || task.completed_at || now.toISOString();
-                    updates.rating = avgRating;
                   }
                   await store.updateTask(arc.date, task.id || task._id, updates);
                   updated = true;
                 }
               }
             } else if (arc.date < todayStr) {
-              const finalStatus = hasRatedNote ? 'done' : 'missed';
-              if (task.status !== finalStatus || (finalStatus === 'done' && task.rating !== avgRating)) {
-                const updates = { status: finalStatus };
-                if (finalStatus === 'done') {
-                  updates.completed = true;
-                  updates.completedAt = task.completedAt || task.completed_at || now.toISOString();
-                  updates.completed_at = task.completedAt || task.completed_at || now.toISOString();
-                  updates.rating = avgRating;
-                }
+              const finalStatus = 'done';
+              const finalRating = hasRatedNote ? avgRating : 0;
+              if (task.status !== finalStatus || task.rating !== finalRating) {
+                const updates = {
+                  status: finalStatus,
+                  completed: true,
+                  completedAt: task.completedAt || task.completed_at || now.toISOString(),
+                  completed_at: task.completedAt || task.completed_at || now.toISOString(),
+                  rating: finalRating
+                };
                 await store.updateTask(arc.date, task.id || task._id, updates);
                 updated = true;
               }
@@ -1182,7 +1176,11 @@ export default function TodayView() {
           setTimeout(() => setShowConfetti(false), 3000);
         }
       } else if (isTaskTimeOver(targetTask)) {
-        updates.status = 'missed';
+        updates.status = 'done';
+        updates.completed = true;
+        updates.completedAt = now.toISOString();
+        updates.completed_at = now.toISOString();
+        updates.rating = 0;
       }
     }
 

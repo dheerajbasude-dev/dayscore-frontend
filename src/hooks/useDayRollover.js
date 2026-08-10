@@ -17,17 +17,14 @@ export function useDayRollover(currentDateStr, tasks, onRollover) {
             tasksUpdated = true;
             const { hasRatedNote, avgRating } = calculateTaskAutoRating(task);
 
-            if (hasRatedNote) {
-              return {
-                ...task,
-                status: 'done',
-                rating: avgRating,
-                completedAt: task.completedAt || now.toISOString(),
-                completed_at: task.completed_at || now.toISOString()
-              };
-            } else {
-              return { ...task, status: 'missed' };
-            }
+            return {
+              ...task,
+              status: 'done',
+              completed: true,
+              rating: hasRatedNote ? avgRating : 0,
+              completedAt: task.completedAt || now.toISOString(),
+              completed_at: task.completed_at || now.toISOString()
+            };
           }
         }
         return task;

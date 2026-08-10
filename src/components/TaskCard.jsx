@@ -515,8 +515,8 @@ export default function TaskCard({
                 #{index}
               </span>
             )}
-            {(isCarriedOver || isMultiDayOrCarried) && (
-              <span className="carried-over-blinking-badge" title={isCarriedOver ? `Carried over from ${task.originalDate || task.original_date || taskCreatedDateStr || 'previous date'}` : "Multi-day Task"}>
+            {isCarriedOver && (
+              <span className="carried-over-blinking-badge" title={`Carried over from ${task.originalDate || task.original_date || taskCreatedDateStr || 'previous date'}`}>
                 <RotateCcw size={11} className="carried-icon-spin-subtle" />
               </span>
             )}
