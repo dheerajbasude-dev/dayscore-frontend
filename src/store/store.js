@@ -49,6 +49,72 @@ export function getTasks(dateStr) {
   const data = localStorage.getItem(`dayscore_${uid}_tasks_${cleanDate}`);
   let tasks = data ? JSON.parse(data) : [];
 
+  if (cleanDate < todayStr) {
+    // If viewing a past date, check if any tasks in today's active list originated on this past date
+    const todayData = localStorage.getItem(`dayscore_${uid}_tasks_${todayStr}`);
+    if (todayData) {
+      try {
+        const todayTasksList = JSON.parse(todayData) || [];
+        const existingIds = new Set(tasks.map(t => String(t.id || t._id)));
+        todayTasksList.forEach(t => {
+          if (!t) return;
+          const orig = t.originalDate || t.original_date;
+          const origDate = orig ? (typeof orig === 'string' ? orig.trim().substring(0, 10) : '') : '';
+          const createdIso = t.createdAt || t.created_at;
+          const createdDate = createdIso ? (typeof createdIso === 'string' ? createdIso.trim().substring(0, 10) : '') : '';
+          const taskOrigDate = origDate || createdDate;
+          const pid = String(t.id || t._id);
+
+          if (taskOrigDate === cleanDate && !existingIds.has(pid)) {
+            tasks.push({
+              ...t,
+              date: cleanDate,
+              status: 'carriedOver',
+              carriedOver: true,
+              carried_over: 1,
+              completed: false,
+              rewardClaimed: false,
+              reward_claimed: 0,
+              penaltyAccepted: false,
+              penalty_accepted: 0
+            });
+            existingIds.add(pid);
+          }
+        });
+      } catch (e) {}
+    }
+
+    // Format tasks on this past date: if completed on a later date, show as carriedOver on this past date
+    tasks = tasks.map(t => {
+      if (!t) return t;
+      const comp = t.completedAt || t.completed_at;
+      let compDate = '';
+      if (comp) {
+        try {
+          compDate = typeof comp === 'string' ? comp.split('T')[0] : format(new Date(comp), 'yyyy-MM-dd');
+        } catch (e) {}
+      }
+      const isCarried = Boolean(t.carriedOver || t.carried_over || t.originalDate || t.original_date);
+      const orig = t.originalDate || t.original_date;
+      const origDate = orig ? (typeof orig === 'string' ? orig.trim().substring(0, 10) : '') : '';
+
+      if ((compDate && compDate > cleanDate) || (isCarried && origDate && origDate === cleanDate && t.date > cleanDate)) {
+        return {
+          ...t,
+          status: 'carriedOver',
+          carriedOver: true,
+          carried_over: 1,
+          completed: false,
+          rewardClaimed: false,
+          reward_claimed: 0,
+          penaltyAccepted: false,
+          penalty_accepted: 0
+        };
+      }
+      return t;
+    });
+  }
+
   if (cleanDate === todayStr) {
     const prefix = `dayscore_${uid}_tasks_`;
     const pastCarried = [];
@@ -206,6 +272,27 @@ export async function fetchAllTasksApi() {
           tasksByDate.set(d, []);
         }
         tasksByDate.get(d).push(t);
+
+        // Also record historical status on originalDate if carried over to a later date
+        const orig = t.originalDate || t.original_date;
+        const origDate = orig ? (typeof orig === 'string' ? orig.trim().substring(0, 10) : '') : '';
+        if (origDate && origDate < d) {
+          if (!tasksByDate.has(origDate)) {
+            tasksByDate.set(origDate, []);
+          }
+          const origList = tasksByDate.get(origDate);
+          const exists = origList.some(existing => String(existing.id || existing._id) === String(t.id || t._id));
+          if (!exists) {
+            origList.push({
+              ...t,
+              date: origDate,
+              status: 'carriedOver',
+              carriedOver: true,
+              carried_over: 1,
+              completed: false
+            });
+          }
+        }
       });
 
       // Synchronously assign carried-over tasks to todayStr
