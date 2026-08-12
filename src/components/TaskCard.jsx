@@ -445,51 +445,7 @@ export default function TaskCard({
     // On older/past dates (not Today), silently return without showing toast!
     if (!isToday) return;
 
-    const isMultiDayTaskOrCarried = checkExtendsBeyondToday();
-
-    if (isMultiDayTaskOrCarried) {
-      // If user hasn't submitted today's daily progress note & rating yet, show toast!
-      if (!hasNoteForToday) {
-        if (onShowToast) {
-          onShowToast("Please submit today's progress note & rating before marking as completed!");
-        }
-        return;
-      }
-
-      // If user HAS submitted today's daily progress note & rating:
-      // AUTOMATICALLY COMPLETE the task based on task rating notes averages (WITHOUT opening rating modal!)
-      if (onAutoCompleteWithRating) {
-        const listToUse = effectiveNotesList && effectiveNotesList.length > 0 ? effectiveNotesList : notesList;
-        let sumRating = 0;
-        let hasRated = false;
-        listToUse.forEach(n => {
-          if (!n) return;
-          const r = parseFloat(n.rating != null ? n.rating : (n.score != null ? n.score : 0));
-          if (!isNaN(r) && r > 0 && !n.isAutoMissed) {
-            sumRating += r;
-            hasRated = true;
-          }
-        });
-
-        // Denominator includes ALL daily note entries (user rated days + missed 0-rating days)
-        const count = listToUse.length || 1;
-        const computedAvg = hasRated ? Math.round((sumRating / count) * 10) / 10 : 8.0;
-
-        setIsUpdatingStatus(true);
-        try {
-          await onAutoCompleteWithRating(task, computedAvg);
-          setIsJustCompleted(true);
-          setTimeout(() => setIsJustCompleted(false), 2500);
-        } catch (err) {
-          console.error('Auto completion error:', err);
-        } finally {
-          setIsUpdatingStatus(false);
-        }
-        return;
-      }
-    }
-
-    // Standard single-day tasks: open rating slider modal
+    // Open rating slider modal for ALL tasks (standard & carried tasks)
     if (onRequestComplete) {
       onRequestComplete(task);
       return;
