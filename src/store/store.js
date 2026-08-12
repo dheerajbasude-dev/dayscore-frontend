@@ -1,5 +1,6 @@
 import { format, parseISO } from 'date-fns';
 import { calculateDailyScore } from './scoring';
+import { getApiBaseUrl, safeJsonParse } from '../utils/api';
 
 export const getDateKey = (date) => format(date || new Date(), 'yyyy-MM-dd');
 
@@ -21,8 +22,6 @@ export const getUserId = () => {
   }
 };
 
-const API_BASE_URL = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
-
 const authFetch = async (url, options = {}) => {
   const token = getToken();
   const headers = {
@@ -33,7 +32,8 @@ const authFetch = async (url, options = {}) => {
     headers['Authorization'] = `Bearer ${token}`;
   }
   const cleanPath = url.startsWith('/') ? url : `/${url}`;
-  const fullUrl = url.startsWith('http') ? url : `${API_BASE_URL}${cleanPath}`;
+  const baseUrl = getApiBaseUrl();
+  const fullUrl = url.startsWith('http') ? url : `${baseUrl}${cleanPath}`;
   return fetch(fullUrl, { ...options, headers });
 };
 
@@ -175,7 +175,7 @@ export async function fetchTasksApi(dateStr) {
   try {
     const res = await authFetch(`/api/tasks?date=${cleanDate}`);
     if (res.ok) {
-      const data = await res.json();
+      const data = await safeJsonParse(res);
       const serverTasks = (data.tasks || []).map(formatServerTask);
 
       // Directly update local cache with what exists in MongoDB Atlas
@@ -195,7 +195,7 @@ export async function fetchAllTasksApi() {
   try {
     const res = await authFetch('/api/tasks');
     if (res.ok) {
-      const data = await res.json();
+      const data = await safeJsonParse(res);
       const serverTasks = (data.tasks || []).map(formatServerTask);
       const todayStr = format(new Date(), 'yyyy-MM-dd');
 
@@ -497,7 +497,7 @@ export async function fetchRewardsApi() {
   try {
     const res = await authFetch('/api/rewards');
     if (res.ok) {
-      const data = await res.json();
+      const data = await safeJsonParse(res);
       const list = Array.isArray(data.rewards) ? data.rewards : [];
       saveRewards(list);
       return list;
@@ -522,7 +522,7 @@ export async function addRewardApi(text) {
         body: JSON.stringify({ text })
       });
       if (res.ok) {
-        const data = await res.json();
+        const data = await safeJsonParse(res);
         const list = Array.isArray(data.rewards) ? data.rewards : [];
         saveRewards(list);
         return list;
@@ -548,7 +548,7 @@ export async function deleteRewardApi(text) {
         body: JSON.stringify({ text })
       });
       if (res.ok) {
-        const data = await res.json();
+        const data = await safeJsonParse(res);
         const list = Array.isArray(data.rewards) ? data.rewards : [];
         saveRewards(list);
         return list;
@@ -581,7 +581,7 @@ export async function fetchPunishmentsApi() {
   try {
     const res = await authFetch('/api/punishments');
     if (res.ok) {
-      const data = await res.json();
+      const data = await safeJsonParse(res);
       const list = Array.isArray(data.punishments) ? data.punishments : [];
       savePunishments(list);
       return list;
@@ -606,7 +606,7 @@ export async function addPunishmentApi(text) {
         body: JSON.stringify({ text })
       });
       if (res.ok) {
-        const data = await res.json();
+        const data = await safeJsonParse(res);
         const list = Array.isArray(data.punishments) ? data.punishments : [];
         savePunishments(list);
         return list;
@@ -632,7 +632,7 @@ export async function deletePunishmentApi(text) {
         body: JSON.stringify({ text })
       });
       if (res.ok) {
-        const data = await res.json();
+        const data = await safeJsonParse(res);
         const list = Array.isArray(data.punishments) ? data.punishments : [];
         savePunishments(list);
         return list;
@@ -721,7 +721,7 @@ export async function fetchStreakMilestonesApi() {
   try {
     const res = await authFetch('/api/streak-milestones');
     if (res.ok) {
-      const data = await res.json();
+      const data = await safeJsonParse(res);
       const milestones = data.milestones || { 7: '', 14: '', 30: '', 100: '' };
       const claimed = data.claimed_milestones || { 7: false, 14: false, 30: false, 100: false };
       saveStreakMilestoneRewards(milestones, claimed);
@@ -756,7 +756,7 @@ export async function saveStreakMilestonesApi(milestones) {
       });
     }
     if (res && res.ok) {
-      const data = await res.json();
+      const data = await safeJsonParse(res);
       const updatedMilestones = data.milestones || milestones;
       const updatedClaimed = data.claimed_milestones || null;
       saveStreakMilestoneRewards(updatedMilestones, updatedClaimed);
@@ -784,7 +784,7 @@ export async function claimStreakMilestoneApi(days) {
       body: JSON.stringify({ days })
     });
     if (res.ok) {
-      const data = await res.json();
+      const data = await safeJsonParse(res);
       const updatedClaimed = data.claimed_milestones || currentClaimed;
       saveStreakMilestoneRewards(data.milestones || getStreakMilestoneRewards(), updatedClaimed);
       return updatedClaimed;
@@ -829,7 +829,7 @@ export async function fetchTemplatesApi() {
   try {
     const res = await authFetch('/api/templates');
     if (res.ok) {
-      const data = await res.json();
+      const data = await safeJsonParse(res);
       if (Array.isArray(data.templates)) {
         saveTemplates(data.templates);
         return data.templates;
@@ -867,7 +867,7 @@ export async function saveTemplateApi(templateData) {
     });
 
     if (res.ok) {
-      const data = await res.json();
+      const data = await safeJsonParse(res);
       const saved = data.template;
       const current = getTemplates();
       let updated;
@@ -943,7 +943,7 @@ export async function fetchReflectionApi(date) {
   try {
     const res = await authFetch(`/api/reflections/${date}`);
     if (res.ok) {
-      const data = await res.json();
+      const data = await safeJsonParse(res);
       const content = data.reflection ? data.reflection.content : '';
       const uid = getUserId();
       if (content) {
@@ -992,7 +992,7 @@ export async function fetchSettingsApi() {
   try {
     const res = await authFetch('/api/settings');
     if (res.ok) {
-      const data = await res.json();
+      const data = await safeJsonParse(res);
       const current = getSettings();
       const updated = { ...current, ...data.settings };
       saveSettings(updated);

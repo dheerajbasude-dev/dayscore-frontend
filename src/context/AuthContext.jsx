@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { getApiBaseUrl, safeJsonParse } from '../utils/api';
 
-const API_BASE_URL = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
 const AuthContext = createContext(null);
 
 const getUserFromToken = (tokenStr) => {
@@ -46,11 +46,12 @@ export const AuthProvider = ({ children }) => {
       setUser(tokenUser);
 
       try {
-        const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+        const baseUrl = getApiBaseUrl();
+        const res = await fetch(`${baseUrl}/api/auth/me`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.ok) {
-          const data = await res.json();
+          const data = await safeJsonParse(res);
           if (data.user) {
             setUser(prev => ({
               ...data.user,
@@ -70,13 +71,14 @@ export const AuthProvider = ({ children }) => {
   }, [token]);
 
   const login = async (email, password) => {
-    const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
+    const baseUrl = getApiBaseUrl();
+    const res = await fetch(`${baseUrl}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password })
     });
 
-    const data = await res.json();
+    const data = await safeJsonParse(res);
     if (!res.ok) {
       throw new Error(data.error || 'Login failed');
     }
@@ -88,13 +90,14 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = async (name, email, password) => {
-    const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
+    const baseUrl = getApiBaseUrl();
+    const res = await fetch(`${baseUrl}/api/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, email, password })
     });
 
-    const data = await res.json();
+    const data = await safeJsonParse(res);
     if (!res.ok) {
       throw new Error(data.error || 'Registration failed');
     }
