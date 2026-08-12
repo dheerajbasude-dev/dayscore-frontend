@@ -1138,7 +1138,7 @@ export default function TodayView() {
     const { hasRatedNote, avgRating } = calculateTaskAutoRating({ ...targetTask, daily_notes: updatedNotes, dailyNotes: updatedNotes });
 
     // ONLY perform automatic completion/missed status calculation IF task end date & time has overed (0s time remaining)
-    if (isTaskTimeOver(targetTask) || hasRatedNote) {
+    if (isTaskTimeOver(targetTask)) {
       if (hasRatedNote) {
         const maxRating = targetTask.maxRating || targetTask.max_rating || 10;
 
@@ -1216,12 +1216,16 @@ export default function TodayView() {
           setShowConfetti(true);
           setTimeout(() => setShowConfetti(false), 3000);
         }
-      } else if (isTaskTimeOver(targetTask)) {
+      } else {
         updates.status = 'missed';
         updates.completed = false;
         updates.completedAt = null;
         updates.completed_at = null;
         updates.rating = 0;
+      }
+    } else {
+      if (targetTask.status === 'pending') {
+        updates.status = 'inprogress';
       }
     }
 
