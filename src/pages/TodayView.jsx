@@ -638,22 +638,11 @@ export default function TodayView() {
     });
 
     (tasks || []).forEach(t => {
-      if (!t) return;
-      const dateKeys = [
-        t.date,
-        t.completedAt || t.completed_at,
-        t.originalDate || t.original_date,
-        t.createdAt || t.created_at,
-        t.dueDateTime || t.due_date_time
-      ];
-      dateKeys.forEach(raw => {
-        if (raw && typeof raw === 'string') {
-          const cleanD = raw.includes('T') ? raw.split('T')[0] : raw.trim().substring(0, 10);
-          if (cleanD && cleanD.length >= 10) {
-            dateSet.add(cleanD);
-          }
-        }
-      });
+      const tDate = t.completedAt ? t.completedAt.substring(0, 10) : (t.date || todayStr);
+      if (tDate) {
+        const cleanD = tDate.includes('T') ? tDate.split('T')[0] : tDate.substring(0, 10);
+        dateSet.add(cleanD);
+      }
     });
 
     return Array.from(dateSet).sort();

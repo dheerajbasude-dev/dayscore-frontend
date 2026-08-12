@@ -337,21 +337,7 @@ export default function TaskCard({
     return list.some(n => n && n.rating != null && Number(n.rating) > 0 && !n.isAutoMissed);
   }, [task.daily_notes, task.dailyNotes, task.notes]);
 
-  const isCompletedOnLaterDate = useMemo(() => {
-    if (!task) return false;
-    if (task.status === 'carriedOver') return true;
-    const comp = task.completedAt || task.completed_at;
-    if (!comp) return false;
-    try {
-      const compDate = typeof comp === 'string' ? comp.split('T')[0] : format(new Date(comp), 'yyyy-MM-dd');
-      const viewDate = task.date ? (typeof task.date === 'string' ? task.date.split('T')[0] : todayDateStr) : todayDateStr;
-      return compDate > viewDate;
-    } catch (e) {
-      return false;
-    }
-  }, [task, todayDateStr]);
-
-  const isDone = (task.status === 'done' && !isCompletedOnLaterDate) || (isOverdue && hasRatingNote);
+  const isDone = task.status === 'done' || (isOverdue && hasRatingNote);
 
   const isMissed = useMemo(() => {
     if (isDone || hasRatingNote) return false;
@@ -582,10 +568,6 @@ export default function TaskCard({
             <div className={`countdown ${urgencyClass}`}>
               {isDone ? (
                 wasOriginallyMissed ? <span style={{ color: '#f87171' }}>✓ Late</span> : <span className="text-success">✓ Done</span>
-              ) : (task.status === 'carriedOver' || isCompletedOnLaterDate) ? (
-                <span style={{ color: '#818cf8', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                  <RotateCcw size={12} /> Carried Over
-                </span>
               ) : isMissed ? <span className="text-danger">Missed</span> : timeLeft}
             </div>
             <button className="delete-btn" onClick={() => onDelete(task)} title="Delete Task"><X size={14} /></button>
