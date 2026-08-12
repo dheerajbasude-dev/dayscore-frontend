@@ -1142,13 +1142,23 @@ export default function TodayView() {
       if (hasRatedNote) {
         const maxRating = targetTask.maxRating || targetTask.max_rating || 10;
 
+        const isCarriedTask = Boolean(targetTask?.carriedOver || targetTask?.carried_over || targetTask?.wasCarried || targetTask?.isCarried || (targetTask?.originalDate && targetTask?.originalDate < todayStr));
         let dueDateObj = null;
         if (targetTask?.dueDateTime) {
           dueDateObj = new Date(targetTask.dueDateTime);
         } else if (targetTask?.due_date_time) {
           dueDateObj = new Date(targetTask.due_date_time);
         }
-        const isOverdue = dueDateObj && !isNaN(dueDateObj.getTime()) && dueDateObj < now;
+
+        let isOverdue = false;
+        if (dueDateObj && !isNaN(dueDateObj.getTime())) {
+          const dueDateStr = format(dueDateObj, 'yyyy-MM-dd');
+          if (dueDateStr === todayStr) {
+            isOverdue = dueDateObj < now;
+          } else if (dueDateStr < todayStr) {
+            isOverdue = !isCarriedTask && taskDate < todayStr;
+          }
+        }
 
         const isLowRating = avgRating <= 4;
         const isHighRating = avgRating >= 9;
@@ -1286,13 +1296,24 @@ export default function TodayView() {
 
     const now = new Date()
 
+    const isCarriedTask = Boolean(targetTask?.carriedOver || targetTask?.carried_over || targetTask?.wasCarried || targetTask?.isCarried || (targetTask?.originalDate && targetTask?.originalDate < todayStr));
+
     let dueDateObj = null
     if (targetTask?.dueDateTime) {
       dueDateObj = new Date(targetTask.dueDateTime)
     } else if (targetTask?.due_date_time) {
       dueDateObj = new Date(targetTask.due_date_time)
     }
-    const isOverdue = dueDateObj && !isNaN(dueDateObj.getTime()) && dueDateObj < now
+
+    let isOverdue = false;
+    if (dueDateObj && !isNaN(dueDateObj.getTime())) {
+      const dueDateStr = format(dueDateObj, 'yyyy-MM-dd');
+      if (dueDateStr === todayStr) {
+        isOverdue = dueDateObj < now;
+      } else if (dueDateStr < todayStr) {
+        isOverdue = !isCarriedTask && taskDate < todayStr;
+      }
+    }
 
     const numRating = Number(rating)
     const isLowRating = numRating <= 4
