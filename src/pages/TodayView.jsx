@@ -1212,7 +1212,8 @@ export default function TodayView() {
   const handleAutoCompleteWithRating = async (task, computedRating) => {
     if (!task) return;
     const targetId = task.id || task._id;
-    await handleRatingConfirm(targetId, computedRating, 10);
+    // Carried/multi-day tasks: use rating-only logic, ignore overdue status for penalty/reward
+    await handleRatingConfirm(targetId, computedRating, 10, true);
   };
 
   const handleStatusChange = async (taskOrId, newStatus) => {
@@ -1262,7 +1263,7 @@ export default function TodayView() {
     setRatingTask(task);
   }
 
-  const handleRatingConfirm = async (ratingTaskId, rating, maxRating) => {
+  const handleRatingConfirm = async (ratingTaskId, rating, maxRating, skipOverdueCheck = false) => {
     const targetTask = ratingTask || tasks.find(t => t.id === ratingTaskId || t._id === ratingTaskId)
     if (targetTask && targetTask.status === 'missed' && currentDateStr < todayStr) {
       setRatingTask(null);
@@ -1279,7 +1280,8 @@ export default function TodayView() {
     } else if (targetTask?.due_date_time) {
       dueDateObj = new Date(targetTask.due_date_time)
     }
-    const isOverdue = dueDateObj && !isNaN(dueDateObj.getTime()) && dueDateObj < now
+    // For carried/multi-day auto-completed tasks, ignore overdue status entirely
+    const isOverdue = skipOverdueCheck ? false : (dueDateObj && !isNaN(dueDateObj.getTime()) && dueDateObj < now)
 
     const numRating = Number(rating)
     const isLowRating = numRating <= 4
@@ -1291,9 +1293,10 @@ export default function TodayView() {
     let shouldTriggerPenalty = false
     let shouldTriggerReward = false
 
+    // For carried/multi-day tasks: penalty/reward based on rating only
     const triggeredPenalty = isLowRating || isOverdue
 
-    // Trigger Penalty if individual task rating is <= 4 OR if task was completed overdue
+    // Trigger Penalty if individual task rating is <= 4 OR if task was completed overdue (skipped for carried tasks)
     if (triggeredPenalty) {
       const punishments = store.getPunishments()
       if (punishments && punishments.length > 0) {
