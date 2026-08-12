@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { format } from 'date-fns';
 import { saveTasks } from '../store/store';
-import { calculateTaskAutoRating } from '../pages/TodayView';
+import { calculateTaskAutoRating, assignPenaltyOrReward } from '../pages/TodayView';
 
 export function useDayRollover(currentDateStr, tasks, onRollover) {
   const lastSystemDateRef = useRef(format(new Date(), 'yyyy-MM-dd'));
@@ -16,14 +16,26 @@ export function useDayRollover(currentDateStr, tasks, onRollover) {
           if (new Date(task.dueDateTime) < now) {
             tasksUpdated = true;
             const { hasRatedNote, avgRating } = calculateTaskAutoRating(task);
+            const finalRating = hasRatedNote ? avgRating : 0;
+
+            // Assign penalty/reward using same rules as standard task completion
+            const { taskReward, taskPenalty } = assignPenaltyOrReward(finalRating, task);
 
             return {
               ...task,
               status: 'done',
               completed: true,
-              rating: hasRatedNote ? avgRating : 0,
+              rating: finalRating,
               completedAt: task.completedAt || now.toISOString(),
-              completed_at: task.completed_at || now.toISOString()
+              completed_at: task.completed_at || now.toISOString(),
+              reward: taskReward,
+              penalty: taskPenalty,
+              rewardClaimed: false,
+              reward_claimed: 0,
+              rewardAcknowledged: false,
+              reward_acknowledged: 0,
+              penaltyAccepted: false,
+              penalty_accepted: 0
             };
           }
         }
