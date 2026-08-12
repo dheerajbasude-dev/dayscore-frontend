@@ -114,54 +114,6 @@ export const calculateTaskAutoRating = (taskOrNotes, todayStrParam) => {
   return { hasRatedNote: true, avgRating, sumRating, totalCount };
 };
 
-/**
- * Shared helper: Compute penalty/reward assignment for a completed task.
- * Used by all completion paths (manual rating, auto-complete, timer expiry, page-load cleanup)
- * to ensure consistent penalty/reward triggering based on the same standard rules:
- *   - Penalty: rating <= 4 OR task was overdue
- *   - Reward:  rating >= 9 AND task was NOT overdue AND no active unacknowledged punishment
- */
-export function assignPenaltyOrReward(rating, task) {
-  const numRating = Number(rating);
-  const isLowRating = numRating <= 4;
-  const isHighRating = numRating >= 9;
-
-  const now = new Date();
-  let dueDateObj = null;
-  const dueIso = task?.dueDateTime || task?.due_date_time;
-  if (dueIso) {
-    dueDateObj = new Date(dueIso);
-  }
-  const isOverdue = dueDateObj && !isNaN(dueDateObj.getTime()) && dueDateObj < now;
-
-  let taskReward = null;
-  let taskPenalty = null;
-  let shouldTriggerPenalty = false;
-  let shouldTriggerReward = false;
-
-  // Trigger Penalty if individual task rating is <= 4 OR if task was completed overdue
-  if (isLowRating || isOverdue) {
-    const punishments = store.getPunishments();
-    if (punishments && punishments.length > 0) {
-      taskPenalty = punishments[Math.floor(Math.random() * punishments.length)];
-      shouldTriggerPenalty = true;
-    }
-  }
-
-  // Reward Trigger: ONLY if rating >= 9, not overdue, and no active unacknowledged penalty
-  const currentPunishment = store.getActivePunishment();
-  const isPenaltyCurrentlyActive = currentPunishment && !currentPunishment.acknowledged;
-  if (isHighRating && !isOverdue && !isPenaltyCurrentlyActive) {
-    const rewards = store.getRewards();
-    taskReward = (rewards && rewards.length > 0)
-      ? rewards[Math.floor(Math.random() * rewards.length)]
-      : "Treat yourself!";
-    shouldTriggerReward = true;
-  }
-
-  return { taskReward, taskPenalty, shouldTriggerPenalty, shouldTriggerReward };
-}
-
 export default function TodayView() {
   const { user } = useAuth()
   const realTodayStr = format(new Date(), 'yyyy-MM-dd')
@@ -576,23 +528,11 @@ export default function TodayView() {
           const { hasRatedNote, avgRating } = calculateTaskAutoRating(t);
           const finalStatus = (t.status === 'done' || hasRatedNote) ? 'done' : 'missed';
           
-          // Assign penalty/reward using same rules as standard task completion
-          const finalRating = hasRatedNote ? avgRating : 0;
-          const { taskReward, taskPenalty } = assignPenaltyOrReward(finalRating, t);
-
           const updates = {
             date: pastEndDate,
             carriedOver: false,
             carried_over: 0,
-            status: finalStatus,
-            reward: taskReward,
-            penalty: taskPenalty,
-            rewardClaimed: false,
-            reward_claimed: 0,
-            rewardAcknowledged: false,
-            reward_acknowledged: 0,
-            penaltyAccepted: false,
-            penalty_accepted: 0
+            status: finalStatus
           };
           if (finalStatus === 'done') {
             updates.completed = true;
@@ -922,23 +862,12 @@ export default function TodayView() {
                 const finalRating = hasRatedNote ? avgRating : 0;
                 const shouldMoveDate = targetDueDateStr && targetDueDateStr !== arc.date && targetDueDateStr <= todayStr;
                 if (task.status !== finalStatus || task.rating !== finalRating || shouldMoveDate) {
-                  // Assign penalty/reward using same rules as standard task completion
-                  const { taskReward, taskPenalty } = assignPenaltyOrReward(finalRating, task);
-
                   const updates = {
                     status: finalStatus,
                     completed: true,
                     completedAt: task.completedAt || task.completed_at || now.toISOString(),
                     completed_at: task.completedAt || task.completed_at || now.toISOString(),
-                    rating: finalRating,
-                    reward: taskReward,
-                    penalty: taskPenalty,
-                    rewardClaimed: false,
-                    reward_claimed: 0,
-                    rewardAcknowledged: false,
-                    reward_acknowledged: 0,
-                    penaltyAccepted: false,
-                    penalty_accepted: 0
+                    rating: finalRating
                   };
                   if (shouldMoveDate) {
                     updates.date = targetDueDateStr;
@@ -951,23 +880,12 @@ export default function TodayView() {
               const finalStatus = 'done';
               const finalRating = hasRatedNote ? avgRating : 0;
               if (task.status !== finalStatus || task.rating !== finalRating) {
-                // Assign penalty/reward using same rules as standard task completion
-                const { taskReward, taskPenalty } = assignPenaltyOrReward(finalRating, task);
-
                 const updates = {
                   status: finalStatus,
                   completed: true,
                   completedAt: task.completedAt || task.completed_at || now.toISOString(),
                   completed_at: task.completedAt || task.completed_at || now.toISOString(),
-                  rating: finalRating,
-                  reward: taskReward,
-                  penalty: taskPenalty,
-                  rewardClaimed: false,
-                  reward_claimed: 0,
-                  rewardAcknowledged: false,
-                  reward_acknowledged: 0,
-                  penaltyAccepted: false,
-                  penalty_accepted: 0
+                  rating: finalRating
                 };
                 await store.updateTask(arc.date, task.id || task._id, updates);
                 updated = true;
@@ -1140,9 +1058,6 @@ export default function TodayView() {
         if (task.status !== 'done' || task.rating !== avgRating) {
           modified = true;
 
-          // Assign penalty/reward using same rules as standard task completion
-          const { taskReward, taskPenalty } = assignPenaltyOrReward(avgRating, task);
-
           await store.updateTask(taskDate, targetId, {
             status: 'done',
             completed: true,
@@ -1150,29 +1065,14 @@ export default function TodayView() {
             completed_at: task.completedAt || task.completed_at || now.toISOString(),
             rating: avgRating,
             maxRating: task.maxRating || task.max_rating || 10,
-            max_rating: task.maxRating || task.max_rating || 10,
-            reward: taskReward,
-            penalty: taskPenalty,
-            rewardClaimed: false,
-            reward_claimed: 0,
-            rewardAcknowledged: false,
-            reward_acknowledged: 0,
-            penaltyAccepted: false,
-            penalty_accepted: 0
+            max_rating: task.maxRating || task.max_rating || 10
           });
         }
       } else {
         if (task.status !== 'done' && task.status !== 'missed') {
           modified = true;
-
-          // Missed tasks (no rated notes) also trigger penalty
-          const { taskPenalty } = assignPenaltyOrReward(0, task);
-
           await store.updateTask(taskDate, targetId, {
-            status: 'missed',
-            penalty: taskPenalty,
-            penaltyAccepted: false,
-            penalty_accepted: 0
+            status: 'missed'
           });
         }
       }
@@ -1229,8 +1129,41 @@ export default function TodayView() {
       if (hasRatedNote) {
         const maxRating = targetTask.maxRating || targetTask.max_rating || 10;
 
-        // Use shared helper for penalty/reward assignment (same rules for all completion paths)
-        const { taskReward, taskPenalty, shouldTriggerPenalty, shouldTriggerReward } = assignPenaltyOrReward(avgRating, targetTask);
+        let dueDateObj = null;
+        if (targetTask?.dueDateTime) {
+          dueDateObj = new Date(targetTask.dueDateTime);
+        } else if (targetTask?.due_date_time) {
+          dueDateObj = new Date(targetTask.due_date_time);
+        }
+        const isOverdue = dueDateObj && !isNaN(dueDateObj.getTime()) && dueDateObj < now;
+
+        const isLowRating = avgRating <= 4;
+        const isHighRating = avgRating >= 9;
+
+        let taskReward = null;
+        let taskPenalty = null;
+        let shouldTriggerPenalty = false;
+        let shouldTriggerReward = false;
+
+        const triggeredPenalty = isLowRating || isOverdue;
+
+        if (triggeredPenalty) {
+          const punishments = store.getPunishments();
+          if (punishments && punishments.length > 0) {
+            taskPenalty = punishments[Math.floor(Math.random() * punishments.length)];
+            shouldTriggerPenalty = true;
+          }
+        }
+
+        const currentPunishment = store.getActivePunishment();
+        const isPenaltyCurrentlyActive = currentPunishment && !currentPunishment.acknowledged;
+        if (isHighRating && !isOverdue && !isPenaltyCurrentlyActive) {
+          const rewards = store.getRewards();
+          taskReward = (rewards && rewards.length > 0)
+            ? rewards[Math.floor(Math.random() * rewards.length)]
+            : "Treat yourself!";
+          shouldTriggerReward = true;
+        }
 
         updates.status = 'done';
         updates.completed = true;
@@ -1261,17 +1194,11 @@ export default function TodayView() {
           setTimeout(() => setShowConfetti(false), 3000);
         }
       } else if (isTaskTimeOver(targetTask)) {
-        // Assign penalty for missed/zero-rating tasks too
-        const { taskPenalty } = assignPenaltyOrReward(0, targetTask);
-
         updates.status = 'done';
         updates.completed = true;
         updates.completedAt = now.toISOString();
         updates.completed_at = now.toISOString();
         updates.rating = 0;
-        updates.penalty = taskPenalty;
-        updates.penaltyAccepted = false;
-        updates.penalty_accepted = 0;
       }
     }
 
@@ -1346,8 +1273,47 @@ export default function TodayView() {
 
     const now = new Date()
 
-    // Use shared helper for penalty/reward assignment (same rules for all completion paths)
-    const { taskReward, taskPenalty, shouldTriggerPenalty, shouldTriggerReward } = assignPenaltyOrReward(rating, targetTask)
+    let dueDateObj = null
+    if (targetTask?.dueDateTime) {
+      dueDateObj = new Date(targetTask.dueDateTime)
+    } else if (targetTask?.due_date_time) {
+      dueDateObj = new Date(targetTask.due_date_time)
+    }
+    const isOverdue = dueDateObj && !isNaN(dueDateObj.getTime()) && dueDateObj < now
+
+    const numRating = Number(rating)
+    const isLowRating = numRating <= 4
+    const isHighRating = numRating >= 9
+
+    let taskReward = null
+    let taskPenalty = null
+
+    let shouldTriggerPenalty = false
+    let shouldTriggerReward = false
+
+    const triggeredPenalty = isLowRating || isOverdue
+
+    // Trigger Penalty if individual task rating is <= 4 OR if task was completed overdue
+    if (triggeredPenalty) {
+      const punishments = store.getPunishments()
+      if (punishments && punishments.length > 0) {
+        const randomPunishment = punishments[Math.floor(Math.random() * punishments.length)]
+        taskPenalty = randomPunishment
+        shouldTriggerPenalty = true
+      }
+    }
+
+    const currentPunishment = store.getActivePunishment()
+    const isPenaltyCurrentlyActive = currentPunishment && !currentPunishment.acknowledged
+    // Reward Trigger: ONLY if this specific task has a rating >= 9 and not overdue or penalty active
+    if (isHighRating && !isOverdue && !isPenaltyCurrentlyActive) {
+      const rewards = store.getRewards()
+      taskReward = (rewards && rewards.length > 0)
+        ? rewards[Math.floor(Math.random() * rewards.length)]
+        : "Treat yourself!"
+
+      shouldTriggerReward = true
+    }
 
 
 
