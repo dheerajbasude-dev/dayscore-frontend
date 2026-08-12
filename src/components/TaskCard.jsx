@@ -415,11 +415,11 @@ export default function TaskCard({
                      task.penalty_accepted === true || task.penalty_accepted === 1 || task.penalty_accepted === '1';
 
   const ratingNum = task.rating != null && !isNaN(Number(task.rating)) ? Number(task.rating) : null;
-  const hasLowRatingPenalty = isDone && ratingNum != null && ratingNum <= 4.0;
-  const hasHighRatingReward = isDone && ratingNum != null && ratingNum > 4.0;
+  const hasLowRatingPenalty = (isDone || isMissed) && (ratingNum == null || ratingNum <= 4.0);
+  const hasHighRatingReward = isDone && (ratingNum == null || ratingNum > 4.0);
 
   const hasReward = Boolean(task.reward && hasHighRatingReward);
-  const hasPenalty = Boolean(task.penalty && hasLowRatingPenalty);
+  const hasPenalty = Boolean(task.penalty && (isMissed || hasLowRatingPenalty));
 
   const hasUnclaimedReward = Boolean(hasReward && !isRewardClaimed);
   const hasUnacknowledgedPenalty = Boolean(hasPenalty && !isPenaltyAccepted);
