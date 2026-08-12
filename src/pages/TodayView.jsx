@@ -631,7 +631,7 @@ export default function TodayView() {
       if (arc && arc.date) {
         const cleanD = arc.date.includes('T') ? arc.date.split('T')[0] : arc.date.trim().substring(0, 10);
         const hasData = (Array.isArray(arc.tasks) && arc.tasks.length > 0) || arc.hasDone || (arc.score && Number(arc.score) > 0);
-        if (hasData) {
+        if (hasData && cleanD <= todayStr) {
           dateSet.add(cleanD);
         }
       }
@@ -641,7 +641,9 @@ export default function TodayView() {
       const tDate = t.completedAt ? t.completedAt.substring(0, 10) : (t.date || todayStr);
       if (tDate) {
         const cleanD = tDate.includes('T') ? tDate.split('T')[0] : tDate.substring(0, 10);
-        dateSet.add(cleanD);
+        if (cleanD <= todayStr) {
+          dateSet.add(cleanD);
+        }
       }
     });
 
@@ -841,9 +843,11 @@ export default function TodayView() {
         if (!arc.date || !Array.isArray(arc.tasks)) continue;
 
         for (const task of arc.tasks) {
-          if (task.status !== 'done') {
+          const { hasRatedNote, avgRating } = calculateTaskAutoRating(task);
+          const isDoneWithNote = hasRatedNote;
+
+          if (task.status !== 'done' || (!isDoneWithNote && Number(task.rating || 0) === 0)) {
             const due = task.dueDateTime || task.due_date_time;
-            const { hasRatedNote, avgRating } = calculateTaskAutoRating(task);
             
             if (due) {
               const dueDateObj = new Date(due);
@@ -858,17 +862,22 @@ export default function TodayView() {
                   updated = true;
                 }
               } else if (dueDateObj < now) {
-                const finalStatus = 'done';
-                const finalRating = hasRatedNote ? avgRating : 0;
+                const finalStatus = isDoneWithNote ? 'done' : 'missed';
+                const finalRating = isDoneWithNote ? avgRating : 0;
                 const shouldMoveDate = targetDueDateStr && targetDueDateStr !== arc.date && targetDueDateStr <= todayStr;
                 if (task.status !== finalStatus || task.rating !== finalRating || shouldMoveDate) {
                   const updates = {
                     status: finalStatus,
-                    completed: true,
-                    completedAt: task.completedAt || task.completed_at || now.toISOString(),
-                    completed_at: task.completedAt || task.completed_at || now.toISOString(),
+                    completed: finalStatus === 'done',
                     rating: finalRating
                   };
+                  if (finalStatus === 'done') {
+                    updates.completedAt = task.completedAt || task.completed_at || now.toISOString();
+                    updates.completed_at = task.completedAt || task.completed_at || now.toISOString();
+                  } else {
+                    updates.completedAt = null;
+                    updates.completed_at = null;
+                  }
                   if (shouldMoveDate) {
                     updates.date = targetDueDateStr;
                   }
@@ -877,23 +886,27 @@ export default function TodayView() {
                 }
               }
             } else if (arc.date < todayStr) {
-              const finalStatus = 'done';
-              const finalRating = hasRatedNote ? avgRating : 0;
+              const finalStatus = isDoneWithNote ? 'done' : 'missed';
+              const finalRating = isDoneWithNote ? avgRating : 0;
               if (task.status !== finalStatus || task.rating !== finalRating) {
                 const updates = {
                   status: finalStatus,
-                  completed: true,
-                  completedAt: task.completedAt || task.completed_at || now.toISOString(),
-                  completed_at: task.completedAt || task.completed_at || now.toISOString(),
+                  completed: finalStatus === 'done',
                   rating: finalRating
                 };
+                if (finalStatus === 'done') {
+                  updates.completedAt = task.completedAt || task.completed_at || now.toISOString();
+                  updates.completed_at = task.completedAt || task.completed_at || now.toISOString();
+                } else {
+                  updates.completedAt = null;
+                  updates.completed_at = null;
+                }
                 await store.updateTask(arc.date, task.id || task._id, updates);
                 updated = true;
               }
             }
           } else {
-            const { hasRatedNote, avgRating } = calculateTaskAutoRating(task);
-            if (hasRatedNote && task.rating !== avgRating) {
+            if (isDoneWithNote && task.rating !== avgRating) {
               await store.updateTask(arc.date, task.id || task._id, { rating: avgRating });
               updated = true;
             }
@@ -1194,10 +1207,10 @@ export default function TodayView() {
           setTimeout(() => setShowConfetti(false), 3000);
         }
       } else if (isTaskTimeOver(targetTask)) {
-        updates.status = 'done';
-        updates.completed = true;
-        updates.completedAt = now.toISOString();
-        updates.completed_at = now.toISOString();
+        updates.status = 'missed';
+        updates.completed = false;
+        updates.completedAt = null;
+        updates.completed_at = null;
         updates.rating = 0;
       }
     }

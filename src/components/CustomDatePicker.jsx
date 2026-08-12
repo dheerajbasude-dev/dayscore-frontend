@@ -66,6 +66,7 @@ export default function CustomDatePicker({
   };
 
   const validSet = new Set(validTaskDates);
+  const effectiveToday = todayStr || format(new Date(), 'yyyy-MM-dd');
 
   // Check if previous/next months have any valid data (if validTaskDates provided)
   const prevMonthDate = subMonths(viewDate, 1);
@@ -76,9 +77,12 @@ export default function CustomDatePicker({
 
   const nextMonthDate = addMonths(viewDate, 1);
   const nextMonthDays = eachDayOfInterval({ start: startOfMonth(nextMonthDate), end: endOfMonth(nextMonthDate) });
-  const isNextDisabled = validTaskDates && validTaskDates.length > 0
-    ? !nextMonthDays.some(dObj => validSet.has(format(dObj, 'yyyy-MM-dd')))
-    : false;
+  const isNextDisabled = (validTaskDates && validTaskDates.length > 0
+    ? !nextMonthDays.some(dObj => {
+        const dStr = format(dObj, 'yyyy-MM-dd');
+        return dStr <= effectiveToday && validSet.has(dStr);
+      })
+    : false) || format(viewDate, 'yyyy-MM') >= format(new Date(), 'yyyy-MM');
 
   return (
     <div ref={popoverRef} style={{ position: 'relative', display: 'inline-flex', zIndex: 105 }}>
@@ -190,9 +194,10 @@ export default function CustomDatePicker({
             {/* Days of month */}
             {daysInMonth.map((dayObj) => {
               const dayStr = format(dayObj, 'yyyy-MM-dd');
+              const isFuture = dayStr > effectiveToday;
               const isSelected = dayStr === currentDateStr;
               const isToday = dayStr === todayStr;
-              const hasData = validSet.has(dayStr);
+              const hasData = validSet.has(dayStr) && !isFuture;
 
               return (
                 <button
