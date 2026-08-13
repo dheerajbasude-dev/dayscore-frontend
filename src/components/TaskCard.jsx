@@ -514,21 +514,19 @@ export default function TaskCard({
     >
       {!isFutureDueTask && !(isMissed && !isToday) && (
         <div
-          className={`task-checkbox ${getCheckboxClass()} ${(isUpdatingStatus || (isMissed && isToday)) ? 'is-loading' : ''} ${isCheckboxLocked ? 'locked' : ''}`}
+          className={`task-checkbox ${getCheckboxClass()} ${isUpdatingStatus ? 'is-loading' : ''} ${isCheckboxLocked ? 'locked' : ''}`}
           onClick={cycleStatus}
           title={
             isDone 
               ? 'Task completed' 
               : isMissed 
-                ? (isToday ? 'Time finished — click to rate effort (0-3 range)' : 'Missed task on overred day (score 0)') 
+                ? (isToday ? 'Rate missed task effort (0-3 range)' : 'Missed task on overred day (score 0)') 
                 : 'Mark as done'
           }
           style={{ cursor: (isCheckboxLocked || isUpdatingStatus) ? 'not-allowed' : 'pointer' }}
         >
           {isUpdatingStatus ? (
-            <Loader2 size={14} className="task-checkbox-spinner btn-spinner" style={{ color: 'var(--accent-primary)' }} />
-          ) : (isMissed && isToday) ? (
-            <Loader2 size={14} className="task-checkbox-spinner btn-spinner" style={{ color: '#f87171' }} />
+            <Loader2 size={14} className="task-checkbox-spinner btn-spinner" />
           ) : (
             <>
               {isDone && <Check size={14} strokeWidth={3} />}
