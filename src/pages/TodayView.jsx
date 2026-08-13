@@ -866,10 +866,23 @@ export default function TodayView() {
                 const finalRating = isDoneWithNote ? avgRating : 0;
                 const shouldMoveDate = targetDueDateStr && targetDueDateStr !== arc.date && targetDueDateStr <= todayStr;
                 if (task.status !== finalStatus || task.rating !== finalRating || shouldMoveDate) {
+                  let taskPenalty = task.penalty;
+                  if (finalStatus === 'missed' && !taskPenalty) {
+                    const punishments = store.getPunishments();
+                    if (punishments && punishments.length > 0) {
+                      taskPenalty = punishments[Math.floor(Math.random() * punishments.length)];
+                      store.setActivePunishment(taskPenalty);
+                      setActivePunishment(store.getActivePunishment());
+                      setShowPenaltyFlash(true);
+                      setTimeout(() => setShowPenaltyFlash(false), 3000);
+                    }
+                  }
+
                   const updates = {
                     status: finalStatus,
                     completed: finalStatus === 'done',
-                    rating: finalRating
+                    rating: finalRating,
+                    penalty: taskPenalty
                   };
                   if (finalStatus === 'done') {
                     updates.completedAt = task.completedAt || task.completed_at || now.toISOString();
@@ -889,10 +902,23 @@ export default function TodayView() {
               const finalStatus = isDoneWithNote ? 'done' : 'missed';
               const finalRating = isDoneWithNote ? avgRating : 0;
               if (task.status !== finalStatus || task.rating !== finalRating) {
+                let taskPenalty = task.penalty;
+                if (finalStatus === 'missed' && !taskPenalty) {
+                  const punishments = store.getPunishments();
+                  if (punishments && punishments.length > 0) {
+                    taskPenalty = punishments[Math.floor(Math.random() * punishments.length)];
+                    store.setActivePunishment(taskPenalty);
+                    setActivePunishment(store.getActivePunishment());
+                    setShowPenaltyFlash(true);
+                    setTimeout(() => setShowPenaltyFlash(false), 3000);
+                  }
+                }
+
                 const updates = {
                   status: finalStatus,
                   completed: finalStatus === 'done',
-                  rating: finalRating
+                  rating: finalRating,
+                  penalty: taskPenalty
                 };
                 if (finalStatus === 'done') {
                   updates.completedAt = task.completedAt || task.completed_at || now.toISOString();
