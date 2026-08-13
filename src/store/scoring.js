@@ -66,21 +66,14 @@ export function calculateDailyScore(tasks) {
       missedCount++;
       allDoneOnTime = false;
 
-      const isOveredDay = Boolean(taskDate && taskDate < todayStr);
-      const hasBadgeRating = task.rating != null || Boolean(task.hasRatedNote) || Boolean(task.wasRated);
-
-      // Missed standard tasks:
-      // - If user has rated it (has rating badge), include its rating in denominator & total points
-      // - If day is overed (whole day finished), include as 0 rating in denominator & total points
-      // - If on active day (Today) and unrated (no badge rating), DO NOT include in denominator yet!
-      if (hasBadgeRating) {
+      // Standard tasks (not carried, not upcoming) count as 0 score if unrated
+      const taskRating = task.rating != null ? Number(task.rating) : 0;
+      if (!isCarried && !isUpcoming) {
         evaluatedCount++;
-        totalTaskPoints += Number(task.rating || 0);
-      } else if (isOveredDay) {
-        if (!isCarried && !isUpcoming) {
-          evaluatedCount++;
-          totalTaskPoints += 0;
-        }
+        totalTaskPoints += taskRating;
+      } else if (task.rating != null) {
+        evaluatedCount++;
+        totalTaskPoints += taskRating;
       }
     }
   }
