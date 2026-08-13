@@ -946,7 +946,7 @@ export default function TodayView() {
     setCurrentDateStr(format(new Date(), 'yyyy-MM-dd'))
   }, [currentDateStr])
 
-  useDayRollover(currentDateStr, tasks, handleRollover)
+  useDayRollover(currentDateStr, tasks, handleRollover, setTasks)
   useNotifications(tasks, settings.notifications, settings.reminderLeadTime ?? 30)
 
   const handleAddTask = async (newTask) => {
@@ -1057,11 +1057,13 @@ export default function TodayView() {
   useEffect(() => {
     if (!tasks || tasks.length === 0) return;
 
-    let modified = false;
     const now = new Date();
+    let updatedTasks = [...tasks];
+    let modified = false;
 
-    tasks.forEach(async (task) => {
-      if (!isTaskTimeOver(task)) return; // ONLY evaluate if task end date & time has overed (0s time)
+    for (let i = 0; i < updatedTasks.length; i++) {
+      const task = updatedTasks[i];
+      if (!isTaskTimeOver(task)) continue;
 
       const { hasRatedNote, avgRating } = calculateTaskAutoRating(task);
       const targetId = task.id || task._id;
@@ -1070,8 +1072,7 @@ export default function TodayView() {
       if (hasRatedNote) {
         if (task.status !== 'done' || task.rating !== avgRating) {
           modified = true;
-
-          await store.updateTask(taskDate, targetId, {
+          const updates = {
             status: 'done',
             completed: true,
             completedAt: task.completedAt || task.completed_at || now.toISOString(),
@@ -1079,22 +1080,23 @@ export default function TodayView() {
             rating: avgRating,
             maxRating: task.maxRating || task.max_rating || 10,
             max_rating: task.maxRating || task.max_rating || 10
-          });
+          };
+          updatedTasks[i] = { ...task, ...updates };
+          store.updateTask(taskDate, targetId, updates);
         }
       } else {
         if (task.status !== 'done' && task.status !== 'missed') {
           modified = true;
-          await store.updateTask(taskDate, targetId, {
-            status: 'missed'
-          });
+          const updates = { status: 'missed' };
+          updatedTasks[i] = { ...task, ...updates };
+          store.updateTask(taskDate, targetId, updates);
         }
       }
-    });
+    }
 
     if (modified) {
-      store.fetchAllTasksApi().then(() => {
-        setTasks(store.getTasks(currentDateStr));
-      });
+      setTasks(updatedTasks);
+      store.fetchAllTasksApi();
     }
   }, [tasks, currentDateStr, isTaskTimeOver]);
 
@@ -1267,6 +1269,15 @@ export default function TodayView() {
       updates.penaltyAccepted = false
       updates.penalty_accepted = 0
     }
+
+    // Instant optimistic state update for 0ms UI reactivity
+    setTasks(prev => prev.map(t => {
+      if (String(t.id || t._id) === String(taskId)) {
+        return { ...t, ...updates };
+      }
+      return t;
+    }));
+
     await store.updateTask(taskDate, taskId, updates)
     await store.fetchAllTasksApi()
     setTasks(store.getTasks(currentDateStr))
@@ -1375,13 +1386,22 @@ export default function TodayView() {
       wasMissed: wasMissedTask ? true : undefined,
       was_missed: wasMissedTask ? 1 : undefined
     }
+
+    // Instant optimistic React state update for 0ms response time
+    setTasks(prev => prev.map(t => {
+      if (String(t.id || t._id) === String(targetId)) {
+        return { ...t, ...updates };
+      }
+      return t;
+    }));
+
+    // Close rating modal instantly
+    setRatingTask(null);
+
     await store.updateTask(taskDate, targetId, updates)
     await store.fetchAllTasksApi()
     setTasks(store.getTasks(currentDateStr))
     setArchives(store.getAllArchives())
-
-    // Close the rating modal FIRST so UI resets
-    setRatingTask(null)
 
     // After modal closes, trigger rewards/penalties banner & animations
     const pendingPenalty = taskPenalty;
