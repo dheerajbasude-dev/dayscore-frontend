@@ -505,7 +505,7 @@ export default function TaskCard({
   );
 
   const currentTheme = getRatingTheme(dailyRating);
-  const isTransitioningState = isUpdatingStatus || (isOverdue && !isDone && task.status !== 'missed');
+  const isTransitioningState = isUpdatingStatus;
   const effectiveCardStatus = isDone ? 'done' : (isMissed ? 'missed' : task.status);
 
   return (
