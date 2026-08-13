@@ -2245,7 +2245,7 @@ export default function TodayView() {
                 <p className="empty-text">
                   {activeFilterCount > 0 
                     ? 'No tasks match the active filters or search criteria.' 
-                    : (viewMode === 'all' ? 'No tasks found in MongoDB Atlas!' : `No tasks added for ${currentDateStr} yet!`)}
+                    : (viewMode === 'all' ? 'No tasks found' : `No tasks added for ${currentDateStr} yet!`)}
                 </p>
                 {activeFilterCount > 0 ? (
                   <button className="btn btn-secondary btn-sm" onClick={resetAllFilters} style={{ gap: '6px' }}>

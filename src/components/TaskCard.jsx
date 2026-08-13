@@ -97,7 +97,7 @@ export default function TaskCard({
             </span>
           </div>
           <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-            Syncing task with MongoDB Atlas...
+            Syncing task...
           </span>
         </div>
       </div>
