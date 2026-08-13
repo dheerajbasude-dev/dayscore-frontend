@@ -50,7 +50,7 @@ export function useDayRollover(currentDateStr, tasks, onRollover, onTasksUpdated
       } else if (currentDateStr === actualSystemDate) {
         checkAndMarkMissed();
       }
-    }, 10000);
+    }, 1000);
 
     return () => clearInterval(interval);
   }, [currentDateStr, checkAndMarkMissed, onRollover]);
