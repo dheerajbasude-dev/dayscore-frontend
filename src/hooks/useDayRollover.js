@@ -22,7 +22,7 @@ export function useDayRollover(currentDateStr, tasks, onRollover, onTasksUpdated
               ...task,
               status: statusVal,
               completed: statusVal === 'done',
-              rating: hasRatedNote ? avgRating : 0,
+              rating: hasRatedNote ? avgRating : undefined,
               completedAt: statusVal === 'done' ? (task.completedAt || now.toISOString()) : null,
               completed_at: statusVal === 'done' ? (task.completed_at || now.toISOString()) : null
             };

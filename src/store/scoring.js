@@ -52,19 +52,13 @@ export function calculateDailyScore(tasks) {
       missedCount++;
       allDoneOnTime = false;
 
-      // Check if task has an explicit user rating badge
-      const hasExplicitRating = task.rating != null && !isNaN(Number(task.rating));
-
-      if (hasExplicitRating) {
+      // On a past date (overed day), an unrated missed task considers score as 0
+      if (isPastDate) {
         evaluatedCount++;
-        totalTaskPoints += Number(task.rating);
-      } else if (isPastDate) {
-        // On a past / overed day, unrated missed task considers score as 0
-        evaluatedCount++;
-        totalTaskPoints += 0;
+        totalTaskPoints += (task.rating != null && !isNaN(Number(task.rating))) ? Number(task.rating) : 0;
       }
-      // On Today (active day before EOD), unrated missed task shows clean circle (no score badge yet)
-      // and is NOT factored into total score calculation until rated or day is over!
+      // On Today (active day before EOD), unrated missed task (status === 'missed')
+      // shows clean circle for user to rate, and is NOT factored into daily score until rated or day is overed!
     }
   }
 
@@ -72,7 +66,7 @@ export function calculateDailyScore(tasks) {
     allDoneOnTime = false;
   }
 
-  // Daily score is average across evaluated tasks (tasks with score badge or on overed day) out of 10
+  // Daily score is average across evaluated tasks out of 10
   const baseScore = evaluatedCount > 0 ? totalTaskPoints / evaluatedCount : 0;
   const finalScore = Math.min(10, Math.max(0, baseScore));
 
