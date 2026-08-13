@@ -1197,9 +1197,12 @@ body {
   }
 }
 
+.btn-spinner {
+  animation: ultraSpinnerRotate 0.85s linear infinite;
+}
+
 .ultra-loader-icon,
 .task-checkbox-spinner,
-.btn-spinner,
 .task-checkbox.ultra-loading-circle svg,
 .task-checkbox.is-loading svg {
   color: #6366f1 !important;
