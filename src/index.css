@@ -1171,6 +1171,55 @@ body {
   animation: optimisticPulse 1.8s ease-in-out infinite !important;
 }
 
+/* Ultra-Premium Animated Circle Loader for 0s Transition Stage */
+.task-checkbox.ultra-loading-circle {
+  border-color: #f43f5e !important;
+  background: rgba(244, 63, 94, 0.18) !important;
+  box-shadow: 0 0 16px rgba(244, 63, 94, 0.5), inset 0 0 8px rgba(244, 63, 94, 0.25) !important;
+  animation: ultraCirclePulse 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite !important;
+  cursor: wait !important;
+}
+
+@keyframes ultraCirclePulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 12px rgba(244, 63, 94, 0.4), inset 0 0 6px rgba(244, 63, 94, 0.2);
+    border-color: #f43f5e;
+  }
+  50% {
+    transform: scale(1.12);
+    box-shadow: 0 0 22px rgba(244, 63, 94, 0.75), inset 0 0 12px rgba(244, 63, 94, 0.4);
+    border-color: #fb7185;
+  }
+}
+
+.ultra-loader-icon {
+  color: #f43f5e !important;
+  animation: ultraSpinnerRotate 0.85s linear infinite !important;
+  filter: drop-shadow(0 0 6px rgba(244, 63, 94, 0.8));
+}
+
+@keyframes ultraSpinnerRotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Ultra-Premium Card Glow when Transitioning at 0s */
+.task-card.transitioning-card {
+  border-color: rgba(244, 63, 94, 0.45) !important;
+  box-shadow: 0 4px 20px rgba(244, 63, 94, 0.22) !important;
+  animation: ultraCardGlow 1.5s ease-in-out infinite !important;
+}
+
+@keyframes ultraCardGlow {
+  0%, 100% {
+    box-shadow: 0 4px 20px rgba(244, 63, 94, 0.15);
+  }
+  50% {
+    box-shadow: 0 6px 28px rgba(244, 63, 94, 0.38);
+  }
+}
+
 .task-checkbox.missed-check {
   border-color: #ef4444;
   background: rgba(239, 68, 68, 0.12);

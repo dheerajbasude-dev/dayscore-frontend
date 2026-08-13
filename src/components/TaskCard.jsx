@@ -238,6 +238,7 @@ export default function TaskCard({
 
 
   const getCheckboxClass = () => {
+    if (isMissed) return 'missed-check';
     switch (task.status) {
       case 'inprogress': return 'half-filled';
       case 'done': return 'checked';
@@ -504,16 +505,18 @@ export default function TaskCard({
   );
 
   const currentTheme = getRatingTheme(dailyRating);
+  const isTransitioningState = isUpdatingStatus || (isOverdue && !isDone && task.status !== 'missed');
+  const effectiveCardStatus = isDone ? 'done' : (isMissed ? 'missed' : task.status);
 
   return (
     <div 
       id={`task-card-${task.id || task._id}`}
-      className={`task-card ${task.status} ${isJustCompleted ? 'just-completed-highlight' : ''} ${(hasUnclaimedReward || hasUnacknowledgedPenalty) ? 'has-pending-action' : ''} ${isDeleting ? 'task-exit' : 'task-enter'}`}
+      className={`task-card ${effectiveCardStatus} ${isTransitioningState ? 'transitioning-card' : ''} ${isJustCompleted ? 'just-completed-highlight' : ''} ${(hasUnclaimedReward || hasUnacknowledgedPenalty) ? 'has-pending-action' : ''} ${isDeleting ? 'task-exit' : 'task-enter'}`}
       style={{ animationDelay: isDeleting ? '0s' : `${animDelay}s` }}
     >
       {!isFutureDueTask && !(isMissed && !isToday) && (
         <div
-          className={`task-checkbox ${getCheckboxClass()} ${isUpdatingStatus ? 'is-loading' : ''} ${isCheckboxLocked ? 'locked' : ''}`}
+          className={`task-checkbox ${getCheckboxClass()} ${isTransitioningState ? 'ultra-loading-circle is-loading' : ''} ${isCheckboxLocked ? 'locked' : ''}`}
           onClick={cycleStatus}
           title={
             isDone 
@@ -522,10 +525,10 @@ export default function TaskCard({
                 ? (isToday ? 'Rate missed task effort (0-3 range)' : 'Missed task on overred day (score 0)') 
                 : 'Mark as done'
           }
-          style={{ cursor: (isCheckboxLocked || isUpdatingStatus) ? 'not-allowed' : 'pointer' }}
+          style={{ cursor: (isCheckboxLocked || isTransitioningState) ? 'not-allowed' : 'pointer' }}
         >
-          {isUpdatingStatus ? (
-            <Loader2 size={14} className="task-checkbox-spinner btn-spinner" />
+          {isTransitioningState ? (
+            <Loader2 size={13} className="task-checkbox-spinner btn-spinner ultra-loader-icon" />
           ) : (
             <>
               {isDone && <Check size={14} strokeWidth={3} />}
