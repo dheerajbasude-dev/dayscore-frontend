@@ -1173,13 +1173,10 @@ body {
 
 /* Ultra-Premium Animated Circle Loader for 0s Transition Stage */
 .task-checkbox.ultra-loading-circle,
-.task-checkbox.is-loading,
-.task-checkbox.checked.ultra-loading-circle,
-.task-checkbox.checked.is-loading {
-  background: linear-gradient(135deg, #6366f1, #4f46e5, #4338ca) !important;
-  border-color: #818cf8 !important;
-  color: #ffffff !important;
-  box-shadow: 0 0 18px rgba(99, 102, 241, 0.85), inset 0 0 8px rgba(255, 255, 255, 0.3) !important;
+.task-checkbox.is-loading {
+  border-color: #6366f1 !important;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(79, 70, 229, 0.2)) !important;
+  box-shadow: 0 0 16px rgba(99, 102, 241, 0.6), inset 0 0 8px rgba(99, 102, 241, 0.3) !important;
   animation: ultraCirclePulse 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite !important;
   cursor: wait !important;
 }
@@ -1187,24 +1184,22 @@ body {
 @keyframes ultraCirclePulse {
   0%, 100% {
     transform: scale(1);
-    box-shadow: 0 0 14px rgba(99, 102, 241, 0.7), inset 0 0 6px rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0 12px rgba(99, 102, 241, 0.4), inset 0 0 6px rgba(99, 102, 241, 0.2);
     border-color: #6366f1;
   }
   50% {
     transform: scale(1.12);
-    box-shadow: 0 0 24px rgba(99, 102, 241, 0.95), inset 0 0 12px rgba(255, 255, 255, 0.4);
-    border-color: #a5b4fc;
+    box-shadow: 0 0 22px rgba(99, 102, 241, 0.8), inset 0 0 12px rgba(99, 102, 241, 0.4);
+    border-color: #818cf8;
   }
 }
 
 .ultra-loader-icon,
 .task-checkbox-spinner,
-.task-checkbox.ultra-loading-circle svg,
-.task-checkbox.is-loading svg {
-  color: #ffffff !important;
-  stroke: #ffffff !important;
+.btn-spinner {
+  color: #6366f1 !important;
   animation: ultraSpinnerRotate 0.85s linear infinite !important;
-  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.9)) !important;
+  filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.9)) !important;
 }
 
 @keyframes ultraSpinnerRotate {
@@ -1214,8 +1209,8 @@ body {
 
 /* Ultra-Premium Card Glow when Transitioning at 0s */
 .task-card.transitioning-card {
-  border-color: rgba(99, 102, 241, 0.7) !important;
-  box-shadow: 0 4px 22px rgba(99, 102, 241, 0.3) !important;
+  border-color: rgba(99, 102, 241, 0.6) !important;
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.25) !important;
   animation: ultraCardGlow 1.5s ease-in-out infinite !important;
 }
 
@@ -1224,7 +1219,7 @@ body {
     box-shadow: 0 4px 20px rgba(99, 102, 241, 0.2);
   }
   50% {
-    box-shadow: 0 6px 28px rgba(99, 102, 241, 0.5);
+    box-shadow: 0 6px 28px rgba(99, 102, 241, 0.45);
   }
 }
 
