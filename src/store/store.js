@@ -338,8 +338,7 @@ export async function addTask(dateStr, task) {
 
 export async function updateTask(dateStr, taskId, updates) {
   const token = getToken();
-  const cleanDate = dateStr ? (dateStr.includes('T') ? dateStr.split('T')[0] : dateStr.trim().substring(0, 10)) : format(new Date(), 'yyyy-MM-dd');
-  const tasks = getTasks(cleanDate);
+  const tasks = getTasks(dateStr);
   const existing = tasks.find(t => t.id === taskId || t._id === taskId) || {};
   const targetId = existing.id || existing._id || taskId;
 
@@ -366,10 +365,24 @@ export async function updateTask(dateStr, taskId, updates) {
     cleanUpdates.reward = null;
   }
 
-  // Synchronously update local cache first for instant 0ms UI reactivity
-  if (cleanUpdates.date && cleanUpdates.date !== cleanDate) {
-    const oldTasks = getTasks(cleanDate).filter(t => t.id !== targetId && t._id !== targetId);
-    saveTasks(cleanDate, oldTasks);
+  if (token) {
+    try {
+      const res = await authFetch(`/api/tasks/${targetId}`, {
+        method: 'PUT',
+        body: JSON.stringify(cleanUpdates)
+      });
+      if (res.ok) {
+        await fetchAllTasksApi();
+        return getTasks(dateStr);
+      }
+    } catch (err) {
+      console.error('Update task API error:', err);
+    }
+  }
+
+  if (cleanUpdates.date && cleanUpdates.date !== dateStr) {
+    const oldTasks = getTasks(dateStr).filter(t => t.id !== targetId && t._id !== targetId);
+    saveTasks(dateStr, oldTasks);
 
     const newTasks = getTasks(cleanUpdates.date);
     const existingIdx = newTasks.findIndex(t => t.id === targetId || t._id === targetId);
@@ -384,37 +397,10 @@ export async function updateTask(dateStr, taskId, updates) {
     const index = tasks.findIndex(t => t.id === taskId || t._id === taskId);
     if (index !== -1) {
       tasks[index] = { ...tasks[index], ...cleanUpdates, id: targetId, _id: targetId };
-      saveTasks(cleanDate, tasks);
+      saveTasks(dateStr, tasks);
     }
   }
-
-  const todayStr = format(new Date(), 'yyyy-MM-dd');
-  if (cleanDate !== todayStr) {
-    const todayTasks = getTasks(todayStr);
-    const todayIdx = todayTasks.findIndex(t => t.id === targetId || t._id === targetId);
-    if (todayIdx !== -1) {
-      todayTasks[todayIdx] = { ...todayTasks[todayIdx], ...cleanUpdates };
-      saveTasks(todayStr, todayTasks);
-    }
-  }
-
-  // Async API sync in background without blocking instant UI feedback
-  if (token) {
-    try {
-      authFetch(`/api/tasks/${targetId}`, {
-        method: 'PUT',
-        body: JSON.stringify(cleanUpdates)
-      }).then(res => {
-        if (res.ok) {
-          fetchAllTasksApi();
-        }
-      }).catch(err => console.error('Update task API error:', err));
-    } catch (err) {
-      console.error('Update task API error:', err);
-    }
-  }
-
-  return getTasks(cleanDate);
+  return getTasks(dateStr);
 }
 
 export async function deleteTask(dateStr, taskId) {
