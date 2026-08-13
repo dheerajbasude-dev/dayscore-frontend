@@ -1164,6 +1164,13 @@ body {
   color: #f59e0b;
 }
 
+.task-checkbox.is-loading {
+  border-color: rgba(99, 102, 241, 0.6) !important;
+  background: rgba(99, 102, 241, 0.15) !important;
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.35) !important;
+  animation: optimisticPulse 1.8s ease-in-out infinite !important;
+}
+
 .task-checkbox.missed-check {
   border-color: #ef4444;
   background: rgba(239, 68, 68, 0.12);

@@ -862,12 +862,14 @@ export default function TodayView() {
                   updated = true;
                 }
               } else if (dueDateObj < now) {
+                const isPastOverredDay = arc.date < todayStr;
                 const finalStatus = isDoneWithNote ? 'done' : 'missed';
-                const finalRating = isDoneWithNote ? avgRating : 0;
+                const finalRating = isDoneWithNote ? avgRating : (isPastOverredDay ? 0 : undefined);
                 const shouldMoveDate = targetDueDateStr && targetDueDateStr !== arc.date && targetDueDateStr <= todayStr;
-                if (task.status !== finalStatus || task.rating !== finalRating || shouldMoveDate) {
+                if (task.status !== finalStatus || (isPastOverredDay && task.rating !== finalRating) || shouldMoveDate) {
                   let taskPenalty = task.penalty;
-                  if (finalStatus === 'missed' && !taskPenalty) {
+                  // Penalty ONLY triggers when a score badge is present (on overred day ★ 0 badge or rated note badge)
+                  if ((isPastOverredDay || isDoneWithNote) && (finalRating != null && finalRating <= 4) && !taskPenalty) {
                     const punishments = store.getPunishments();
                     if (punishments && punishments.length > 0) {
                       taskPenalty = punishments[Math.floor(Math.random() * punishments.length)];
@@ -903,7 +905,7 @@ export default function TodayView() {
               const finalRating = isDoneWithNote ? avgRating : 0;
               if (task.status !== finalStatus || task.rating !== finalRating) {
                 let taskPenalty = task.penalty;
-                if (finalStatus === 'missed' && !taskPenalty) {
+                if (!taskPenalty) {
                   const punishments = store.getPunishments();
                   if (punishments && punishments.length > 0) {
                     taskPenalty = punishments[Math.floor(Math.random() * punishments.length)];
