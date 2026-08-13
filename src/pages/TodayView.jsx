@@ -4,6 +4,7 @@ import { format, subDays, addDays, parseISO } from 'date-fns'
 import ScoreRing from '../components/ScoreRing'
 import TaskCard from '../components/TaskCard'
 import AddTaskModal from '../components/AddTaskModal'
+import DeleteTaskModal from '../components/DeleteTaskModal'
 import RatingSliderModal from '../components/RatingSliderModal'
 import CustomDatePicker from '../components/CustomDatePicker'
 import CustomSelect from '../components/CustomSelect'
@@ -367,6 +368,8 @@ export default function TodayView() {
   const [loading, setLoading] = useState(true)
   const [dateWarningToast, setDateWarningToast] = useState(null)
   const [autoCarriedToastInfo, setAutoCarriedToastInfo] = useState(null)
+  const [taskToDelete, setTaskToDelete] = useState(null)
+  const [isDeletingTask, setIsDeletingTask] = useState(false)
 
   const isCarriedTask = useCallback((t) => {
     if (!t) return false;
@@ -1454,11 +1457,20 @@ export default function TodayView() {
     setRatingTask(null)
   }
 
-  const handleDeleteTask = async (taskOrId) => {
+  const handleDeleteTask = (taskOrId) => {
     const isObject = typeof taskOrId === 'object' && taskOrId !== null;
-    const taskId = isObject ? (taskOrId.id || taskOrId._id) : taskOrId;
-    const taskDate = isObject ? (taskOrId.date || taskOrId.dateLabel || currentDateStr) : currentDateStr;
+    const taskObj = isObject ? taskOrId : tasks.find(t => String(t.id || t._id) === String(taskOrId));
+    if (taskObj) {
+      setTaskToDelete(taskObj);
+    }
+  };
 
+  const handleConfirmDeleteTask = async (task) => {
+    if (!task || isDeletingTask) return;
+    const taskId = task.id || task._id;
+    const taskDate = task.date || task.dateLabel || currentDateStr;
+
+    setIsDeletingTask(true);
     // 0ms Optimistic removal: remove task from React state instantly so layout collapses with 0ms gap delay!
     setTasks(prev => prev.filter(t => String(t.id || t._id) !== String(taskId)));
 
@@ -1470,6 +1482,8 @@ export default function TodayView() {
     } finally {
       setTasks(store.getTasks(currentDateStr));
       setArchives(store.getAllArchives());
+      setIsDeletingTask(false);
+      setTaskToDelete(null);
     }
   };
 
@@ -2621,6 +2635,16 @@ export default function TodayView() {
           <ChevronUp size={20} strokeWidth={2.5} />
         </button>,
         document.body
+      )}
+
+      {taskToDelete && (
+        <DeleteTaskModal
+          isOpen={Boolean(taskToDelete)}
+          task={taskToDelete}
+          onClose={() => setTaskToDelete(null)}
+          onConfirmDelete={handleConfirmDeleteTask}
+          isDeleting={isDeletingTask}
+        />
       )}
 
       <ConfettiCelebration trigger={showConfetti} />
