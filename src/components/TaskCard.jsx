@@ -419,7 +419,8 @@ export default function TaskCard({
   const hasHighRatingReward = isDone && (ratingNum == null || ratingNum > 4.0);
 
   const hasReward = Boolean(task.reward && hasHighRatingReward);
-  const hasPenalty = Boolean((task.penalty || (isMissed && (ratingDisplay || !isToday))) && (isMissed || hasLowRatingPenalty));
+  const hasBadgeIcon = ratingDisplay || (!isToday && isMissed);
+  const hasPenalty = Boolean(task.penalty && hasBadgeIcon && (isMissed || hasLowRatingPenalty));
 
   const hasUnclaimedReward = Boolean(hasReward && !isRewardClaimed);
   const hasUnacknowledgedPenalty = Boolean(hasPenalty && !isPenaltyAccepted);

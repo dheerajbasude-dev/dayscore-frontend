@@ -867,7 +867,8 @@ export default function TodayView() {
                 const shouldMoveDate = targetDueDateStr && targetDueDateStr !== arc.date && targetDueDateStr <= todayStr;
                 if (task.status !== finalStatus || task.rating !== finalRating || shouldMoveDate) {
                   let taskPenalty = task.penalty;
-                  if (finalStatus === 'missed' && !taskPenalty) {
+                  const isOverredDay = arc.date < todayStr;
+                  if (finalStatus === 'missed' && isOverredDay && !taskPenalty) {
                     const punishments = store.getPunishments();
                     if (punishments && punishments.length > 0) {
                       taskPenalty = punishments[Math.floor(Math.random() * punishments.length)];
