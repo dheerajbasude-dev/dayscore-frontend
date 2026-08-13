@@ -419,7 +419,7 @@ export default function TaskCard({
   const hasHighRatingReward = isDone && (ratingNum == null || ratingNum > 4.0);
 
   const hasReward = Boolean(task.reward && hasHighRatingReward);
-  const hasPenalty = Boolean((task.penalty || (isMissed && !isToday)) && (isMissed || hasLowRatingPenalty));
+  const hasPenalty = Boolean(task.penalty && (isMissed || hasLowRatingPenalty));
 
   const hasUnclaimedReward = Boolean(hasReward && !isRewardClaimed);
   const hasUnacknowledgedPenalty = Boolean(hasPenalty && !isPenaltyAccepted);
@@ -635,7 +635,7 @@ export default function TaskCard({
 
         {hasPenalty && (
           <div className="action-banner banner-penalty">
-            <span className="banner-text">⚠️ Penalty: {task.penalty || "Complete 15 minutes of quiet reflection"}</span>
+            <span className="banner-text">⚠️ Penalty: {task.penalty}</span>
             {isPenaltyAccepted ? (
               <button className="btn btn-sm btn-secondary acknowledged" disabled>
                 ✓ Acknowledged
