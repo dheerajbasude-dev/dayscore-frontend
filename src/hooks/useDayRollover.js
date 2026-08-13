@@ -3,7 +3,7 @@ import { format } from 'date-fns';
 import { saveTasks } from '../store/store';
 import { calculateTaskAutoRating } from '../pages/TodayView';
 
-export function useDayRollover(currentDateStr, tasks, onRollover) {
+export function useDayRollover(currentDateStr, tasks, onRollover, onTasksUpdated) {
   const lastSystemDateRef = useRef(format(new Date(), 'yyyy-MM-dd'));
 
   const checkAndMarkMissed = useCallback(() => {
@@ -33,9 +33,12 @@ export function useDayRollover(currentDateStr, tasks, onRollover) {
 
       if (tasksUpdated) {
         saveTasks(currentDateStr, updatedTasks);
+        if (onTasksUpdated) {
+          onTasksUpdated(updatedTasks);
+        }
       }
     }
-  }, [currentDateStr, tasks]);
+  }, [currentDateStr, tasks, onTasksUpdated]);
 
   useEffect(() => {
     const interval = setInterval(() => {
