@@ -297,23 +297,17 @@ export default function TaskCard({
     return Math.round((sum / totalDaysCount) * 10) / 10;
   }, [effectiveNotesList, task.rating]);
 
-  const displayRatingVal = useMemo(() => {
-    if (isMissed && !isToday) {
-      return task.rating != null ? Number(task.rating) : 0;
-    }
-    return effectiveRating != null ? effectiveRating : (task.rating != null ? Number(task.rating) : null);
-  }, [isMissed, isToday, task.rating, effectiveRating]);
+  const displayRatingVal = effectiveRating != null ? effectiveRating : (task.rating != null ? Number(task.rating) : null);
 
   const getRatingBadgeClass = () => {
-    const num = Number(displayRatingVal != null ? displayRatingVal : 0);
+    const num = Number(displayRatingVal != null ? displayRatingVal : task.rating);
     if (isNaN(num) || num <= 4.0) return 'rating-badge-low';
     if (num <= 8.5) return 'rating-badge-medium';
     return 'rating-badge-high';
   };
 
   const maxR = task.maxRating || task.max_rating || 10;
-  const isMissedOveredDay = isMissed && !isToday;
-  const ratingDisplay = (isDone && displayRatingVal != null) || isMissedOveredDay || (isMissed && displayRatingVal != null);
+  const ratingDisplay = task.status === 'done' && displayRatingVal != null;
   const getStartDateISO = () => {
     if (task.createdAt || task.created_at) return task.createdAt || task.created_at;
     if (task.date) return `${task.date}T00:00:00`;
@@ -517,7 +511,7 @@ export default function TaskCard({
       className={`task-card ${task.status} ${isJustCompleted ? 'just-completed-highlight' : ''} ${(hasUnclaimedReward || hasUnacknowledgedPenalty) ? 'has-pending-action' : ''} ${isDeleting ? 'task-exit' : 'task-enter'}`}
       style={{ animationDelay: isDeleting ? '0s' : `${animDelay}s` }}
     >
-      {!isFutureDueTask && !isMissedOveredDay && (
+      {!isFutureDueTask && (
         <div
           className={`task-checkbox ${getCheckboxClass()} ${isUpdatingStatus ? 'is-loading' : ''} ${isCheckboxLocked ? 'locked' : ''}`}
           onClick={cycleStatus}
@@ -535,7 +529,7 @@ export default function TaskCard({
           ) : (
             <>
               {isDone && <Check size={14} strokeWidth={3} />}
-              {isMissed && !isToday && '✕'}
+              {isMissed && '✕'}
               {task.status === 'inprogress' && '⟳'}
             </>
           )}
@@ -587,7 +581,7 @@ export default function TaskCard({
           {ratingDisplay && (
             <>
               <span className="meta-dot">·</span>
-              <span className={`rating-badge ${getRatingBadgeClass()} rating-badge-animate`}>★ {displayRatingVal != null ? displayRatingVal : 0}/{maxR}</span>
+              <span className={`rating-badge ${getRatingBadgeClass()}`}>★ {displayRatingVal}/{maxR}</span>
             </>
           )}
           {(createdFormatted || dueFormatted) && (
