@@ -85,9 +85,9 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
     if (isSelectedToday) {
       if (selectedHour < currentHour) {
         setSelectedHour(currentHour);
-        setSelectedMinute(Math.min(currentMinute + 5, 59));
-      } else if (selectedHour === currentHour && selectedMinute < currentMinute) {
-        setSelectedMinute(Math.min(currentMinute + 5, 59));
+        setSelectedMinute(Math.min(currentMinute + 1, 59));
+      } else if (selectedHour === currentHour && selectedMinute <= currentMinute) {
+        setSelectedMinute(Math.min(currentMinute + 1, 59));
       }
     }
   }, [selectedDate, isSelectedToday, currentHour, currentMinute, selectedHour, selectedMinute]);
@@ -687,7 +687,7 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
                       }}
                     >
                       {Array.from({ length: 60 }).map((_, m) => {
-                        const isPast = isSelectedToday && selectedHour === currentHour && m < currentMinute;
+                        const isPast = isSelectedToday && selectedHour === currentHour && m <= currentMinute;
                         if (isPast) return null;
                         const isSel = m === selectedMinute;
 
