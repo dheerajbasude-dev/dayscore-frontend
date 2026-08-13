@@ -1459,17 +1459,19 @@ export default function TodayView() {
     const taskId = isObject ? (taskOrId.id || taskOrId._id) : taskOrId;
     const taskDate = isObject ? (taskOrId.date || taskOrId.dateLabel || currentDateStr) : currentDateStr;
 
-    // Animate out first
-    setDeletingTaskIds(prev => new Set(prev).add(taskId))
-    // Wait for animation to finish (matches CSS taskSlideOut 0.4s)
-    await new Promise(resolve => setTimeout(resolve, 400))
+    // 0ms Optimistic removal: remove task from React state instantly so layout collapses with 0ms gap delay!
+    setTasks(prev => prev.filter(t => String(t.id || t._id) !== String(taskId)));
 
-    await store.deleteTask(taskDate, taskId)
-    await store.fetchAllTasksApi()
-    setTasks(store.getTasks(currentDateStr))
-    setArchives(store.getAllArchives())
-    setDeletingTaskIds(prev => { const s = new Set(prev); s.delete(taskId); return s; })
-  }
+    try {
+      await store.deleteTask(taskDate, taskId);
+      await store.fetchAllTasksApi();
+    } catch (err) {
+      console.error('Delete task error:', err);
+    } finally {
+      setTasks(store.getTasks(currentDateStr));
+      setArchives(store.getAllArchives());
+    }
+  };
 
 
 
