@@ -32,7 +32,7 @@ export const getRatingTheme = (val) => {
   }
 };
 
-export default function TaskCard({
+function TaskCard({
   index,
   task,
   isToday = true,
@@ -915,3 +915,5 @@ export default function TaskCard({
     </div>
   );
 }
+
+export default React.memo(TaskCard);

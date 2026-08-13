@@ -41,10 +41,21 @@ const authFetch = async (url, options = {}) => {
 // Tasks Storage & API
 // ==========================================
 
+const taskMemoryCache = new Map();
+
+export function clearTaskMemoryCache() {
+  taskMemoryCache.clear();
+}
+
 export function getTasks(dateStr) {
   const uid = getUserId();
   const cleanDate = dateStr ? (dateStr.includes('T') ? dateStr.split('T')[0] : dateStr.trim().substring(0, 10)) : format(new Date(), 'yyyy-MM-dd');
   const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const cacheKey = `${uid}_${cleanDate}`;
+
+  if (taskMemoryCache.has(cacheKey)) {
+    return taskMemoryCache.get(cacheKey);
+  }
 
   const data = localStorage.getItem(`dayscore_${uid}_tasks_${cleanDate}`);
   let tasks = data ? JSON.parse(data) : [];
@@ -105,6 +116,7 @@ export function getTasks(dateStr) {
     }
   }
 
+  taskMemoryCache.set(cacheKey, tasks);
   return tasks;
 }
 
@@ -273,6 +285,7 @@ export async function fetchAllTasksApi() {
 export function saveTasks(dateStr, tasks) {
   const uid = getUserId();
   const cleanDate = dateStr ? (dateStr.includes('T') ? dateStr.split('T')[0] : dateStr.trim().substring(0, 10)) : format(new Date(), 'yyyy-MM-dd');
+  taskMemoryCache.set(`${uid}_${cleanDate}`, tasks);
   localStorage.setItem(`dayscore_${uid}_tasks_${cleanDate}`, JSON.stringify(tasks));
 }
 

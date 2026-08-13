@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 export function useTimer(dueDateTime) {
   const [timeLeftInfo, setTimeLeftInfo] = useState({
@@ -9,6 +9,8 @@ export function useTimer(dueDateTime) {
     isOverdue: false
   });
 
+  const lastTimeLeftRef = useRef('');
+
   useEffect(() => {
     if (!dueDateTime) return;
 
@@ -18,13 +20,16 @@ export function useTimer(dueDateTime) {
       const difference = due - now;
 
       if (difference <= 0) {
-        setTimeLeftInfo({
-          timeLeft: '0h 0m 0s',
-          totalMs: 0,
-          color: 'gray',
-          urgencyClass: 'timer-missed',
-          isOverdue: true
-        });
+        if (lastTimeLeftRef.current !== 'OVERDUE') {
+          lastTimeLeftRef.current = 'OVERDUE';
+          setTimeLeftInfo({
+            timeLeft: '0s',
+            totalMs: 0,
+            color: 'gray',
+            urgencyClass: 'timer-missed',
+            isOverdue: true
+          });
+        }
         return;
       }
 
@@ -56,7 +61,7 @@ export function useTimer(dueDateTime) {
       let color = 'green';
       let urgencyClass = 'timer-safe';
 
-      if (hours < 2 && hours > 0 || (hours === 0 && minutes >= 30)) {
+      if ((hours < 2 && hours > 0) || (hours === 0 && minutes >= 30)) {
         color = 'yellow';
         urgencyClass = 'timer-warning';
       } else if (hours === 0 && minutes < 30) {
@@ -64,13 +69,16 @@ export function useTimer(dueDateTime) {
         urgencyClass = 'timer-danger';
       }
 
-      setTimeLeftInfo({
-        timeLeft: timeLeftStr,
-        totalMs: difference,
-        color,
-        urgencyClass,
-        isOverdue: false
-      });
+      if (lastTimeLeftRef.current !== timeLeftStr) {
+        lastTimeLeftRef.current = timeLeftStr;
+        setTimeLeftInfo({
+          timeLeft: timeLeftStr,
+          totalMs: difference,
+          color,
+          urgencyClass,
+          isOverdue: false
+        });
+      }
     };
 
     calculateTimeLeft();
