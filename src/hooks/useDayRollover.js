@@ -3,7 +3,7 @@ import { format } from 'date-fns';
 import { saveTasks } from '../store/store';
 import { calculateTaskAutoRating } from '../pages/TodayView';
 
-export function useDayRollover(currentDateStr, tasks, onRollover, onTaskUpdate) {
+export function useDayRollover(currentDateStr, tasks, onRollover) {
   const lastSystemDateRef = useRef(format(new Date(), 'yyyy-MM-dd'));
 
   const checkAndMarkMissed = useCallback(() => {
@@ -33,29 +33,21 @@ export function useDayRollover(currentDateStr, tasks, onRollover, onTaskUpdate) 
 
       if (tasksUpdated) {
         saveTasks(currentDateStr, updatedTasks);
-        if (onTaskUpdate && typeof onTaskUpdate === 'function') {
-          onTaskUpdate(updatedTasks);
-        }
       }
     }
-  }, [currentDateStr, tasks, onTaskUpdate]);
+  }, [currentDateStr, tasks]);
 
   useEffect(() => {
-    const actualSystemDate = format(new Date(), 'yyyy-MM-dd');
-    if (currentDateStr === actualSystemDate) {
-      checkAndMarkMissed();
-    }
-
     const interval = setInterval(() => {
-      const nowSystemDate = format(new Date(), 'yyyy-MM-dd');
+      const actualSystemDate = format(new Date(), 'yyyy-MM-dd');
       // ONLY trigger onRollover when real clock time crosses midnight (system date changes)
-      if (nowSystemDate !== lastSystemDateRef.current) {
-        lastSystemDateRef.current = nowSystemDate;
+      if (actualSystemDate !== lastSystemDateRef.current) {
+        lastSystemDateRef.current = actualSystemDate;
         onRollover();
-      } else if (currentDateStr === nowSystemDate) {
+      } else if (currentDateStr === actualSystemDate) {
         checkAndMarkMissed();
       }
-    }, 5000);
+    }, 10000);
 
     return () => clearInterval(interval);
   }, [currentDateStr, checkAndMarkMissed, onRollover]);

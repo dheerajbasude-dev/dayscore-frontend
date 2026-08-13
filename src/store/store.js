@@ -400,17 +400,6 @@ export async function updateTask(dateStr, taskId, updates) {
       saveTasks(dateStr, tasks);
     }
   }
-
-  const todayStr = format(new Date(), 'yyyy-MM-dd');
-  if (todayStr !== dateStr) {
-    const todayTasks = getTasks(todayStr);
-    const todayIdx = todayTasks.findIndex(t => t.id === targetId || t._id === targetId);
-    if (todayIdx !== -1) {
-      todayTasks[todayIdx] = { ...todayTasks[todayIdx], ...cleanUpdates, id: targetId, _id: targetId };
-      saveTasks(todayStr, todayTasks);
-    }
-  }
-
   return getTasks(dateStr);
 }
 
