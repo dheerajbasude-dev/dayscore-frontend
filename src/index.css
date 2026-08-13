@@ -1173,7 +1173,10 @@ body {
 
 /* Ultra-Premium Animated Circle Loader for 0s Transition Stage */
 .task-checkbox.ultra-loading-circle,
-.task-checkbox.is-loading {
+.task-checkbox.is-loading,
+.task-checkbox.checked.ultra-loading-circle,
+.task-checkbox.checked.is-loading,
+.task-checkbox-loader-container {
   border-color: #6366f1 !important;
   background: linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(79, 70, 229, 0.2)) !important;
   box-shadow: 0 0 16px rgba(99, 102, 241, 0.6), inset 0 0 8px rgba(99, 102, 241, 0.3) !important;
@@ -1196,8 +1199,11 @@ body {
 
 .ultra-loader-icon,
 .task-checkbox-spinner,
-.btn-spinner {
+.btn-spinner,
+.task-checkbox.ultra-loading-circle svg,
+.task-checkbox.is-loading svg {
   color: #6366f1 !important;
+  stroke: #6366f1 !important;
   animation: ultraSpinnerRotate 0.85s linear infinite !important;
   filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.9)) !important;
 }

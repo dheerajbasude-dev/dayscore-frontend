@@ -515,27 +515,43 @@ export default function TaskCard({
       style={{ animationDelay: isDeleting ? '0s' : `${animDelay}s` }}
     >
       {!isFutureDueTask && !(isMissed && !isToday) && (
-        <div
-          className={`task-checkbox ${getCheckboxClass()} ${isTransitioningState ? 'ultra-loading-circle is-loading' : ''} ${isCheckboxLocked ? 'locked' : ''}`}
-          onClick={cycleStatus}
-          title={
-            isDone 
-              ? 'Task completed' 
-              : isMissed 
-                ? (isToday ? 'Rate missed task effort (0-3 range)' : 'Missed task on overred day (score 0)') 
-                : 'Mark as done'
-          }
-          style={{ cursor: (isCheckboxLocked || isTransitioningState) ? 'not-allowed' : 'pointer' }}
-        >
-          {isTransitioningState ? (
-            <Loader2 size={13} className="task-checkbox-spinner btn-spinner ultra-loader-icon" />
-          ) : (
-            <>
-              {isDone && <Check size={14} strokeWidth={3} />}
-              {task.status === 'inprogress' && '⟳'}
-            </>
-          )}
-        </div>
+        isTransitioningState ? (
+          <div 
+            className="task-checkbox-loader-container"
+            style={{
+              width: '26px',
+              height: '26px',
+              borderRadius: '50%',
+              border: '2px solid rgba(99, 102, 241, 0.6)',
+              background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(79, 70, 229, 0.2))',
+              boxShadow: '0 0 14px rgba(99, 102, 241, 0.6)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              alignSelf: 'center',
+              animation: 'optimisticPulse 1.8s ease-in-out infinite'
+            }}
+          >
+            <Loader2 size={14} className="btn-spinner" style={{ color: '#6366f1' }} />
+          </div>
+        ) : (
+          <div
+            className={`task-checkbox ${getCheckboxClass()} ${isCheckboxLocked ? 'locked' : ''}`}
+            onClick={cycleStatus}
+            title={
+              isDone 
+                ? 'Task completed' 
+                : isMissed 
+                  ? (isToday ? 'Rate missed task effort (0-3 range)' : 'Missed task on overred day (score 0)') 
+                  : 'Mark as done'
+            }
+            style={{ cursor: isCheckboxLocked ? 'not-allowed' : 'pointer' }}
+          >
+            {isDone && <Check size={14} strokeWidth={3} />}
+            {task.status === 'inprogress' && '⟳'}
+          </div>
+        )
       )}
 
       <div className="task-info">
