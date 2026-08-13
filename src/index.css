@@ -1177,6 +1177,24 @@ body {
   transform: scale(1.08);
 }
 
+.task-checkbox.is-loading {
+  border-color: rgba(248, 113, 113, 0.65) !important;
+  background: rgba(248, 113, 113, 0.16) !important;
+  box-shadow: 0 0 12px rgba(248, 113, 113, 0.35) !important;
+  animation: optimisticPulse 1.8s ease-in-out infinite !important;
+}
+
+@keyframes optimisticPulse {
+  0%, 100% {
+    box-shadow: 0 0 4px rgba(248, 113, 113, 0.2);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 12px rgba(248, 113, 113, 0.5);
+    transform: scale(1.06);
+  }
+}
+
 .zero-score-badge-anim {
   display: inline-flex;
   align-items: center;
