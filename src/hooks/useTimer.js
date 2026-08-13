@@ -46,7 +46,11 @@ export function useTimer(dueDateTime) {
         const remHours = hours % 24;
         timeLeftStr = remHours > 0 ? `${days}d ${remHours}h` : `${days} ${days === 1 ? 'Day' : 'Days'}`;
       } else {
-        timeLeftStr = `${hours}h ${minutes}m ${seconds}s`;
+        const parts = [];
+        if (hours > 0) parts.push(`${hours}h`);
+        if (minutes > 0 || hours > 0) parts.push(`${minutes}m`);
+        parts.push(`${seconds}s`);
+        timeLeftStr = parts.join(' ');
       }
 
       let color = 'green';
