@@ -946,7 +946,7 @@ export default function TodayView() {
     setCurrentDateStr(format(new Date(), 'yyyy-MM-dd'))
   }, [currentDateStr])
 
-  useDayRollover(currentDateStr, tasks, handleRollover)
+  useDayRollover(currentDateStr, tasks, handleRollover, setTasks)
   useNotifications(tasks, settings.notifications, settings.reminderLeadTime ?? 30)
 
   const handleAddTask = async (newTask) => {
@@ -1060,42 +1060,58 @@ export default function TodayView() {
     let modified = false;
     const now = new Date();
 
-    tasks.forEach(async (task) => {
-      if (!isTaskTimeOver(task)) return; // ONLY evaluate if task end date & time has overed (0s time)
+    const checkOverdue = async () => {
+      for (const task of tasks) {
+        if (!isTaskTimeOver(task)) continue; // ONLY evaluate if task end date & time has overed (0s time)
 
-      const { hasRatedNote, avgRating } = calculateTaskAutoRating(task);
-      const targetId = task.id || task._id;
-      const taskDate = task.date || task.dateLabel || currentDateStr;
+        const { hasRatedNote, avgRating } = calculateTaskAutoRating(task);
+        const targetId = task.id || task._id;
+        const taskDate = task.date || task.dateLabel || currentDateStr;
 
-      if (hasRatedNote) {
-        if (task.status !== 'done' || task.rating !== avgRating) {
-          modified = true;
+        if (hasRatedNote) {
+          if (task.status !== 'done' || task.rating !== avgRating) {
+            modified = true;
 
-          await store.updateTask(taskDate, targetId, {
-            status: 'done',
-            completed: true,
-            completedAt: task.completedAt || task.completed_at || now.toISOString(),
-            completed_at: task.completedAt || task.completed_at || now.toISOString(),
-            rating: avgRating,
-            maxRating: task.maxRating || task.max_rating || 10,
-            max_rating: task.maxRating || task.max_rating || 10
-          });
-        }
-      } else {
-        if (task.status !== 'done' && task.status !== 'missed') {
-          modified = true;
-          await store.updateTask(taskDate, targetId, {
-            status: 'missed'
-          });
+            await store.updateTask(taskDate, targetId, {
+              status: 'done',
+              completed: true,
+              completedAt: task.completedAt || task.completed_at || now.toISOString(),
+              completed_at: task.completedAt || task.completed_at || now.toISOString(),
+              rating: avgRating,
+              maxRating: task.maxRating || task.max_rating || 10,
+              max_rating: task.maxRating || task.max_rating || 10
+            });
+            if (taskDate !== currentDateStr) {
+              await store.updateTask(currentDateStr, targetId, {
+                status: 'done',
+                completed: true,
+                rating: avgRating
+              });
+            }
+          }
+        } else {
+          if (task.status !== 'done' && task.status !== 'missed') {
+            modified = true;
+            await store.updateTask(taskDate, targetId, {
+              status: 'missed'
+            });
+            if (taskDate !== currentDateStr) {
+              await store.updateTask(currentDateStr, targetId, {
+                status: 'missed'
+              });
+            }
+          }
         }
       }
-    });
 
-    if (modified) {
-      store.fetchAllTasksApi().then(() => {
+      if (modified) {
+        await store.fetchAllTasksApi();
         setTasks(store.getTasks(currentDateStr));
-      });
-    }
+        setArchives(store.getAllArchives());
+      }
+    };
+
+    checkOverdue();
   }, [tasks, currentDateStr, isTaskTimeOver]);
 
   const handleAddDailyNote = async (targetTask, noteText, noteRating) => {
@@ -1375,7 +1391,14 @@ export default function TodayView() {
       wasMissed: wasMissedTask ? true : undefined,
       was_missed: wasMissedTask ? 1 : undefined
     }
+
+    // Optimistically update React state for 0ms instant UI rendering
+    setTasks(prev => prev.map(t => (String(t.id || t._id) === String(targetId)) ? { ...t, ...updates } : t));
+
     await store.updateTask(taskDate, targetId, updates)
+    if (taskDate !== currentDateStr) {
+      await store.updateTask(currentDateStr, targetId, updates)
+    }
     await store.fetchAllTasksApi()
     setTasks(store.getTasks(currentDateStr))
     setArchives(store.getAllArchives())
