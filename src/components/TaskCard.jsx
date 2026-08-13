@@ -241,7 +241,7 @@ export default function TaskCard({
     switch (task.status) {
       case 'inprogress': return 'half-filled';
       case 'done': return 'checked';
-      case 'missed': return isToday ? 'empty missed-today' : 'missed-check';
+      case 'missed': return 'missed-check';
       default: return 'empty';
     }
   };
@@ -297,8 +297,7 @@ export default function TaskCard({
     return Math.round((sum / totalDaysCount) * 10) / 10;
   }, [effectiveNotesList, task.rating]);
 
-  const isOveredDay = !isToday || (task.date && task.date < todayDateStr);
-  const displayRatingVal = effectiveRating != null ? effectiveRating : (task.rating != null ? Number(task.rating) : (isMissed && isOveredDay ? 0 : null));
+  const displayRatingVal = effectiveRating != null ? effectiveRating : (task.rating != null ? Number(task.rating) : null);
 
   const getRatingBadgeClass = () => {
     const num = Number(displayRatingVal != null ? displayRatingVal : task.rating);
@@ -307,8 +306,8 @@ export default function TaskCard({
     return 'rating-badge-high';
   };
 
-  const maxR = task.maxRating || task.max_rating || (isMissed ? 3 : 10);
-  const ratingDisplay = (task.status === 'done' || (isMissed && isOveredDay)) && displayRatingVal != null;
+  const maxR = task.maxRating || task.max_rating || 10;
+  const ratingDisplay = task.status === 'done' && displayRatingVal != null;
   const getStartDateISO = () => {
     if (task.createdAt || task.created_at) return task.createdAt || task.created_at;
     if (task.date) return `${task.date}T00:00:00`;
@@ -530,7 +529,7 @@ export default function TaskCard({
           ) : (
             <>
               {isDone && <Check size={14} strokeWidth={3} />}
-              {isMissed && !isToday && '✕'}
+              {isMissed && '✕'}
               {task.status === 'inprogress' && '⟳'}
             </>
           )}

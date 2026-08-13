@@ -66,18 +66,12 @@ export function calculateDailyScore(tasks) {
       missedCount++;
       allDoneOnTime = false;
 
-      const hasUserRating = task.rating != null;
-      const taskRating = hasUserRating ? Number(task.rating) : 0;
-      const isOveredDay = isOveredDayParam || (taskDate && taskDate < todayStr);
-
-      // Standard tasks (not carried, not upcoming) when missed:
-      // ONLY factor score as 0 into daily score if whole day was finished (isOveredDay) OR if user explicitly rated it
+      // Standard tasks (not carried, not upcoming) count as 0 score if unrated
+      const taskRating = task.rating != null ? Number(task.rating) : 0;
       if (!isCarried && !isUpcoming) {
-        if (isOveredDay || hasUserRating) {
-          evaluatedCount++;
-          totalTaskPoints += taskRating;
-        }
-      } else if (hasUserRating) {
+        evaluatedCount++;
+        totalTaskPoints += taskRating;
+      } else if (task.rating != null) {
         evaluatedCount++;
         totalTaskPoints += taskRating;
       }
