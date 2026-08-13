@@ -5256,7 +5256,6 @@ body {
   border-radius: 8px !important;
   font-size: 0.65rem !important;
   font-weight: 700 !important;
-  cursor: pointer !important;
   white-space: nowrap !important;
   flex-shrink: 0 !important;
   display: inline-flex !important;
@@ -5281,6 +5280,12 @@ body {
   color: #c084fc !important;
 }
 
+.action-banner.banner-penalty .btn:disabled{
+  opacity: 0.5;
+  cursor: default !important;
+}
+
+
 .action-banner.banner-reward .banner-text {
   color: #c084fc !important;
 }
@@ -5297,7 +5302,6 @@ body {
   border-radius: 8px !important;
   font-size: 0.65rem !important;
   font-weight: 700 !important;
-  cursor: pointer !important;
   white-space: nowrap !important;
   flex-shrink: 0 !important;
   display: inline-flex !important;
@@ -5313,6 +5317,11 @@ body {
   transform: translateY(-1px);
   box-shadow: 0 3px 10px rgba(168, 85, 247, 0.45) !important;
   filter: brightness(1.1);
+}
+
+.action-banner.banner-reward .btn:disabled{
+  opacity: 0.5;
+  cursor: default !important;
 }
 
 @media (max-width: 640px) {
