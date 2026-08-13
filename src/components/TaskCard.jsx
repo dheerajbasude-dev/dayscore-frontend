@@ -415,14 +415,11 @@ export default function TaskCard({
                      task.penalty_accepted === true || task.penalty_accepted === 1 || task.penalty_accepted === '1';
 
   const ratingNum = task.rating != null && !isNaN(Number(task.rating)) ? Number(task.rating) : null;
-  const isBadgePresent = (task.status === 'done' && displayRatingVal != null) || (isMissed && !isToday);
-
-  const hasLowRatingPenalty = isBadgePresent && (displayRatingVal != null ? displayRatingVal <= 4.0 : true);
-  const hasHighRatingReward = task.status === 'done' && displayRatingVal != null && displayRatingVal > 4.0;
+  const hasLowRatingPenalty = (isDone || isMissed) && (ratingNum == null || ratingNum <= 4.0);
+  const hasHighRatingReward = isDone && (ratingNum == null || ratingNum > 4.0);
 
   const hasReward = Boolean(task.reward && hasHighRatingReward);
-  // Penalty features MUST ONLY OCCUR WHEN BADGE RATE ICON IS ADDED!
-  const hasPenalty = Boolean(isBadgePresent && (task.penalty || hasLowRatingPenalty));
+  const hasPenalty = Boolean((task.penalty || (isMissed && (ratingDisplay || !isToday))) && (isMissed || hasLowRatingPenalty));
 
   const hasUnclaimedReward = Boolean(hasReward && !isRewardClaimed);
   const hasUnacknowledgedPenalty = Boolean(hasPenalty && !isPenaltyAccepted);
@@ -492,14 +489,9 @@ export default function TaskCard({
       }
     }
 
-    // Standard single-day tasks (or missed tasks on active day): show loader & open rating slider modal
+    // Standard single-day tasks: open rating slider modal
     if (onRequestComplete) {
-      setIsUpdatingStatus(true);
-      try {
-        onRequestComplete(task);
-      } finally {
-        setTimeout(() => setIsUpdatingStatus(false), 400);
-      }
+      onRequestComplete(task);
       return;
     }
   };

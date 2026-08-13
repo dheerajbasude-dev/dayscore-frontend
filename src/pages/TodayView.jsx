@@ -863,11 +863,11 @@ export default function TodayView() {
                 }
               } else if (dueDateObj < now) {
                 const finalStatus = isDoneWithNote ? 'done' : 'missed';
-                const finalRating = isDoneWithNote ? avgRating : (arc.date < todayStr ? 0 : undefined);
+                const finalRating = isDoneWithNote ? avgRating : 0;
                 const shouldMoveDate = targetDueDateStr && targetDueDateStr !== arc.date && targetDueDateStr <= todayStr;
-                if (task.status !== finalStatus || (arc.date < todayStr && task.rating !== finalRating) || shouldMoveDate) {
+                if (task.status !== finalStatus || task.rating !== finalRating || shouldMoveDate) {
                   let taskPenalty = task.penalty;
-                  if (arc.date < todayStr && finalStatus === 'missed' && !taskPenalty) {
+                  if (finalStatus === 'missed' && !taskPenalty) {
                     const punishments = store.getPunishments();
                     if (punishments && punishments.length > 0) {
                       taskPenalty = punishments[Math.floor(Math.random() * punishments.length)];
