@@ -877,6 +877,17 @@ export default function TodayView() {
                   } else {
                     updates.completedAt = null;
                     updates.completed_at = null;
+                    if (!task.penalty) {
+                      const punishments = store.getPunishments();
+                      const randomP = punishments && punishments.length > 0
+                        ? punishments[Math.floor(Math.random() * punishments.length)]
+                        : "Complete 15 minutes of quiet reflection";
+                      updates.penalty = randomP;
+                      store.setActivePunishment(randomP);
+                      setActivePunishment(store.getActivePunishment());
+                      setShowPenaltyFlash(true);
+                      setTimeout(() => setShowPenaltyFlash(false), 3000);
+                    }
                   }
                   if (shouldMoveDate) {
                     updates.date = targetDueDateStr;
@@ -900,6 +911,17 @@ export default function TodayView() {
                 } else {
                   updates.completedAt = null;
                   updates.completed_at = null;
+                  if (!task.penalty) {
+                    const punishments = store.getPunishments();
+                    const randomP = punishments && punishments.length > 0
+                      ? punishments[Math.floor(Math.random() * punishments.length)]
+                      : "Complete 15 minutes of quiet reflection";
+                    updates.penalty = randomP;
+                    store.setActivePunishment(randomP);
+                    setActivePunishment(store.getActivePunishment());
+                    setShowPenaltyFlash(true);
+                    setTimeout(() => setShowPenaltyFlash(false), 3000);
+                  }
                 }
                 await store.updateTask(arc.date, task.id || task._id, updates);
                 updated = true;
