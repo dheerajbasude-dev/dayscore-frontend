@@ -1165,9 +1165,42 @@ body {
 }
 
 .task-checkbox.missed-check {
-  border-color: var(--accent-danger);
-  background: rgba(var(--accent-danger-rgb), 0.12);
-  color: var(--accent-danger);
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+  transition: all 0.25s ease-in-out;
+}
+.task-checkbox.missed-check:hover {
+  border-color: #f87171;
+  background: rgba(248, 113, 113, 0.22);
+  box-shadow: 0 0 10px rgba(248, 113, 113, 0.4);
+  transform: scale(1.08);
+}
+
+.zero-score-badge-anim {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 7px;
+  border-radius: 12px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  background: rgba(248, 113, 113, 0.18);
+  color: #f87171;
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.25);
+  animation: zeroBadgeFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes zeroBadgeFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 /* Task Info Container */

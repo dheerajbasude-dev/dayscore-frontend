@@ -511,7 +511,7 @@ export default function TaskCard({
       className={`task-card ${task.status} ${isJustCompleted ? 'just-completed-highlight' : ''} ${(hasUnclaimedReward || hasUnacknowledgedPenalty) ? 'has-pending-action' : ''} ${isDeleting ? 'task-exit' : 'task-enter'}`}
       style={{ animationDelay: isDeleting ? '0s' : `${animDelay}s` }}
     >
-      {!isFutureDueTask && (
+      {!isFutureDueTask && !(isMissed && !isToday) && (
         <div
           className={`task-checkbox ${getCheckboxClass()} ${isUpdatingStatus ? 'is-loading' : ''} ${isCheckboxLocked ? 'locked' : ''}`}
           onClick={cycleStatus}
@@ -519,7 +519,7 @@ export default function TaskCard({
             isDone 
               ? 'Task completed' 
               : isMissed 
-                ? (isToday ? 'Mark missed task as done (max rating 3)' : 'Missed task on past date (cannot be modified)') 
+                ? (isToday ? 'Rate missed task effort (0-3 range)' : 'Missed task on overred day (score 0)') 
                 : 'Mark as done'
           }
           style={{ cursor: (isCheckboxLocked || isUpdatingStatus) ? 'not-allowed' : 'pointer' }}
@@ -529,7 +529,6 @@ export default function TaskCard({
           ) : (
             <>
               {isDone && <Check size={14} strokeWidth={3} />}
-              {isMissed && '✕'}
               {task.status === 'inprogress' && '⟳'}
             </>
           )}
@@ -578,12 +577,19 @@ export default function TaskCard({
           <span className={`badge badge-${task.category.toLowerCase()}`}>{task.category}</span>
           <span className="meta-dot">·</span>
           <span className={`priority-text priority-${task.priority.toLowerCase()}`}>{task.priority}</span>
-          {ratingDisplay && (
+          {ratingDisplay ? (
             <>
               <span className="meta-dot">·</span>
               <span className={`rating-badge ${getRatingBadgeClass()}`}>★ {displayRatingVal}/{maxR}</span>
             </>
-          )}
+          ) : (isMissed && !isToday) ? (
+            <>
+              <span className="meta-dot">·</span>
+              <span className="rating-badge rating-badge-low zero-score-badge-anim" title="Overred missed task final score: 0">
+                ★ 0
+              </span>
+            </>
+          ) : null}
           {(createdFormatted || dueFormatted) && (
             <>
               <span className="meta-dot">·</span>
