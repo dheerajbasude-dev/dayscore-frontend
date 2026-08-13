@@ -297,7 +297,13 @@ export default function TaskCard({
     return Math.round((sum / totalDaysCount) * 10) / 10;
   }, [effectiveNotesList, task.rating]);
 
-  const displayRatingVal = effectiveRating != null ? effectiveRating : (task.rating != null ? Number(task.rating) : null);
+  const isMissedOveredStandard = isMissed && !isToday && !isMultiDayOrCarried;
+
+  const displayRatingVal = effectiveRating != null 
+    ? effectiveRating 
+    : (task.rating != null 
+        ? Number(task.rating) 
+        : (isMissedOveredStandard ? 0 : null));
 
   const getRatingBadgeClass = () => {
     const num = Number(displayRatingVal != null ? displayRatingVal : task.rating);
@@ -307,7 +313,7 @@ export default function TaskCard({
   };
 
   const maxR = task.maxRating || task.max_rating || 10;
-  const ratingDisplay = task.status === 'done' && displayRatingVal != null;
+  const ratingDisplay = (task.status === 'done' && displayRatingVal != null) || isMissedOveredStandard;
   const getStartDateISO = () => {
     if (task.createdAt || task.created_at) return task.createdAt || task.created_at;
     if (task.date) return `${task.date}T00:00:00`;
@@ -505,13 +511,15 @@ export default function TaskCard({
 
   const currentTheme = getRatingTheme(dailyRating);
 
+  const hideCheckbox = isFutureDueTask || isMissedOveredStandard;
+
   return (
     <div 
       id={`task-card-${task.id || task._id}`}
       className={`task-card ${task.status} ${isJustCompleted ? 'just-completed-highlight' : ''} ${(hasUnclaimedReward || hasUnacknowledgedPenalty) ? 'has-pending-action' : ''} ${isDeleting ? 'task-exit' : 'task-enter'}`}
       style={{ animationDelay: isDeleting ? '0s' : `${animDelay}s` }}
     >
-      {!isFutureDueTask && (
+      {!hideCheckbox && (
         <div
           className={`task-checkbox ${getCheckboxClass()} ${isUpdatingStatus ? 'is-loading' : ''} ${isCheckboxLocked ? 'locked' : ''}`}
           onClick={cycleStatus}
@@ -529,7 +537,7 @@ export default function TaskCard({
           ) : (
             <>
               {isDone && <Check size={14} strokeWidth={3} />}
-              {isMissed && '✕'}
+              {(isMissed && !isToday) && '✕'}
               {task.status === 'inprogress' && '⟳'}
             </>
           )}
