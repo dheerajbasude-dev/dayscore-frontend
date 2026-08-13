@@ -5,12 +5,16 @@ export function calculateDailyScore(tasks) {
     return { score: 0, breakdown: {}, baseScore: 0, bonus1: 0, bonus2: 0, penalty: 0 };
   }
 
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+
   let totalTaskPoints = 0;
   let hasHighPriority = false;
   let allHighPriorityDone = true;
   let allDoneOnTime = true;
   let doneCount = 0;
+  let missedCount = 0;
   let missedHighPriorityCount = 0;
+  let evaluatedCount = 0;
 
   for (const task of tasks) {
     if (task.priority === 'High') {
@@ -23,9 +27,31 @@ export function calculateDailyScore(tasks) {
       }
     }
 
+    // Identify if task is carried over or upcoming (beyond today)
+    const isCarried = Boolean(
+      task.carriedOver ||
+      task.carried_over ||
+      task.wasCarried ||
+      task.isCarried ||
+      (task.originalDate && task.originalDate < todayStr) ||
+      (task.original_date && task.original_date < todayStr)
+    );
+
+    const dueIso = task.dueDateTime || task.due_date_time;
+    let isUpcoming = false;
+    if (dueIso) {
+      try {
+        const dueObj = typeof dueIso === 'string' ? parseISO(dueIso) : new Date(dueIso);
+        const dueDateStr = format(dueObj, 'yyyy-MM-dd');
+        if (dueDateStr > todayStr) isUpcoming = true;
+      } catch (e) {}
+    }
+    const taskDate = task.date ? (typeof task.date === 'string' ? task.date.trim().substring(0, 10) : '') : '';
+    if (taskDate && taskDate > todayStr) isUpcoming = true;
+
     if (task.status === 'done') {
       doneCount++;
-      // Take task rating directly without any ratio calculation
+      evaluatedCount++;
       if (task.rating != null) {
         totalTaskPoints += Number(task.rating);
       } else {
@@ -36,15 +62,28 @@ export function calculateDailyScore(tasks) {
           allDoneOnTime = false;
         }
       }
+    } else if (task.status === 'missed') {
+      missedCount++;
+      allDoneOnTime = false;
+
+      // Standard tasks (not carried, not upcoming) count as 0 score if unrated
+      const taskRating = task.rating != null ? Number(task.rating) : 0;
+      if (!isCarried && !isUpcoming) {
+        evaluatedCount++;
+        totalTaskPoints += taskRating;
+      } else if (task.rating != null) {
+        evaluatedCount++;
+        totalTaskPoints += taskRating;
+      }
     }
   }
 
-  if (doneCount === 0) {
+  if (doneCount === 0 && missedCount === 0) {
     allDoneOnTime = false;
   }
 
-  // Daily score is exact average of completed tasks (out of 10)
-  const baseScore = doneCount > 0 ? totalTaskPoints / doneCount : 0;
+  // Daily score is average across evaluated tasks (done + missed standard tasks) out of 10
+  const baseScore = evaluatedCount > 0 ? totalTaskPoints / evaluatedCount : 0;
   const finalScore = Math.min(10, Math.max(0, baseScore));
 
   return {
@@ -56,6 +95,7 @@ export function calculateDailyScore(tasks) {
     breakdown: {
       totalTasks: tasks.length,
       doneCount,
+      missedCount,
       missedHighPriorityCount,
       allDoneOnTime
     }
