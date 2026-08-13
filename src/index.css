@@ -1170,6 +1170,18 @@ body {
   color: var(--accent-danger);
 }
 
+.task-checkbox.missed-today {
+  border-color: #f87171;
+  background: rgba(248, 113, 113, 0.08);
+  color: #f87171;
+  box-shadow: 0 0 10px rgba(248, 113, 113, 0.25);
+  cursor: pointer;
+}
+.task-checkbox.missed-today:hover {
+  background: rgba(248, 113, 113, 0.18);
+  transform: scale(1.08);
+}
+
 /* Task Info Container */
 .task-info {
   flex: 1;
