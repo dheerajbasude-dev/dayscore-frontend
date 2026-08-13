@@ -1591,7 +1591,8 @@ export default function TodayView() {
     const getStatusTier = (t) => {
       const isCarried = isCarriedTask(t);
       const isDone = t.status === 'done' || t.completed === true;
-      const isMissed = t.status === 'missed' || t.missed === true;
+      const isOverdue = isTaskTimeOver(t);
+      const isMissed = t.status === 'missed' || t.missed === true || (isOverdue && !isDone);
 
       // Tier 1 & 2: Missed Tasks
       if (isMissed) {
