@@ -60,18 +60,6 @@ export function getTasks(dateStr) {
   const data = localStorage.getItem(`dayscore_${uid}_tasks_${cleanDate}`);
   let tasks = data ? JSON.parse(data) : [];
 
-  const nowTime = new Date();
-  tasks = tasks.map(t => {
-    if ((t.status === 'pending' || t.status === 'inprogress') && t.dueDateTime) {
-      try {
-        if (new Date(t.dueDateTime) < nowTime) {
-          return { ...t, status: 'missed' };
-        }
-      } catch (e) {}
-    }
-    return t;
-  });
-
   if (cleanDate === todayStr) {
     const prefix = `dayscore_${uid}_tasks_`;
     const pastCarried = [];

@@ -505,10 +505,7 @@ function TaskCard({
   );
 
   const currentTheme = getRatingTheme(dailyRating);
-  const mountedOverdueRef = useRef(isOverdue);
-  const isNewlyExpired = !mountedOverdueRef.current && isOverdue;
-
-  const isTransitioningState = isUpdatingStatus || (isNewlyExpired && !isDone && task.status !== 'missed');
+  const isTransitioningState = isUpdatingStatus || (isOverdue && !isDone && task.status !== 'missed');
   const effectiveCardStatus = isDone ? 'done' : (isMissed ? 'missed' : task.status);
 
   return (
