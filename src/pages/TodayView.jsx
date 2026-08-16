@@ -181,8 +181,8 @@ export default function TodayView() {
     } catch (e) { }
   }
 
-  const [tasks, setTasks] = useState([])
-  const [reflection, setReflection] = useState('')
+  const [tasks, setTasks] = useState(() => store.getTasks(currentDateStr))
+  const [reflection, setReflection] = useState(() => store.getReflection(currentDateStr))
   const [showAddModal, setShowAddModal] = useState(false)
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [showReflectionModal, setShowReflectionModal] = useState(false)
@@ -365,7 +365,7 @@ export default function TodayView() {
 
   const [todaysReward, setTodaysReward] = useState(null)
   const [settings, setSettings] = useState({ notifications: false })
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(() => !store.isTasksCached(currentDateStr) && store.getTasks(currentDateStr).length === 0)
   const [dateWarningToast, setDateWarningToast] = useState(null)
   const [autoCarriedToastInfo, setAutoCarriedToastInfo] = useState(null)
   const [taskToDelete, setTaskToDelete] = useState(null)
@@ -543,7 +543,7 @@ export default function TodayView() {
               updates.rating = avgRating;
             }
           }
-          await store.updateTask(todayStr, t.id || t._id, updates);
+          await store.updateTask(todayStr, t.id || t._id, updates, true);
           cleanedUpCount++;
         }
         // B: If a task originating from a PAST date carried over to today AND its due date is today or future, ensure status is 'pending'
@@ -552,7 +552,7 @@ export default function TodayView() {
             status: 'pending',
             carriedOver: true,
             carried_over: 1
-          });
+          }, true);
           cleanedUpCount++;
         }
       }
@@ -599,14 +599,13 @@ export default function TodayView() {
           carried_over: 1,
           originalDate: originDate,
           original_date: originDate
-        });
+        }, true);
         carriedCount++;
       }
 
       if (carriedCount > 0 || cleanedUpCount > 0) {
         await store.fetchAllTasksApi();
-        setCurrentDateStr(todayStr);
-        setTasks(store.getTasks(todayStr));
+        setTasks(store.getTasks(currentDateStr));
         setArchives(store.getArchivesFromTasks());
 
         if (carriedCount > 0) {
@@ -648,6 +647,13 @@ export default function TodayView() {
           dateSet.add(cleanD);
         }
       }
+      const orig = t.originalDate || t.original_date || t.createdAt || t.created_at;
+      if (orig) {
+        const origD = typeof orig === 'string' ? (orig.includes('T') ? orig.split('T')[0] : orig.trim().substring(0, 10)) : '';
+        if (origD && origD <= todayStr) {
+          dateSet.add(origD);
+        }
+      }
     });
 
     return Array.from(dateSet).sort();
@@ -657,24 +663,32 @@ export default function TodayView() {
   const canGoPrev = currentDateStr > minAvailableDate && validTaskDates.some(d => d < currentDateStr);
   const canGoNext = currentDateStr < todayStr && validTaskDates.some(d => d > currentDateStr);
 
+  const handleSelectDate = (newDate) => {
+    if (!newDate) return;
+    const cleanDate = newDate.includes('T') ? newDate.split('T')[0] : newDate.trim().substring(0, 10);
+    setCurrentDateStr(cleanDate);
+    setTasks(store.getTasks(cleanDate));
+    setReflection(store.getReflection(cleanDate));
+  };
+
   const handlePrevDay = () => {
     const prevDates = validTaskDates.filter(d => d < currentDateStr);
     if (prevDates.length > 0) {
       const targetPrev = prevDates[prevDates.length - 1];
-      setCurrentDateStr(targetPrev);
+      handleSelectDate(targetPrev);
     }
-  }
+  };
 
   const handleNextDay = () => {
     const nextDate = validTaskDates.find(d => d > currentDateStr);
     if (nextDate && nextDate <= todayStr) {
-      setCurrentDateStr(nextDate);
+      handleSelectDate(nextDate);
     }
-  }
+  };
 
   const handleToday = () => {
-    setCurrentDateStr(todayStr)
-  }
+    handleSelectDate(todayStr);
+  };
 
   // Compute all tasks across all dates from active tasks & archives
   const allTasksAcrossDates = useMemo(() => {
@@ -746,7 +760,32 @@ export default function TodayView() {
   useEffect(() => {
     let isMounted = true;
 
-    setReflection(store.getReflection(currentDateStr));
+    // 0ms Instant synchronous read from store/cache
+    const cachedTasks = store.getTasks(currentDateStr);
+    const cachedRef = store.getReflection(currentDateStr);
+    setTasks(cachedTasks);
+    setReflection(cachedRef);
+
+    const isTaskRewardUnacknowledged = (t) => {
+      if (!t || !t.reward) return false;
+      const targetId = t.id || t._id;
+      try {
+        if (sessionStorage.getItem(`dayscore_reward_ack_${targetId}`) || localStorage.getItem(`dayscore_reward_ack_${targetId}`)) {
+          return false;
+        }
+      } catch (e) {}
+      const isClaimed = t.rewardClaimed === true || t.rewardClaimed === 1 || t.reward_claimed === 1 || t.reward_claimed === '1';
+      const isAck = t.rewardAcknowledged === true || t.rewardAcknowledged === 1 || t.reward_acknowledged === 1 || t.reward_acknowledged === '1';
+      return !isClaimed && !isAck;
+    };
+
+    const cachedUnack = cachedTasks.find(isTaskRewardUnacknowledged);
+    setTodaysReward(cachedUnack ? cachedUnack.reward : null);
+
+    if (store.isTasksCached(currentDateStr) || cachedTasks.length > 0) {
+      setLoading(false);
+    }
+
     store.fetchReflectionApi(currentDateStr).then(syncedRef => {
       if (isMounted && syncedRef !== undefined) {
         setReflection(syncedRef || '');
@@ -754,29 +793,6 @@ export default function TodayView() {
     });
 
     const loadTasks = async () => {
-      const isTaskRewardUnacknowledged = (t) => {
-        if (!t.reward) return false;
-        const targetId = t.id || t._id;
-        try {
-          if (sessionStorage.getItem(`dayscore_reward_ack_${targetId}`) || localStorage.getItem(`dayscore_reward_ack_${targetId}`)) {
-            return false;
-          }
-        } catch (e) {}
-        const isClaimed = t.rewardClaimed === true || t.rewardClaimed === 1 || t.reward_claimed === 1 || t.reward_claimed === '1';
-        const isAck = t.rewardAcknowledged === true || t.rewardAcknowledged === 1 || t.reward_acknowledged === 1 || t.reward_acknowledged === '1';
-        return !isClaimed && !isAck;
-      };
-
-      const cached = store.getTasks(currentDateStr);
-      if (cached && cached.length > 0) {
-        setTasks(cached);
-        const cachedUnack = cached.find(isTaskRewardUnacknowledged);
-        setTodaysReward(cachedUnack ? cachedUnack.reward : null);
-        setLoading(false);
-      } else {
-        setLoading(true);
-      }
-
       await store.fetchAllTasksApi();
       if (!isMounted) return;
 
@@ -808,11 +824,11 @@ export default function TodayView() {
           setShowPastPendingBanner(true);
         }
       } catch (e) {}
-    }
+    };
 
     loadTasks();
-    return () => { isMounted = false; }
-  }, [currentDateStr, user, todayStr])
+    return () => { isMounted = false; };
+  }, [currentDateStr, user, todayStr]);
 
   // Score, Streak & Averages Calculation effect
   useEffect(() => {
@@ -1022,7 +1038,7 @@ export default function TodayView() {
     const sourceDate = task.sourceDate || task.date || task.dateLabel || currentDateStr;
 
     // 1. Mark past task as missed on its original date
-    await store.updateTask(sourceDate, targetId, { status: 'missed' });
+    await store.updateTask(sourceDate, targetId, { status: 'missed' }, true);
 
     // 2. Create new pending task on TODAY's date (todayStr)
     const newTask = {
@@ -1041,7 +1057,6 @@ export default function TodayView() {
     // 3. Refresh local view state
     setTasks(store.getTasks(currentDateStr));
     setArchives(store.getAllArchives());
-    setCarryOverTasks(prev => prev.filter(t => (t.id || t._id) !== targetId));
   }
 
   const handleDismissCarryOver = async (task) => {
@@ -1056,13 +1071,12 @@ export default function TodayView() {
     // Refresh local view state
     setTasks(store.getTasks(currentDateStr));
     setArchives(store.getAllArchives());
-    setCarryOverTasks(prev => prev.filter(t => (t.id || t._id) !== targetId));
   }
 
-  const handleCarryOverAll = async () => {
-    if (carryOverTasks.length === 0) return;
-    const tasksToProcess = [...carryOverTasks];
-    for (const task of tasksToProcess) {
+  const handleCarryOverAll = async (tasksList) => {
+    const list = Array.isArray(tasksList) ? tasksList : [];
+    if (list.length === 0) return;
+    for (const task of list) {
       await handleCarryOver(task);
     }
   }
@@ -1947,7 +1961,7 @@ export default function TodayView() {
                   currentDateStr={currentDateStr}
                   validTaskDates={validTaskDates}
                   todayStr={todayStr}
-                  onSelectDate={(newDate) => setCurrentDateStr(newDate)}
+                  onSelectDate={(newDate) => handleSelectDate(newDate)}
                 />
 
                 <button
