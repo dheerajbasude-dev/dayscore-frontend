@@ -85,7 +85,11 @@ export function getTasks(dateStr) {
                   pastCarried.push({
                     ...t,
                     date: todayStr,
-                    status: t.status === 'done' ? 'done' : 'pending',
+                    status: 'pending',
+                    completed: false,
+                    completedAt: null,
+                    completed_at: null,
+                    rating: undefined,
                     carriedOver: true,
                     carried_over: 1,
                     originalDate: t.originalDate || t.original_date || pastDate,
@@ -132,6 +136,10 @@ export function getTasks(dateStr) {
               tasks.push({
                 ...t,
                 date: cleanDate,
+                status: t.status === 'done' ? 'done' : 'pending',
+                completed: t.status === 'done',
+                completedAt: t.status === 'done' ? (t.completedAt || t.completed_at) : null,
+                completed_at: t.status === 'done' ? (t.completed_at || t.completedAt) : null,
                 carriedForward: true
               });
               existingIds.add(pid);
@@ -274,7 +282,11 @@ export async function fetchAllTasksApi() {
                   todayList.push({
                     ...t,
                     date: todayStr,
-                    status: t.status === 'done' ? 'done' : 'pending',
+                    status: 'pending',
+                    completed: false,
+                    completedAt: null,
+                    completed_at: null,
+                    rating: undefined,
                     carriedOver: true,
                     carried_over: 1,
                     originalDate: t.originalDate || t.original_date || d,
@@ -524,7 +536,7 @@ export function getArchivesFromTasks() {
           dateStr = dateStr.trim().substring(0, 10);
 
           const scoreResult = calculateDailyScore(tasks);
-          const hasDone = tasks.some(t => t && (t.status === 'done' || t.completedAt || t.completed_at));
+          const hasDone = tasks.some(t => t && (t.status === 'done' || t.completed === true));
           archiveMap.set(dateStr, {
             date: dateStr,
             score: scoreResult.score,
