@@ -114,36 +114,6 @@ export function getTasks(dateStr) {
         localStorage.setItem(`dayscore_${uid}_tasks_${cleanDate}`, JSON.stringify(tasks));
       }
     }
-  } else if (cleanDate < todayStr) {
-    // When viewing a past day (e.g. yesterday):
-    // Ensure any task that originated on this past date (and is currently in today's tasks)
-    // is also preserved and visible in this past day's tasks list instantly!
-    try {
-      const todayData = localStorage.getItem(`dayscore_${uid}_tasks_${todayStr}`);
-      if (todayData) {
-        const todayTasks = JSON.parse(todayData) || [];
-        const existingIds = new Set(tasks.map(t => String(t.id || t._id)));
-        let addedPast = false;
-        todayTasks.forEach(t => {
-          const orig = t.originalDate || t.original_date || (t.createdAt ? String(t.createdAt).substring(0, 10) : '') || (t.created_at ? String(t.created_at).substring(0, 10) : '');
-          if (orig === cleanDate) {
-            const pid = String(t.id || t._id);
-            if (!existingIds.has(pid)) {
-              tasks.push({
-                ...t,
-                date: cleanDate,
-                carriedForward: true
-              });
-              existingIds.add(pid);
-              addedPast = true;
-            }
-          }
-        });
-        if (addedPast) {
-          localStorage.setItem(`dayscore_${uid}_tasks_${cleanDate}`, JSON.stringify(tasks));
-        }
-      }
-    } catch (e) {}
   }
 
   taskMemoryCache.set(cacheKey, tasks);
@@ -250,7 +220,7 @@ export async function fetchAllTasksApi() {
         tasksByDate.get(d).push(t);
       });
 
-      // Synchronously assign carried-over tasks to todayStr AND preserve origin dates
+      // Synchronously assign carried-over tasks to todayStr
       tasksByDate.forEach((tasksList, d) => {
         if (d < todayStr) {
           tasksList.forEach(t => {
@@ -286,28 +256,6 @@ export async function fetchAllTasksApi() {
           });
         }
       });
-
-      // Ensure tasks on today that originated on a past date are preserved in their origin date (e.g. yesterday)
-      if (tasksByDate.has(todayStr)) {
-        const todayTasks = tasksByDate.get(todayStr);
-        todayTasks.forEach(t => {
-          const orig = t.originalDate || t.original_date || (t.createdAt ? String(t.createdAt).substring(0, 10) : '') || (t.created_at ? String(t.created_at).substring(0, 10) : '');
-          if (orig && orig < todayStr) {
-            if (!tasksByDate.has(orig)) {
-              tasksByDate.set(orig, []);
-            }
-            const origList = tasksByDate.get(orig);
-            const existsInOrig = origList.some(existing => String(existing.id || existing._id) === String(t.id || t._id));
-            if (!existsInOrig) {
-              origList.push({
-                ...t,
-                date: orig,
-                carriedForward: true
-              });
-            }
-          }
-        });
-      }
 
       // Clear local task cache for this user to remove stale/guest/un-synced items
       const uid = getUserId();
@@ -401,7 +349,7 @@ export async function addTask(dateStr, task) {
   return newTask;
 }
 
-export async function updateTask(dateStr, taskId, updates, skipFetchAll = false) {
+export async function updateTask(dateStr, taskId, updates) {
   const token = getToken();
   const tasks = getTasks(dateStr);
   const existing = tasks.find(t => t.id === taskId || t._id === taskId) || {};
@@ -430,20 +378,24 @@ export async function updateTask(dateStr, taskId, updates, skipFetchAll = false)
     cleanUpdates.reward = null;
   }
 
-  // Synchronously update local cache first
-  if (cleanUpdates.date && cleanUpdates.date !== dateStr) {
-    if (cleanUpdates.carriedOver || cleanUpdates.carried_over) {
-      // For carried-over tasks: preserve the historical record on the origin date
-      const origTasks = getTasks(dateStr);
-      const existingIdxInOrig = origTasks.findIndex(t => t.id === targetId || t._id === targetId);
-      if (existingIdxInOrig !== -1) {
-        origTasks[existingIdxInOrig] = { ...origTasks[existingIdxInOrig], carriedForward: true };
-        saveTasks(dateStr, origTasks);
+  if (token) {
+    try {
+      const res = await authFetch(`/api/tasks/${targetId}`, {
+        method: 'PUT',
+        body: JSON.stringify(cleanUpdates)
+      });
+      if (res.ok) {
+        await fetchAllTasksApi();
+        return getTasks(dateStr);
       }
-    } else {
-      const oldTasks = getTasks(dateStr).filter(t => t.id !== targetId && t._id !== targetId);
-      saveTasks(dateStr, oldTasks);
+    } catch (err) {
+      console.error('Update task API error:', err);
     }
+  }
+
+  if (cleanUpdates.date && cleanUpdates.date !== dateStr) {
+    const oldTasks = getTasks(dateStr).filter(t => t.id !== targetId && t._id !== targetId);
+    saveTasks(dateStr, oldTasks);
 
     const newTasks = getTasks(cleanUpdates.date);
     const existingIdx = newTasks.findIndex(t => t.id === targetId || t._id === targetId);
@@ -461,22 +413,6 @@ export async function updateTask(dateStr, taskId, updates, skipFetchAll = false)
       saveTasks(dateStr, tasks);
     }
   }
-
-  if (token) {
-    try {
-      const res = await authFetch(`/api/tasks/${targetId}`, {
-        method: 'PUT',
-        body: JSON.stringify(cleanUpdates)
-      });
-      if (res.ok && !skipFetchAll) {
-        await fetchAllTasksApi();
-        return getTasks(dateStr);
-      }
-    } catch (err) {
-      console.error('Update task API error:', err);
-    }
-  }
-
   return getTasks(dateStr);
 }
 
