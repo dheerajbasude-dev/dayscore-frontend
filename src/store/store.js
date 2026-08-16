@@ -394,18 +394,8 @@ export async function updateTask(dateStr, taskId, updates) {
   }
 
   if (cleanUpdates.date && cleanUpdates.date !== dateStr) {
-    if (cleanUpdates.carriedOver || cleanUpdates.carried_over) {
-      // For carried-over tasks: preserve the historical record on the origin date
-      const origTasks = getTasks(dateStr);
-      const existingIdxInOrig = origTasks.findIndex(t => t.id === targetId || t._id === targetId);
-      if (existingIdxInOrig !== -1) {
-        origTasks[existingIdxInOrig] = { ...origTasks[existingIdxInOrig], carriedForward: true };
-        saveTasks(dateStr, origTasks);
-      }
-    } else {
-      const oldTasks = getTasks(dateStr).filter(t => t.id !== targetId && t._id !== targetId);
-      saveTasks(dateStr, oldTasks);
-    }
+    const oldTasks = getTasks(dateStr).filter(t => t.id !== targetId && t._id !== targetId);
+    saveTasks(dateStr, oldTasks);
 
     const newTasks = getTasks(cleanUpdates.date);
     const existingIdx = newTasks.findIndex(t => t.id === targetId || t._id === targetId);
@@ -679,7 +669,7 @@ export function getActivePunishment() {
       return { text: parsed, acknowledged: false };
     }
     if (parsed && typeof parsed === 'object') {
-      return { text: parsed.text || '', acknowledged: !!parsed.acknowledged, ...parsed };
+      return parsed;
     }
     return { text: String(parsed), acknowledged: false };
   } catch (e) {
@@ -687,20 +677,15 @@ export function getActivePunishment() {
   }
 }
 
-export function setActivePunishment(textOrObj) {
+export function setActivePunishment(text) {
   const uid = getUserId();
-  if (!textOrObj) {
+  if (!text) {
     localStorage.removeItem(`dayscore_${uid}_active_punishment`);
     return;
   }
-  let val = { acknowledged: false };
-  if (typeof textOrObj === 'string') {
-    val.text = textOrObj;
-  } else if (textOrObj && typeof textOrObj === 'object') {
-    val = { acknowledged: false, ...textOrObj, text: textOrObj.text || textOrObj.punishment || textOrObj.title || String(textOrObj) };
-  } else {
-    val.text = String(textOrObj);
-  }
+  const val = typeof text === 'string' 
+    ? { text, acknowledged: false } 
+    : (text && typeof text === 'object' ? { acknowledged: false, ...text } : { text: String(text), acknowledged: false });
   localStorage.setItem(`dayscore_${uid}_active_punishment`, JSON.stringify(val));
 }
 

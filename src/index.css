@@ -5371,63 +5371,6 @@ body {
   animation: completionGlowPulse 2.5s ease-in-out forwards !important;
 }
 
-/* Red Pulsing Highlight for Penalty / 0-Score Target Task */
-.task-card.task-target-highlight {
-  position: relative;
-  border-color: #ef4444 !important;
-  box-shadow: 0 0 25px rgba(239, 68, 68, 0.7), 0 0 50px rgba(239, 68, 68, 0.35) !important;
-  animation: penaltyTargetPulse 1.2s ease-in-out 3 alternate !important;
-  z-index: 10;
-}
-
-@keyframes penaltyTargetPulse {
-  0% {
-    box-shadow: 0 0 15px rgba(239, 68, 68, 0.5), inset 0 0 10px rgba(239, 68, 68, 0.2);
-    transform: scale(1.015);
-  }
-  100% {
-    box-shadow: 0 0 35px rgba(239, 68, 68, 0.95), inset 0 0 20px rgba(239, 68, 68, 0.4);
-    transform: scale(1.035);
-  }
-}
-
-.score-ring-card-interactive {
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
-}
-
-.score-ring-card-interactive:hover {
-  box-shadow: 0 8px 30px rgba(239, 68, 68, 0.25);
-}
-
-.score-ring-clickable {
-  cursor: pointer;
-}
-
-.streak-badge-penalty-link {
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.35) 0%, rgba(220, 38, 38, 0.45) 100%) !important;
-  border: 1px solid rgba(239, 68, 68, 0.6) !important;
-  color: #fecaca !important;
-  cursor: pointer !important;
-  animation: pulse 1.8s infinite !important;
-  font-weight: 700 !important;
-  box-shadow: 0 0 12px rgba(239, 68, 68, 0.35) !important;
-  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
-}
-
-.streak-badge-penalty-link:hover {
-  transform: scale(1.06) !important;
-  box-shadow: 0 0 18px rgba(239, 68, 68, 0.6) !important;
-}
-
-.penalty-banner-interactive {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.penalty-banner-interactive:hover {
-  box-shadow: 0 6px 24px rgba(239, 68, 68, 0.35);
-}
-
-
 /* ==========================================================================
    Floating Center "Scroll to Top" Circular Icon Button
    ========================================================================== */
