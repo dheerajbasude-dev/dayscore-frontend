@@ -181,8 +181,8 @@ export default function TodayView() {
     } catch (e) { }
   }
 
-  const [tasks, setTasks] = useState([])
-  const [reflection, setReflection] = useState('')
+  const [tasks, setTasks] = useState(() => store.getTasks(currentDateStr))
+  const [reflection, setReflection] = useState(() => store.getReflection(currentDateStr))
   const [showAddModal, setShowAddModal] = useState(false)
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [showReflectionModal, setShowReflectionModal] = useState(false)
@@ -354,18 +354,18 @@ export default function TodayView() {
     };
   }, []);
 
-  const [archives, setArchives] = useState([])
-  const [scoreResult, setScoreResult] = useState({ score: 0, baseScore: 0, bonus1: 0, bonus2: 0, penalty: 0 })
+  const [archives, setArchives] = useState(() => store.getArchivesFromTasks())
+  const [scoreResult, setScoreResult] = useState(() => scoring.calculateDailyScore(store.getTasks(currentDateStr)))
   const [streak, setStreak] = useState({ current: 0, isActive: false })
   const [averages, setAverages] = useState({ week: 0, month: 0, allTime: 0 })
 
-  const [activePunishment, setActivePunishment] = useState(null)
+  const [activePunishment, setActivePunishment] = useState(() => store.getActivePunishment())
   const [pastUnfinishedDates, setPastUnfinishedDates] = useState([])
   const [showPastPendingBanner, setShowPastPendingBanner] = useState(false)
 
   const [todaysReward, setTodaysReward] = useState(null)
   const [settings, setSettings] = useState({ notifications: false })
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [dateWarningToast, setDateWarningToast] = useState(null)
   const [autoCarriedToastInfo, setAutoCarriedToastInfo] = useState(null)
   const [taskToDelete, setTaskToDelete] = useState(null)
@@ -605,8 +605,7 @@ export default function TodayView() {
 
       if (carriedCount > 0 || cleanedUpCount > 0) {
         await store.fetchAllTasksApi();
-        setCurrentDateStr(todayStr);
-        setTasks(store.getTasks(todayStr));
+        setTasks(store.getTasks(currentDateStr));
         setArchives(store.getArchivesFromTasks());
 
         if (carriedCount > 0) {
@@ -623,7 +622,7 @@ export default function TodayView() {
     };
 
     runAutoCarryOver();
-  }, [todayStr, archives]);
+  }, [todayStr, archives, currentDateStr]);
 
   // Compute all dates that contain recorded task data or archives (plus today)
   const validTaskDates = useMemo(() => {
@@ -662,6 +661,8 @@ export default function TodayView() {
     if (prevDates.length > 0) {
       const targetPrev = prevDates[prevDates.length - 1];
       setCurrentDateStr(targetPrev);
+      setTasks(store.getTasks(targetPrev));
+      setReflection(store.getReflection(targetPrev));
     }
   }
 
@@ -669,11 +670,15 @@ export default function TodayView() {
     const nextDate = validTaskDates.find(d => d > currentDateStr);
     if (nextDate && nextDate <= todayStr) {
       setCurrentDateStr(nextDate);
+      setTasks(store.getTasks(nextDate));
+      setReflection(store.getReflection(nextDate));
     }
   }
 
   const handleToday = () => {
-    setCurrentDateStr(todayStr)
+    setCurrentDateStr(todayStr);
+    setTasks(store.getTasks(todayStr));
+    setReflection(store.getReflection(todayStr));
   }
 
   // Compute all tasks across all dates from active tasks & archives
@@ -709,7 +714,7 @@ export default function TodayView() {
     return list;
   }, [archives, tasks, currentDateStr]);
 
-  // Initialize data per user & date
+  // Initialize data per user
   useEffect(() => {
     let isMounted = true;
     const loadUserData = async () => {
@@ -740,7 +745,7 @@ export default function TodayView() {
 
     loadUserData()
     return () => { isMounted = false; }
-  }, [currentDateStr, user])
+  }, [user])
 
   // Load daily tasks & reflection per user & date
   useEffect(() => {
@@ -768,14 +773,9 @@ export default function TodayView() {
       };
 
       const cached = store.getTasks(currentDateStr);
-      if (cached && cached.length > 0) {
-        setTasks(cached);
-        const cachedUnack = cached.find(isTaskRewardUnacknowledged);
-        setTodaysReward(cachedUnack ? cachedUnack.reward : null);
-        setLoading(false);
-      } else {
-        setLoading(true);
-      }
+      setTasks(cached);
+      const cachedUnack = cached.find(isTaskRewardUnacknowledged);
+      setTodaysReward(cachedUnack ? cachedUnack.reward : null);
 
       await store.fetchAllTasksApi();
       if (!isMounted) return;
@@ -783,7 +783,6 @@ export default function TodayView() {
       const freshToday = store.getTasks(currentDateStr);
       setTasks(freshToday);
       setArchives(store.getAllArchives());
-      setLoading(false);
 
       const unacknowledgedTask = freshToday.find(isTaskRewardUnacknowledged);
       setTodaysReward(unacknowledgedTask ? unacknowledgedTask.reward : null);
@@ -875,8 +874,14 @@ export default function TodayView() {
                   if ((isPastOverredDay || isDoneWithNote) && (finalRating != null && finalRating <= 4) && !taskPenalty) {
                     const punishments = store.getPunishments();
                     if (punishments && punishments.length > 0) {
-                      taskPenalty = punishments[Math.floor(Math.random() * punishments.length)];
-                      store.setActivePunishment(taskPenalty);
+                      const selectedPunishment = punishments[Math.floor(Math.random() * punishments.length)];
+                      taskPenalty = selectedPunishment;
+                      store.setActivePunishment({
+                        text: typeof selectedPunishment === 'string' ? selectedPunishment : (selectedPunishment.text || String(selectedPunishment)),
+                        taskId: task.id || task._id,
+                        taskDate: arc.date || task.date || currentDateStr,
+                        taskTitle: task.title
+                      });
                       setActivePunishment(store.getActivePunishment());
                       setShowPenaltyFlash(true);
                       setTimeout(() => setShowPenaltyFlash(false), 3000);
@@ -911,8 +916,14 @@ export default function TodayView() {
                 if (!taskPenalty) {
                   const punishments = store.getPunishments();
                   if (punishments && punishments.length > 0) {
-                    taskPenalty = punishments[Math.floor(Math.random() * punishments.length)];
-                    store.setActivePunishment(taskPenalty);
+                    const selectedPunishment = punishments[Math.floor(Math.random() * punishments.length)];
+                    taskPenalty = selectedPunishment;
+                    store.setActivePunishment({
+                      text: typeof selectedPunishment === 'string' ? selectedPunishment : (selectedPunishment.text || String(selectedPunishment)),
+                      taskId: task.id || task._id,
+                      taskDate: arc.date || task.date || currentDateStr,
+                      taskTitle: task.title
+                    });
                     setActivePunishment(store.getActivePunishment());
                     setShowPenaltyFlash(true);
                     setTimeout(() => setShowPenaltyFlash(false), 3000);
@@ -1241,7 +1252,12 @@ export default function TodayView() {
         updates.penalty_accepted = 0;
 
         if (shouldTriggerPenalty && taskPenalty) {
-          store.setActivePunishment(taskPenalty);
+          store.setActivePunishment({
+            text: typeof taskPenalty === 'string' ? taskPenalty : (taskPenalty.text || String(taskPenalty)),
+            taskId: targetId,
+            taskDate: taskDate,
+            taskTitle: targetTask.title
+          });
           setActivePunishment(store.getActivePunishment());
           setShowConfetti(false);
           setShowPenaltyFlash(true);
@@ -1439,7 +1455,12 @@ export default function TodayView() {
 
     setTimeout(() => {
       if (pendingTriggerPenalty && pendingPenalty) {
-        store.setActivePunishment(pendingPenalty)
+        store.setActivePunishment({
+          text: typeof pendingPenalty === 'string' ? pendingPenalty : (pendingPenalty.text || String(pendingPenalty)),
+          taskId: targetId,
+          taskDate: taskDate,
+          taskTitle: targetTask?.title
+        });
         setActivePunishment(store.getActivePunishment())
         setShowConfetti(false)
         setShowPenaltyFlash(true)
@@ -1861,6 +1882,97 @@ export default function TodayView() {
     ? activePunishment.text
     : null;
 
+  const penaltyTargetTask = useMemo(() => {
+    // 1. If active punishment has a specific taskId, find it across all tasks
+    const actId = activePunishment && typeof activePunishment === 'object' ? activePunishment.taskId : null;
+    if (actId) {
+      const match = allTasksAcrossDates.find(t => String(t.id || t._id) === String(actId));
+      if (match) return match;
+    }
+
+    // 2. Look for task in current tasks with active unaccepted penalty or rating <= 4 or rating = 0 or missed
+    const currentPenaltyTask = tasks.find(t => {
+      if (t.penalty && !t.penaltyAccepted) return true;
+      if (t.rating != null && Number(t.rating) === 0) return true;
+      if (t.status === 'missed') return true;
+      if (t.status === 'done' && t.rating != null && Number(t.rating) <= 4) return true;
+      return false;
+    });
+    if (currentPenaltyTask) return currentPenaltyTask;
+
+    // 3. Look across all tasks
+    const anyPenaltyTask = allTasksAcrossDates.find(t => {
+      if (t.penalty && !t.penaltyAccepted) return true;
+      if (t.rating != null && Number(t.rating) === 0) return true;
+      if (t.status === 'missed') return true;
+      if (t.status === 'done' && t.rating != null && Number(t.rating) <= 4) return true;
+      return false;
+    });
+    return anyPenaltyTask || null;
+  }, [activePunishment, tasks, allTasksAcrossDates]);
+
+  const handleGoToTask = useCallback((targetTaskOrId, targetDate) => {
+    let taskId = null;
+    let taskDate = targetDate;
+
+    if (typeof targetTaskOrId === 'object' && targetTaskOrId !== null) {
+      taskId = targetTaskOrId.id || targetTaskOrId._id;
+      taskDate = targetTaskOrId.date || targetTaskOrId.dateLabel || taskDate;
+    } else if (typeof targetTaskOrId === 'string') {
+      taskId = targetTaskOrId;
+    }
+
+    if (!taskId && penaltyTargetTask) {
+      taskId = penaltyTargetTask.id || penaltyTargetTask._id;
+      taskDate = penaltyTargetTask.date || penaltyTargetTask.dateLabel || taskDate;
+    }
+
+    if (!taskId) return;
+
+    // 1. If on another date, switch date immediately
+    if (taskDate && taskDate !== currentDateStr && viewMode === 'date') {
+      setCurrentDateStr(taskDate);
+      setTasks(store.getTasks(taskDate));
+      setReflection(store.getReflection(taskDate));
+    }
+
+    // 2. Clear any search or conflicting filter so task is guaranteed to render
+    if (searchQuery) setSearchQuery('');
+    if (filterStatus === 'done' && penaltyTargetTask?.status === 'missed') {
+      setFilterStatus('all');
+    }
+
+    // 3. Scroll and highlight
+    const executeScrollAndHighlight = () => {
+      const el = document.getElementById(`task-card-${taskId}`);
+      if (el) {
+        // Dual-container scroll
+        const mainEl = document.querySelector('.main-content');
+        if (mainEl && mainEl.scrollHeight > mainEl.clientHeight) {
+          const elRect = el.getBoundingClientRect();
+          const mainRect = mainEl.getBoundingClientRect();
+          const targetY = mainEl.scrollTop + (elRect.top - mainRect.top) - (mainEl.clientHeight / 2) + (elRect.height / 2);
+          mainEl.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+        } else {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        // Add glowing pulsing animation
+        el.classList.remove('task-target-highlight');
+        void el.offsetWidth;
+        el.classList.add('task-target-highlight');
+
+        setTimeout(() => {
+          el.classList.remove('task-target-highlight');
+        }, 3600);
+      }
+    };
+
+    requestAnimationFrame(() => {
+      setTimeout(executeScrollAndHighlight, 60);
+    });
+  }, [currentDateStr, viewMode, searchQuery, filterStatus, penaltyTargetTask]);
+
   const displayScore = useMemo(() => {
     if (viewMode === 'all') {
       return scoring.calculateOverallAverageTaskScore(archives, tasks);
@@ -1947,7 +2059,11 @@ export default function TodayView() {
                   currentDateStr={currentDateStr}
                   validTaskDates={validTaskDates}
                   todayStr={todayStr}
-                  onSelectDate={(newDate) => setCurrentDateStr(newDate)}
+                  onSelectDate={(newDate) => {
+                    setCurrentDateStr(newDate);
+                    setTasks(store.getTasks(newDate));
+                    setReflection(store.getReflection(newDate));
+                  }}
                 />
 
                 <button
@@ -2011,26 +2127,64 @@ export default function TodayView() {
             streak={streak}
             averages={averages}
             details={scoreResult}
+            onPenaltyClick={() => handleGoToTask(penaltyTargetTask)}
+            hasPenalty={Boolean(punishmentText || (displayScore <= 4 && displayScore > 0) || (displayScore === 0 && tasks.length > 0))}
+            penaltyTask={penaltyTargetTask}
           />
 
           {punishmentText ? (
-            <div className="penalty-banner">
+            <div 
+              className="penalty-banner penalty-banner-interactive"
+              onClick={() => handleGoToTask(penaltyTargetTask)}
+              style={{ cursor: 'pointer' }}
+              title="Click to jump to the specific task that triggered this penalty"
+            >
               <div className="penalty-banner-content">
                 <AlertTriangle size={24} style={{ flexShrink: 0 }} />
                 <div>
                   <strong className="penalty-banner-title">Penalty Active!</strong>
-                  <span className="penalty-banner-text">Your Penalty: <strong>{punishmentText}</strong></span>
+                  <span className="penalty-banner-text">
+                    Your Penalty: <strong>{punishmentText}</strong>
+                  </span>
+                  {penaltyTargetTask && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.78rem', color: '#fca5a5', marginTop: '3px' }}>
+                      <span>🎯 Target Task: <u>{penaltyTargetTask.title}</u> (Click to view)</span>
+                    </div>
+                  )}
                 </div>
               </div>
-              <button className="btn btn-danger btn-sm" onClick={handleAcknowledgePunishment} disabled={ackPunishmentLoading} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                {ackPunishmentLoading ? (
-                  <>
-                    <Loader2 size={14} className="btn-spinner" /> Saving...
-                  </>
-                ) : (
-                  'I Acknowledge'
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                {penaltyTargetTask && (
+                  <button 
+                    type="button" 
+                    className="btn btn-sm btn-ghost" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleGoToTask(penaltyTargetTask);
+                    }}
+                    style={{
+                      background: 'rgba(239, 68, 68, 0.22)',
+                      border: '1px solid rgba(239, 68, 68, 0.45)',
+                      color: '#fecaca',
+                      fontSize: '0.76rem',
+                      fontWeight: 700,
+                      padding: '4px 10px',
+                      borderRadius: '6px'
+                    }}
+                  >
+                    🎯 Go to Task
+                  </button>
                 )}
-              </button>
+                <button className="btn btn-danger btn-sm" onClick={(e) => { e.stopPropagation(); handleAcknowledgePunishment(); }} disabled={ackPunishmentLoading} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  {ackPunishmentLoading ? (
+                    <>
+                      <Loader2 size={14} className="btn-spinner" /> Saving...
+                    </>
+                  ) : (
+                    'I Acknowledge'
+                  )}
+                </button>
+              </div>
             </div>
           ) : (
             todaysReward && (
