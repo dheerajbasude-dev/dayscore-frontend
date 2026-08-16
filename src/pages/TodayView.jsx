@@ -594,11 +594,7 @@ export default function TodayView() {
 
         await store.updateTask(originDate, taskId, {
           date: todayStr,
-          status: 'pending',
-          completed: false,
-          completedAt: null,
-          completed_at: null,
-          rating: undefined,
+          status: task.status === 'done' ? 'done' : 'pending',
           carriedOver: true,
           carried_over: 1,
           originalDate: originDate,

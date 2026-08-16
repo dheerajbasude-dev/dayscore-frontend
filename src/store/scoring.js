@@ -183,22 +183,34 @@ export function getAllValidStreakDates(archives = [], todayTasks = []) {
 
   // 1. Process archives
   (archives || []).forEach(arc => {
-    if (!arc || !arc.date) return;
+    if (!arc) return;
     const cleanD = getCleanDateStr(arc.date);
+    let isArcValid = false;
 
     if (Array.isArray(arc.tasks) && arc.tasks.length > 0) {
-      const hasDoneTask = arc.tasks.some(t => t && (t.status === 'done' || t.completed === true));
-      if (hasDoneTask && cleanD) {
-        activeDates.add(cleanD);
-      }
+      arc.tasks.forEach(t => {
+        if (t && (t.status === 'done' || t.completedAt || t.completed_at)) {
+          isArcValid = true;
+          const tDate = getCleanDateStr(t.completedAt || t.completed_at || t.date || arc.date);
+          if (tDate) activeDates.add(tDate);
+        }
+      });
+    }
+
+    if (isArcValid || arc.hasDone || (arc.score && Number(arc.score) > 0)) {
+      if (cleanD) activeDates.add(cleanD);
     }
   });
 
   // 2. Process today's tasks
   if (Array.isArray(todayTasks) && todayTasks.length > 0) {
-    const hasDoneToday = todayTasks.some(t => t && (t.status === 'done' || t.completed === true));
-    if (hasDoneToday) {
-      activeDates.add(todayStr);
+    const hasDoneToday = todayTasks.some(t => t && (t.status === 'done' || t.completedAt || t.completed_at));
+    const todayScoreResult = calculateDailyScore(todayTasks);
+
+    if (hasDoneToday || todayScoreResult.score > 0) {
+      const sampleTask = todayTasks.find(t => t && (t.completedAt || t.date));
+      const taskDate = sampleTask ? getCleanDateStr(sampleTask.completedAt || sampleTask.date) : todayStr;
+      activeDates.add(taskDate || todayStr);
     }
   }
 
@@ -210,18 +222,27 @@ export function getStreakAsOfDate(archives = [], targetDateStr = null) {
     ? (targetDateStr.includes('T') ? targetDateStr.split('T')[0] : targetDateStr.trim().substring(0, 10))
     : format(new Date(), 'yyyy-MM-dd');
 
-  // Collect all active dates <= effectiveTarget (only dates where at least one task was actually completed)
+  // Collect all active dates <= effectiveTarget
   const activeDatesSet = new Set();
   (archives || []).forEach(arc => {
     if (!arc || !arc.date) return;
     const cleanD = getCleanDateStr(arc.date);
     if (!cleanD || cleanD > effectiveTarget) return;
 
+    let hasDoneTask = false;
     if (Array.isArray(arc.tasks) && arc.tasks.length > 0) {
-      const hasDoneTask = arc.tasks.some(t => t && (t.status === 'done' || t.completed === true));
-      if (hasDoneTask) {
-        activeDatesSet.add(cleanD);
-      }
+      arc.tasks.forEach(t => {
+        if (t && (t.status === 'done' || t.completedAt || t.completed_at)) {
+          hasDoneTask = true;
+          const tDate = getCleanDateStr(t.completedAt || t.completed_at || t.date || arc.date);
+          if (tDate && tDate <= effectiveTarget) activeDatesSet.add(tDate);
+        }
+      });
+    }
+
+    const arcScore = Number(arc.score || 0);
+    if (hasDoneTask || arc.hasDone || arcScore > 0) {
+      activeDatesSet.add(cleanD);
     }
   });
 
