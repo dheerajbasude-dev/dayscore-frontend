@@ -27,10 +27,20 @@ self.addEventListener('push', (event) => {
     }
   }
 
+  const resolveUrl = (path) => {
+    if (!path) return `${self.location.origin}/icons/icon-192.png`;
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    try {
+      return new URL(path, self.location.origin).href;
+    } catch (e) {
+      return path;
+    }
+  };
+
   const notificationOptions = {
     body: data.body,
-    icon: data.icon || '/icons/icon-192.png',
-    badge: data.badge || '/icons/badge-96.png',
+    icon: resolveUrl(data.icon || '/icons/icon-192.png'),
+    badge: resolveUrl(data.badge || '/icons/badge-96.png'),
     tag: data.tag || `dayscore-notif-${Date.now()}`,
     data: {
       url: data.url || '/'
