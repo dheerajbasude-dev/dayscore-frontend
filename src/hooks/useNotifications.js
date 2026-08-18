@@ -134,6 +134,8 @@ export function useNotifications(tasks, enabled, leadTimeMinutes = 30) {
 
     const timeouts = [];
     const notifiedEvents = getNotifiedEvents();
+    const now = Date.now();
+    const leadTimeMs = Number(leadTimeMinutes) * 60 * 1000;
 
     tasks.forEach(task => {
       if (task.status === 'pending' || task.status === 'inprogress') {
@@ -142,34 +144,45 @@ export function useNotifications(tasks, enabled, leadTimeMinutes = 30) {
 
         if (rawDue && taskId) {
           const dueTime = new Date(rawDue).getTime();
-          const now = new Date().getTime();
-          
+
           if (!isNaN(dueTime) && dueTime > now) {
-            const leadTimeMs = Number(leadTimeMinutes) * 60 * 1000;
-            const notifyTime = dueTime - leadTimeMs;
-            const eventId = `${taskId}_${notifyTime}`;
-            
-            // Skip if this reminder was already triggered during this session
-            if (notifiedEvents.has(eventId)) return;
+            // 1. Schedule Lead Time Reminder (if leadTime > 0 and in future)
+            if (leadTimeMs > 0) {
+              const notifyTime = dueTime - leadTimeMs;
+              const leadEventId = `${taskId}_lead_${notifyTime}`;
+              const timeDiffLead = notifyTime - now;
 
-            const timeDiff = notifyTime - now;
+              if (timeDiffLead > 0 && timeDiffLead <= 24 * 60 * 60 * 1000) {
+                if (!notifiedEvents.has(leadEventId)) {
+                  const t = setTimeout(() => {
+                    markEventNotified(leadEventId);
+                    triggerDesktopNotification(
+                      `⏰ Task Due Soon: ${task.title}`,
+                      `Task '${task.title}' (${task.priority || 'Med'} Priority) is due in ${leadTimeMinutes} minutes!`,
+                      `dayscore-task-lead-${taskId}`
+                    );
+                  }, timeDiffLead);
+                  timeouts.push(t);
+                }
+              }
+            }
 
-            // Only schedule if reminder target time is strictly in the future
-            if (timeDiff > 0 && timeDiff <= 24 * 60 * 60 * 1000) {
-              const timeout = setTimeout(() => {
-                markEventNotified(eventId);
-                const timeMsg = Number(leadTimeMinutes) === 0 
-                  ? 'is due right now!' 
-                  : `is due in ${leadTimeMinutes} minutes!`;
-                
-                triggerDesktopNotification(
-                  `⏰ Task Due: ${task.title}`,
-                  `Task '${task.title}' (${task.priority || 'Med'} Priority) ${timeMsg}`,
-                  `dayscore-task-${taskId}`
-                );
-              }, timeDiff);
-              
-              timeouts.push(timeout);
+            // 2. Schedule Exact Due Time Reminder (Always fires when task reaches due time!)
+            const dueEventId = `${taskId}_exact_${dueTime}`;
+            const timeDiffDue = dueTime - now;
+
+            if (timeDiffDue > 0 && timeDiffDue <= 24 * 60 * 60 * 1000) {
+              if (!notifiedEvents.has(dueEventId)) {
+                const t = setTimeout(() => {
+                  markEventNotified(dueEventId);
+                  triggerDesktopNotification(
+                    `⏰ Task Due: ${task.title}`,
+                    `Task '${task.title}' (${task.priority || 'Med'} Priority) is due right now!`,
+                    `dayscore-task-due-${taskId}`
+                  );
+                }, timeDiffDue);
+                timeouts.push(t);
+              }
             }
           }
         }
