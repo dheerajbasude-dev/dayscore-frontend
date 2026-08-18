@@ -27,9 +27,12 @@ self.addEventListener('push', (event) => {
     }
   }
 
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+    (self.navigator && self.navigator.userAgent) || ''
+  );
+
   const notificationOptions = {
     body: data.body,
-    icon: data.icon || '/favicon.svg',
     badge: data.badge || '/icons/badge-96.png',
     tag: data.tag || `dayscore-notif-${Date.now()}`,
     data: {
@@ -43,6 +46,12 @@ self.addEventListener('push', (event) => {
       { action: 'dismiss', title: 'Dismiss' }
     ]
   };
+
+  // On Desktop: show the glowing icon on the left
+  // On Mobile: omit large right-side thumbnail so it stays sleek with status bar badge
+  if (!isMobile) {
+    notificationOptions.icon = data.icon || '/favicon.svg';
+  }
 
   event.waitUntil(
     self.registration.showNotification(data.title, notificationOptions)
