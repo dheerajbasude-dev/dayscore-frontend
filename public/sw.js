@@ -12,7 +12,7 @@ self.addEventListener('push', (event) => {
   let data = {
     title: '⏰ DayScore Reminder',
     body: 'You have a scheduled task reminder.',
-    icon: '/icons/transparent.png',
+    icon: '/icons/icon-192.png',
     badge: '/icons/badge-96.png',
     url: '/',
     tag: 'dayscore-push-reminder'
@@ -29,7 +29,7 @@ self.addEventListener('push', (event) => {
 
   const notificationOptions = {
     body: data.body,
-    icon: data.icon || '/icons/transparent.png',
+    icon: data.icon || '/icons/icon-192.png',
     badge: data.badge || '/icons/badge-96.png',
     tag: data.tag || `dayscore-notif-${Date.now()}`,
     data: {
