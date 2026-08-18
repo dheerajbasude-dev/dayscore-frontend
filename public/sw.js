@@ -27,21 +27,10 @@ self.addEventListener('push', (event) => {
     }
   }
 
-  const toAbsoluteUrl = (urlPath) => {
-    try {
-      return new URL(urlPath, self.location.origin).href;
-    } catch (e) {
-      return urlPath;
-    }
-  };
-
-  const finalIcon = toAbsoluteUrl(data.icon || '/icons/icon-192.png');
-  const finalBadge = toAbsoluteUrl(data.badge || '/icons/badge-96.png');
-
   const notificationOptions = {
     body: data.body,
-    icon: finalIcon,
-    badge: finalBadge,
+    icon: data.icon || '/icons/icon-192.png',
+    badge: data.badge || '/icons/badge-96.png',
     tag: data.tag || `dayscore-notif-${Date.now()}`,
     data: {
       url: data.url || '/'

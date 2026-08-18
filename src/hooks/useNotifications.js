@@ -68,17 +68,6 @@ export async function triggerDesktopNotification(title, body, tag = 'dayscore-no
 
   let displayed = false;
 
-  const resolveUrl = (urlPath) => {
-    try {
-      return new URL(urlPath, window.location.origin).href;
-    } catch (e) {
-      return urlPath;
-    }
-  };
-
-  const iconUrl = resolveUrl('/icons/icon-192.png');
-  const badgeUrl = resolveUrl('/icons/badge-96.png');
-
   // 2. Service Worker showNotification (Primary on Desktop Chrome, Windows & Mobile)
   if ('serviceWorker' in navigator) {
     try {
@@ -90,8 +79,8 @@ export async function triggerDesktopNotification(title, body, tag = 'dayscore-no
       if (reg && reg.showNotification) {
         await reg.showNotification(title, {
           body,
-          icon: iconUrl,
-          badge: badgeUrl,
+          icon: '/icons/icon-192.png',
+          badge: '/icons/badge-96.png',
           tag: tag,
           renotify: true,
           requireInteraction: true,
@@ -109,7 +98,7 @@ export async function triggerDesktopNotification(title, body, tag = 'dayscore-no
     try {
       const notif = new Notification(title, {
         body,
-        icon: iconUrl,
+        icon: '/icons/icon-192.png',
         tag: tag,
         requireInteraction: true
       });
