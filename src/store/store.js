@@ -1061,7 +1061,7 @@ export function importAllData(jsonString) {
   }
 }
 
-export function resetAllData() {
+export async function resetAllData() {
   const uid = getUserId();
   const prefix = `dayscore_${uid}_`;
   const keysToRemove = [];
@@ -1072,6 +1072,21 @@ export function resetAllData() {
     }
   }
   keysToRemove.forEach(key => localStorage.removeItem(key));
+  taskMemoryCache.clear();
+  try {
+    sessionStorage.removeItem('dayscore_notified_task_events');
+  } catch (e) {}
+
+  const token = getToken();
+  if (token) {
+    try {
+      await authFetch('/api/workspace/reset', { method: 'DELETE' });
+    } catch (err) {
+      console.warn('Reset backend workspace error:', err);
+    }
+  }
+  return true;
 }
+
 
 

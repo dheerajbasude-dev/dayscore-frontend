@@ -18,6 +18,9 @@ export default function SettingsView() {
   const [editingTemplate, setEditingTemplate] = useState(null)
   const [isSavingTemplate, setIsSavingTemplate] = useState(false)
   const [deletingTemplateId, setDeletingTemplateId] = useState(null)
+  const [showResetModal, setShowResetModal] = useState(false)
+  const [resetConfirmText, setResetConfirmText] = useState('')
+  const [isResetting, setIsResetting] = useState(false)
   const fileInputRef = useRef(null)
 
   const [isTDatePickerOpen, setIsTDatePickerOpen] = useState(false)
@@ -28,15 +31,15 @@ export default function SettingsView() {
   const tHourPickerRef = useRef(null)
   const tMinutePickerRef = useRef(null)
 
-  // Lock body scroll when template modal is open
+  // Lock body scroll when any modal is open
   useEffect(() => {
-    if (showAddTemplate) {
+    if (showAddTemplate || showResetModal) {
       document.body.classList.add('modal-open')
     } else {
       document.body.classList.remove('modal-open')
     }
     return () => document.body.classList.remove('modal-open')
-  }, [showAddTemplate])
+  }, [showAddTemplate, showResetModal])
 
   // Click outside for template modal popovers
   useEffect(() => {
@@ -347,8 +350,24 @@ export default function SettingsView() {
     reader.readAsText(file)
   }
 
-  const handleReset = () => {
-    if (window.confirm("🚨 This will delete ALL data permanently. Continue?")) { store.resetAllData(); window.location.reload() }
+  const handleOpenResetModal = () => {
+    setResetConfirmText('')
+    setShowResetModal(true)
+  }
+
+  const handleExecuteReset = async (e) => {
+    if (e) e.preventDefault()
+    if (resetConfirmText.trim() !== 'DELETE ALL DATA' || isResetting) return
+    setIsResetting(true)
+    try {
+      await store.resetAllData()
+      setShowResetModal(false)
+      window.location.reload()
+    } catch (err) {
+      console.error('Reset error:', err)
+      alert('Error during data reset: ' + (err.message || 'Unknown error'))
+      setIsResetting(false)
+    }
   }
 
   const Toggle = ({ active, onClick }) => (
@@ -570,7 +589,7 @@ export default function SettingsView() {
                   <div className="settings-danger-sub">Permanently delete all local tasks, archives, streaks, and custom templates. This action cannot be undone.</div>
                 </div>
               </div>
-              <button onClick={handleReset} className="btn settings-reset-btn">
+              <button onClick={handleOpenResetModal} className="btn settings-reset-btn">
                 <Trash2 size={15} /> Reset All Data
               </button>
             </div>
@@ -970,6 +989,119 @@ export default function SettingsView() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Danger Zone Permanent Reset Modal */}
+      {showResetModal && createPortal(
+        <div className="modal-overlay" onClick={() => !isResetting && setShowResetModal(false)}>
+          <div className="modal-content danger-zone-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '520px', border: '1px solid rgba(239, 68, 68, 0.45)', boxShadow: '0 20px 50px rgba(239, 68, 68, 0.15)' }}>
+            <div className="modal-header" style={{ borderBottom: '1px solid rgba(239, 68, 68, 0.2)', paddingBottom: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(239, 68, 68, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}>
+                  <AlertTriangle size={20} />
+                </div>
+                <div>
+                  <h2 className="modal-title" style={{ color: '#ef4444', fontSize: '1.15rem', fontWeight: '700' }}>Danger Zone: Permanent Reset</h2>
+                  <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-muted)' }}>Irreversible workspace and cloud deletion</p>
+                </div>
+              </div>
+              <button className="btn-icon" onClick={() => !isResetting && setShowResetModal(false)} disabled={isResetting}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="modal-form-body" style={{ paddingTop: '16px' }}>
+              <div style={{ background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: 'var(--radius-md)', padding: '14px', marginBottom: '16px' }}>
+                <p style={{ margin: '0 0 10px 0', fontSize: '0.85rem', color: '#fca5a5', fontWeight: '600' }}>
+                  🚨 Warning: This action cannot be undone!
+                </p>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div>• <strong>Tasks & Scores:</strong> All active tasks, carried-over items, daily notes & score logs will be purged.</div>
+                  <div>• <strong>Streaks & Rewards:</strong> All streak records and claimed milestone rewards will be reset to 0.</div>
+                  <div>• <strong>Templates & Reflections:</strong> All custom templates and daily reflections will be deleted.</div>
+                  <div>• <strong>Cloud Account:</strong> Your cloud records stored on MongoDB Atlas will be permanently cleared.</div>
+                </div>
+              </div>
+
+              {/* Safety Backup Option */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-tertiary)', border: '1px solid var(--border-glass)', borderRadius: 'var(--radius-md)', padding: '10px 14px', marginBottom: '18px' }}>
+                <div>
+                  <div style={{ fontSize: '0.82rem', fontWeight: '600', color: 'var(--text-primary)' }}>Need a safety backup first?</div>
+                  <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>Save a full snapshot file before deleting</div>
+                </div>
+                <button type="button" onClick={handleExport} className="btn btn-secondary btn-sm" style={{ fontSize: '0.78rem', gap: '6px' }}>
+                  <Download size={14} /> Download Backup
+                </button>
+              </div>
+
+              {/* Typed Verification Requirement */}
+              <form onSubmit={handleExecuteReset}>
+                <div className="form-group" style={{ marginBottom: '20px' }}>
+                  <label className="form-label" style={{ fontSize: '0.83rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                    To confirm deletion, type <span style={{ fontFamily: 'monospace', fontWeight: '700', color: '#ef4444', background: 'rgba(239, 68, 68, 0.15)', padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(239, 68, 68, 0.3)' }}>DELETE ALL DATA</span> below:
+                  </label>
+                  <input
+                    type="text"
+                    className="input"
+                    value={resetConfirmText}
+                    onChange={e => setResetConfirmText(e.target.value)}
+                    placeholder="Type DELETE ALL DATA to unlock"
+                    autoFocus
+                    disabled={isResetting}
+                    style={{
+                      fontFamily: 'monospace',
+                      fontSize: '0.9rem',
+                      letterSpacing: '0.5px',
+                      borderColor: resetConfirmText.trim() === 'DELETE ALL DATA' ? '#ef4444' : 'var(--border-glass)',
+                      background: resetConfirmText.trim() === 'DELETE ALL DATA' ? 'rgba(239, 68, 68, 0.05)' : 'var(--bg-tertiary)'
+                    }}
+                  />
+                </div>
+
+                <div className="modal-actions" style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', borderTop: '1px solid var(--border-glass)', paddingTop: '14px' }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => setShowResetModal(false)}
+                    disabled={isResetting}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn"
+                    disabled={resetConfirmText.trim() !== 'DELETE ALL DATA' || isResetting}
+                    style={{
+                      background: resetConfirmText.trim() === 'DELETE ALL DATA' ? '#ef4444' : 'rgba(239, 68, 68, 0.25)',
+                      color: 'white',
+                      border: '1px solid #ef4444',
+                      opacity: resetConfirmText.trim() === 'DELETE ALL DATA' ? 1 : 0.45,
+                      cursor: resetConfirmText.trim() === 'DELETE ALL DATA' ? 'pointer' : 'not-allowed',
+                      gap: '8px',
+                      fontWeight: '600',
+                      transition: 'all 0.2s ease',
+                      display: 'inline-flex',
+                      alignItems: 'center'
+                    }}
+                  >
+                    {isResetting ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" />
+                        <span>Erasing Everything...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 size={16} />
+                        <span>Permanently Delete All Data</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>,
         document.body
