@@ -420,14 +420,7 @@ export default function SettingsView() {
                   <Bell size={18} color={settings.notifications ? 'var(--accent-primary)' : 'var(--text-muted)'} />
                 </div>
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span className="settings-row-label">Desktop & Background Task Reminders</span>
-                    {settings.notifications && (
-                      <span style={{ fontSize: '0.68rem', padding: '2px 8px', borderRadius: '12px', background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.3)', fontWeight: 600 }}>
-                        ⚡ Works When App Is Closed
-                      </span>
-                    )}
-                  </div>
+                  <div className="settings-row-label">Task Reminders</div>
                   <div className="settings-row-sublabel">
                     {isPushSubscribing ? (
                       <span style={{ color: 'var(--accent-primary)' }}>Registering background push notification worker...</span>
