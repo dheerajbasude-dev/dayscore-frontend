@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import BrandLogo from './BrandLogo';
 
 export default function AuthModal({ isOpen, onClose }) {
-  const { login, register: signup, user, logout } = useAuth();
+  const { login, register, user, logout } = useAuth();
   const [isSignUp, setIsSignUp] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
