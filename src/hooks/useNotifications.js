@@ -46,53 +46,73 @@ function markEventNotified(eventId) {
 }
 
 export async function triggerDesktopNotification(title, body, tag = 'dayscore-notif') {
-  if (!('Notification' in window)) return false;
+  if (!('Notification' in window)) {
+    return { success: false, reason: 'unsupported' };
+  }
 
   let permission = Notification.permission;
   if (permission === 'default') {
-    permission = await Notification.requestPermission();
+    try {
+      permission = await Notification.requestPermission();
+    } catch (e) {
+      console.warn('requestPermission error:', e);
+    }
   }
 
-  if (permission !== 'granted') return false;
+  if (permission !== 'granted') {
+    return { success: false, reason: 'permission_denied', permission };
+  }
 
   // 1. Play single audio chime sound
   playNotificationSound();
 
-  // 2. Direct browser Notification (Instant & Reliable across desktop browsers)
-  try {
-    const notif = new Notification(title, {
-      body,
-      icon: '/favicon.svg',
-      tag: tag,
-      requireInteraction: true
-    });
-    notif.onclick = () => {
-      try { window.focus(); } catch (e) {}
-      try { notif.close(); } catch (e) {}
-    };
-    return true;
-  } catch (err) {
-    console.warn('Standard Notification error:', err);
-  }
+  let displayed = false;
 
-  // 3. Fallback Service Worker check only if controller exists
-  if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+  // 2. Service Worker showNotification (Primary on Desktop Chrome, Windows & Mobile)
+  if ('serviceWorker' in navigator) {
     try {
-      const reg = await navigator.serviceWorker.getRegistration();
+      let reg = await navigator.serviceWorker.getRegistration();
+      if (!reg) {
+        reg = await navigator.serviceWorker.register('/sw.js');
+      }
+      reg = await navigator.serviceWorker.ready;
       if (reg && reg.showNotification) {
         await reg.showNotification(title, {
           body,
           icon: '/favicon.svg',
-          tag: tag
+          badge: '/favicon.svg',
+          tag: tag,
+          renotify: true,
+          requireInteraction: true,
+          vibrate: [200, 100, 200]
         });
-        return true;
+        displayed = true;
       }
     } catch (err) {
       console.warn('SW showNotification error:', err);
     }
   }
 
-  return false;
+  // 3. Fallback to standard window Notification if ServiceWorker didn't show
+  if (!displayed) {
+    try {
+      const notif = new Notification(title, {
+        body,
+        icon: '/favicon.svg',
+        tag: tag,
+        requireInteraction: true
+      });
+      notif.onclick = () => {
+        try { window.focus(); } catch (e) {}
+        try { notif.close(); } catch (e) {}
+      };
+      displayed = true;
+    } catch (err) {
+      console.warn('Standard Notification error:', err);
+    }
+  }
+
+  return { success: displayed, permission };
 }
 
 export function useNotifications(tasks, enabled, leadTimeMinutes = 30) {

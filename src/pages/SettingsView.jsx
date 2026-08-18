@@ -213,25 +213,55 @@ export default function SettingsView() {
 
   const handleTestNotification = async () => {
     if (testPushStatus === 'sending') return
-    const minutes = settings.reminderLeadTime ?? 30
-    const label = minutes === 0 ? 'at exact due time' : `${minutes} minutes before due time`
-    setTestPushStatus('sending')
 
-    // 1. Play local instant chime and foreground notification
-    triggerDesktopNotification(
-      '⏰ DayScore Task Reminders Active!',
-      `Test notification successful!\nReminders set to trigger ${label} (even when app is closed).`
-    )
+    // 1. Check browser notification permission
+    if (!('Notification' in window)) {
+      alert('⚠️ Notifications are not supported by this browser.');
+      return;
+    }
 
-    // 2. Dispatch live Web Push from backend to test background delivery
+    if (Notification.permission === 'denied') {
+      alert(
+        '⚠️ Notifications are BLOCKED for this site!\n\n' +
+        'How to enable:\n' +
+        '1. Click the Lock/Settings icon (🔒 or 🎚️) on the left side of your browser URL bar.\n' +
+        '2. Change "Notifications" to "Allow".\n' +
+        '3. Refresh the page and try again.'
+      );
+      return;
+    }
+
+    setTestPushStatus('sending');
+    const minutes = settings.reminderLeadTime ?? 30;
+    const label = minutes === 0 ? 'at exact due time' : `${minutes} minutes before due time`;
+
     try {
-      await dispatchTestPushNotification(minutes)
-      setTestPushStatus('success')
-      setTimeout(() => setTestPushStatus(''), 4000)
+      // 2. Ensure device is subscribed to push
+      try {
+        await subscribeToPushNotifications();
+      } catch (subErr) {
+        console.warn('Push subscription note during test:', subErr);
+      }
+
+      // 3. Trigger immediate local chime & notification
+      const localResult = await triggerDesktopNotification(
+        '⏰ DayScore Task Reminders Active!',
+        `Test notification successful!\nReminders scheduled ${label} (works even when app is closed).`
+      );
+
+      // 4. Dispatch live Web Push from backend
+      await dispatchTestPushNotification(minutes);
+
+      setTestPushStatus('success');
+      setTimeout(() => setTestPushStatus(''), 4000);
+
+      if (!localResult.success && localResult.reason === 'permission_denied') {
+        alert('⚠️ Notification permission was not granted. Please allow notifications in your browser address bar.');
+      }
     } catch (err) {
-      console.warn('Test push server response:', err)
-      setTestPushStatus('done')
-      setTimeout(() => setTestPushStatus(''), 3000)
+      console.warn('Test push delivery note:', err);
+      setTestPushStatus('done');
+      setTimeout(() => setTestPushStatus(''), 3000);
     }
   }
 
