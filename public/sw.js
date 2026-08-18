@@ -10,10 +10,10 @@ self.addEventListener('activate', (event) => {
 // 1. Receive background Push Notification from server (even when app/tab is completely closed)
 self.addEventListener('push', (event) => {
   let data = {
-    title: '⏰ DayScore Task Reminder',
-    body: 'You have an upcoming task in DayScore!',
-    icon: '/favicon.svg',
-    badge: '/favicon.svg',
+    title: '⏰ DayScore Reminder',
+    body: 'You have a scheduled task reminder.',
+    icon: '/icons/icon-192.png',
+    badge: '/icons/badge-96.png',
     url: '/',
     tag: 'dayscore-push-reminder'
   };
@@ -29,8 +29,8 @@ self.addEventListener('push', (event) => {
 
   const notificationOptions = {
     body: data.body,
-    icon: data.icon || '/favicon.svg',
-    badge: data.badge || '/favicon.svg',
+    icon: data.icon || '/icons/icon-192.png',
+    badge: data.badge || '/icons/badge-96.png',
     tag: data.tag || `dayscore-notif-${Date.now()}`,
     data: {
       url: data.url || '/'
