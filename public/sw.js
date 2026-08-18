@@ -27,9 +27,14 @@ self.addEventListener('push', (event) => {
     }
   }
 
+  // Device detection: Mobile (Android/iOS) vs Desktop (Windows/macOS/Linux)
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent || '');
+  const transparentIcon = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAA';
+
   const notificationOptions = {
     body: data.body,
-    icon: data.icon || '/favicon.svg',
+    // Desktop displays full /favicon.svg icon; Mobile displays transparent (empty) thumbnail
+    icon: isMobile ? transparentIcon : (data.icon || '/favicon.svg'),
     badge: data.badge || '/icons/badge-96.png',
     tag: data.tag || `dayscore-notif-${Date.now()}`,
     data: {

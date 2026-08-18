@@ -67,6 +67,8 @@ export async function triggerDesktopNotification(title, body, tag = 'dayscore-no
   playNotificationSound();
 
   let displayed = false;
+  const isMobile = typeof navigator !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent || '');
+  const transparentIcon = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAA';
 
   // 2. Service Worker showNotification (Primary on Desktop Chrome, Windows & Mobile)
   if ('serviceWorker' in navigator) {
@@ -79,7 +81,7 @@ export async function triggerDesktopNotification(title, body, tag = 'dayscore-no
       if (reg && reg.showNotification) {
         await reg.showNotification(title, {
           body,
-          icon: '/favicon.svg',
+          icon: isMobile ? transparentIcon : '/favicon.svg',
           badge: '/icons/badge-96.png',
           tag: tag,
           renotify: true,
@@ -98,7 +100,7 @@ export async function triggerDesktopNotification(title, body, tag = 'dayscore-no
     try {
       const notif = new Notification(title, {
         body,
-        icon: '/favicon.svg',
+        icon: isMobile ? transparentIcon : '/favicon.svg',
         tag: tag,
         requireInteraction: true
       });
