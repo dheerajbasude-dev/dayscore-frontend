@@ -79,7 +79,6 @@ export async function triggerDesktopNotification(title, body, tag = 'dayscore-no
       if (reg && reg.showNotification) {
         await reg.showNotification(title, {
           body,
-          icon: '/icons/icon-192.png',
           badge: '/icons/badge-96.png',
           tag: tag,
           renotify: true,
@@ -98,7 +97,6 @@ export async function triggerDesktopNotification(title, body, tag = 'dayscore-no
     try {
       const notif = new Notification(title, {
         body,
-        icon: '/icons/icon-192.png',
         tag: tag,
         requireInteraction: true
       });
