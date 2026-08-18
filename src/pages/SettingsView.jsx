@@ -4,7 +4,7 @@ import { Trash2, Download, Upload, AlertTriangle, Moon, Sun, Bell, Plus, X, Penc
 import { format, addHours, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths } from 'date-fns'
 import * as store from '../store/store'
 import { useTheme } from '../hooks/useTheme'
-import { triggerDesktopNotification } from '../hooks/useNotifications'
+import { triggerDesktopNotification, playNotificationSound } from '../hooks/useNotifications'
 import { useAuth } from '../context/AuthContext'
 import { subscribeToPushNotifications, unsubscribePushNotifications, dispatchTestPushNotification, isPushNotificationSupported } from '../utils/pushManager'
 
@@ -235,31 +235,40 @@ export default function SettingsView() {
     const minutes = settings.reminderLeadTime ?? 30;
     const label = minutes === 0 ? 'at exact due time' : `${minutes} minutes before due time`;
 
+    // 2. Play audio chime
+    playNotificationSound();
+
     try {
-      // 2. Ensure device is subscribed to push
+      // 3. Ensure device is registered with Web Push
       try {
         await subscribeToPushNotifications();
       } catch (subErr) {
         console.warn('Push subscription note during test:', subErr);
       }
 
-      // 3. Trigger immediate local chime & notification
-      const localResult = await triggerDesktopNotification(
-        '⏰ DayScore Task Reminders Active!',
-        `Test notification successful!\nReminders scheduled ${label} (works even when app is closed).`
-      );
+      // 4. Dispatch live Web Push from backend (delivered once via Service Worker)
+      let pushDelivered = false;
+      try {
+        const pushRes = await dispatchTestPushNotification(minutes);
+        if (pushRes && pushRes.sentCount > 0) {
+          pushDelivered = true;
+        }
+      } catch (pushErr) {
+        console.warn('Backend push dispatch note:', pushErr);
+      }
 
-      // 4. Dispatch live Web Push from backend
-      await dispatchTestPushNotification(minutes);
+      // 5. If server push was not delivered (e.g. offline/guest), trigger local notification fallback
+      if (!pushDelivered) {
+        await triggerDesktopNotification(
+          '⏰ DayScore Task Reminders Active!',
+          `Test notification successful!\nReminders scheduled ${label} (works even when app is closed).`
+        );
+      }
 
       setTestPushStatus('success');
       setTimeout(() => setTestPushStatus(''), 4000);
-
-      if (!localResult.success && localResult.reason === 'permission_denied') {
-        alert('⚠️ Notification permission was not granted. Please allow notifications in your browser address bar.');
-      }
     } catch (err) {
-      console.warn('Test push delivery note:', err);
+      console.warn('Test notification note:', err);
       setTestPushStatus('done');
       setTimeout(() => setTestPushStatus(''), 3000);
     }
