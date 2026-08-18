@@ -6,6 +6,7 @@ import * as store from '../store/store'
 import { useTheme } from '../hooks/useTheme'
 import { triggerDesktopNotification } from '../hooks/useNotifications'
 import { useAuth } from '../context/AuthContext'
+import { subscribeToPushNotifications, unsubscribePushNotifications, dispatchTestPushNotification, isPushNotificationSupported } from '../utils/pushManager'
 
 export default function SettingsView() {
   const { user } = useAuth()
@@ -175,11 +176,33 @@ export default function SettingsView() {
     return () => { isMounted = false; }
   }, [user])
 
+  const [isPushSubscribing, setIsPushSubscribing] = useState(false)
+  const [testPushStatus, setTestPushStatus] = useState('')
+
   const handleToggleNotifications = async () => {
+    if (isPushSubscribing) return
     const nextState = !settings.notifications
-    const newSettings = { ...settings, notifications: nextState }
-    store.saveSettings(newSettings)
-    setSettings(newSettings)
+    if (nextState) {
+      setIsPushSubscribing(true)
+      try {
+        await subscribeToPushNotifications()
+        const newSettings = { ...settings, notifications: true }
+        store.saveSettings(newSettings)
+        setSettings(newSettings)
+      } catch (err) {
+        console.warn('Push subscription failed:', err)
+        alert('⚠️ Notification permission is required for background reminders.\n\nPlease check your browser address bar permissions and ensure notifications are allowed for DayScore.')
+      } finally {
+        setIsPushSubscribing(false)
+      }
+    } else {
+      try {
+        await unsubscribePushNotifications()
+      } catch (e) {}
+      const newSettings = { ...settings, notifications: false }
+      store.saveSettings(newSettings)
+      setSettings(newSettings)
+    }
   }
 
   const handleReminderChange = (minutes) => {
@@ -189,14 +212,26 @@ export default function SettingsView() {
   }
 
   const handleTestNotification = async () => {
+    if (testPushStatus === 'sending') return
     const minutes = settings.reminderLeadTime ?? 30
     const label = minutes === 0 ? 'at exact due time' : `${minutes} minutes before due time`
-    const sent = await triggerDesktopNotification(
-      '⏰ DayScore Reminders Active!',
-      `Desktop Notification Test Successful!\nReminders set to trigger ${label}.`
+    setTestPushStatus('sending')
+
+    // 1. Play local instant chime and foreground notification
+    triggerDesktopNotification(
+      '⏰ DayScore Task Reminders Active!',
+      `Test notification successful!\nReminders set to trigger ${label} (even when app is closed).`
     )
-    if (!sent) {
-      alert("⚠️ Notification permission is required. Please check your browser address bar permissions and ensure notifications are allowed for this site.")
+
+    // 2. Dispatch live Web Push from backend to test background delivery
+    try {
+      await dispatchTestPushNotification(minutes)
+      setTestPushStatus('success')
+      setTimeout(() => setTestPushStatus(''), 4000)
+    } catch (err) {
+      console.warn('Test push server response:', err)
+      setTestPushStatus('done')
+      setTimeout(() => setTestPushStatus(''), 3000)
     }
   }
 
@@ -327,11 +362,22 @@ export default function SettingsView() {
                   <Bell size={18} color={settings.notifications ? 'var(--accent-primary)' : 'var(--text-muted)'} />
                 </div>
                 <div>
-                  <div className="settings-row-label">Desktop Task Reminders</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span className="settings-row-label">Desktop & Background Task Reminders</span>
+                    {settings.notifications && (
+                      <span style={{ fontSize: '0.68rem', padding: '2px 8px', borderRadius: '12px', background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.3)', fontWeight: 600 }}>
+                        ⚡ Works When App Is Closed
+                      </span>
+                    )}
+                  </div>
                   <div className="settings-row-sublabel">
-                    {settings.notifications 
-                      ? (settings.reminderLeadTime === 0 ? 'Notifies at exact due time' : `Notifies ${settings.reminderLeadTime ?? 30} min before due time`)
-                      : 'Desktop notifications disabled'}
+                    {isPushSubscribing ? (
+                      <span style={{ color: 'var(--accent-primary)' }}>Registering background push notification worker...</span>
+                    ) : settings.notifications ? (
+                      settings.reminderLeadTime === 0 ? 'Notifies at exact due time' : `Notifies ${settings.reminderLeadTime ?? 30} min before due time`
+                    ) : (
+                      'Notifications disabled'
+                    )}
                   </div>
                 </div>
               </div>
@@ -359,14 +405,32 @@ export default function SettingsView() {
                   ))}
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    💡 Reminders are pushed directly by the server to your device OS even when DayScore is closed.
+                  </div>
                   <button 
                     type="button" 
                     className="btn btn-secondary btn-sm" 
                     onClick={handleTestNotification}
+                    disabled={testPushStatus === 'sending'}
                     style={{ fontSize: '0.78rem', gap: '6px', padding: '6px 12px' }}
                   >
-                    🔔 Send Test Notification
+                    {testPushStatus === 'sending' ? (
+                      <>
+                        <Loader2 size={13} className="animate-spin" />
+                        <span>Sending Push...</span>
+                      </>
+                    ) : testPushStatus === 'success' ? (
+                      <>
+                        <Check size={13} color="#22c55e" />
+                        <span style={{ color: '#22c55e' }}>Push Sent to Device!</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>🔔 Send Test Notification</span>
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
