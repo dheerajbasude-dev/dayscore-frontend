@@ -12,7 +12,7 @@ self.addEventListener('push', (event) => {
   let data = {
     title: '⏰ DayScore Reminder',
     body: 'You have a scheduled task reminder.',
-    icon: '/icons/icon-192.png',
+    icon: '/favicon.svg',
     badge: '/icons/badge-96.png',
     url: '/',
     tag: 'dayscore-push-reminder'
@@ -27,20 +27,10 @@ self.addEventListener('push', (event) => {
     }
   }
 
-  const resolveUrl = (path) => {
-    if (!path) return `${self.location.origin}/icons/icon-192.png`;
-    if (path.startsWith('http://') || path.startsWith('https://')) return path;
-    try {
-      return new URL(path, self.location.origin).href;
-    } catch (e) {
-      return path;
-    }
-  };
-
   const notificationOptions = {
     body: data.body,
-    icon: resolveUrl(data.icon || '/icons/icon-192.png'),
-    badge: resolveUrl(data.badge || '/icons/badge-96.png'),
+    icon: data.icon || '/favicon.svg',
+    badge: data.badge || '/icons/badge-96.png',
     tag: data.tag || `dayscore-notif-${Date.now()}`,
     data: {
       url: data.url || '/'

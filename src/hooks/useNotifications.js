@@ -76,21 +76,11 @@ export async function triggerDesktopNotification(title, body, tag = 'dayscore-no
         reg = await navigator.serviceWorker.register('/sw.js');
       }
       reg = await navigator.serviceWorker.ready;
-      const resolveUrl = (path) => {
-        if (!path) return `${window.location.origin}/icons/icon-192.png`;
-        if (path.startsWith('http://') || path.startsWith('https://')) return path;
-        try {
-          return new URL(path, window.location.origin).href;
-        } catch (e) {
-          return path;
-        }
-      };
-
       if (reg && reg.showNotification) {
         await reg.showNotification(title, {
           body,
-          icon: resolveUrl('/icons/icon-192.png'),
-          badge: resolveUrl('/icons/badge-96.png'),
+          icon: '/favicon.svg',
+          badge: '/icons/badge-96.png',
           tag: tag,
           renotify: true,
           requireInteraction: true,
@@ -106,19 +96,9 @@ export async function triggerDesktopNotification(title, body, tag = 'dayscore-no
   // 3. Fallback to standard window Notification if ServiceWorker didn't show
   if (!displayed) {
     try {
-      const resolveUrl = (path) => {
-        if (!path) return `${window.location.origin}/icons/icon-192.png`;
-        if (path.startsWith('http://') || path.startsWith('https://')) return path;
-        try {
-          return new URL(path, window.location.origin).href;
-        } catch (e) {
-          return path;
-        }
-      };
-
       const notif = new Notification(title, {
         body,
-        icon: resolveUrl('/icons/icon-192.png'),
+        icon: '/favicon.svg',
         tag: tag,
         requireInteraction: true
       });
