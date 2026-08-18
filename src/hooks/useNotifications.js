@@ -69,8 +69,6 @@ export async function triggerDesktopNotification(title, body, tag = 'dayscore-no
   let displayed = false;
 
   // 2. Service Worker showNotification (Primary on Desktop Chrome, Windows & Mobile)
-  const isMobile = typeof navigator !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent || '');
-
   if ('serviceWorker' in navigator) {
     try {
       let reg = await navigator.serviceWorker.getRegistration();
@@ -79,20 +77,15 @@ export async function triggerDesktopNotification(title, body, tag = 'dayscore-no
       }
       reg = await navigator.serviceWorker.ready;
       if (reg && reg.showNotification) {
-        const notifOptions = {
+        await reg.showNotification(title, {
           body,
+          icon: '/favicon.svg',
           badge: '/icons/badge-96.png',
           tag: tag,
           renotify: true,
           requireInteraction: true,
           vibrate: [200, 100, 200]
-        };
-
-        if (!isMobile) {
-          notifOptions.icon = '/favicon.svg';
-        }
-
-        await reg.showNotification(title, notifOptions);
+        });
         displayed = true;
       }
     } catch (err) {
@@ -103,17 +96,12 @@ export async function triggerDesktopNotification(title, body, tag = 'dayscore-no
   // 3. Fallback to standard window Notification if ServiceWorker didn't show
   if (!displayed) {
     try {
-      const fallbackOptions = {
+      const notif = new Notification(title, {
         body,
+        icon: '/favicon.svg',
         tag: tag,
         requireInteraction: true
-      };
-
-      if (!isMobile) {
-        fallbackOptions.icon = '/favicon.svg';
-      }
-
-      const notif = new Notification(title, fallbackOptions);
+      });
       notif.onclick = () => {
         try { window.focus(); } catch (e) {}
         try { notif.close(); } catch (e) {}
