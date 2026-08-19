@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { getApiBaseUrl, safeJsonParse } from '../utils/api';
+import { clearTaskMemoryCache } from '../store/store';
 
 const AuthContext = createContext(null);
 
@@ -83,6 +84,7 @@ export const AuthProvider = ({ children }) => {
       throw new Error(data.error || 'Login failed');
     }
 
+    clearTaskMemoryCache();
     localStorage.setItem('dayscore_token', data.token);
     setToken(data.token);
     setUser(data.user);
@@ -102,6 +104,7 @@ export const AuthProvider = ({ children }) => {
       throw new Error(data.error || 'Registration failed');
     }
 
+    clearTaskMemoryCache();
     localStorage.setItem('dayscore_token', data.token);
     setToken(data.token);
     setUser(data.user);
@@ -109,6 +112,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
+    clearTaskMemoryCache();
     localStorage.removeItem('dayscore_token');
     setToken(null);
     setUser(null);

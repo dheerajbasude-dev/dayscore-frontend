@@ -428,12 +428,11 @@ export default function TodayView() {
       }
     });
 
-    // 2. Pre-scan all past keys in localStorage for guest/user
+    // 2. Pre-scan all past keys in localStorage for THIS user only
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && key.includes('_tasks_') && !key.endsWith(`_tasks_${todayStr}`)) {
-        const parts = key.split('_tasks_');
-        const pastDate = parts[1] ? parts[1].trim().substring(0, 10) : '';
+      if (key && key.startsWith(prefix) && key !== `dayscore_${uid}_tasks_${todayStr}`) {
+        const pastDate = key.replace(prefix, '').trim().substring(0, 10);
         if (pastDate && pastDate < todayStr) {
           try {
             const pastList = JSON.parse(localStorage.getItem(key)) || [];
@@ -458,48 +457,56 @@ export default function TodayView() {
       }
     }
     return carriedSet.size;
-  }, [todayStr]);
+  }, [todayStr, user]);
 
   const shouldShowInitialToast = useMemo(() => {
     if (initialCarriedCount <= 0) return false;
     try {
-      const isAlreadyShown = localStorage.getItem(`dayscore_shown_carried_${todayStr}`);
+      const uid = store.getUserId();
+      const isAlreadyShown = localStorage.getItem(`dayscore_${uid}_shown_carried_${todayStr}`);
       return !isAlreadyShown;
     } catch (e) {
       return false;
     }
-  }, [initialCarriedCount, todayStr]);
+  }, [initialCarriedCount, todayStr, user]);
 
   const [autoCarriedCount, setAutoCarriedCount] = useState(() => initialCarriedCount);
   const [showAutoCarriedBanner, setShowAutoCarriedBanner] = useState(() => shouldShowInitialToast);
-  const autoCarryOverDoneRef = useRef(false);
+  const autoCarryOverProcessedRef = useRef('');
 
   // Mark localStorage when toast is actually shown
   useEffect(() => {
     if (showAutoCarriedBanner) {
       try {
-        localStorage.setItem(`dayscore_shown_carried_${todayStr}`, 'true');
+        const uid = store.getUserId();
+        localStorage.setItem(`dayscore_${uid}_shown_carried_${todayStr}`, 'true');
       } catch (e) {}
     }
-  }, [showAutoCarriedBanner, todayStr]);
+  }, [showAutoCarriedBanner, todayStr, user]);
 
   // Synchronously update carried task toast for both Date View and All Tasks mode instantly
   useEffect(() => {
+    const uid = store.getUserId();
+    const isAlreadyShown = localStorage.getItem(`dayscore_${uid}_shown_carried_${todayStr}`);
     const todayTasks = store.getTasks(todayStr);
-    const count = todayTasks.filter(t => isCarriedTask(t)).length || initialCarriedCount;
-    if (count > 0) {
+    const count = todayTasks.filter(t => isCarriedTask(t)).length;
+    if (count > 0 && !isAlreadyShown) {
       setAutoCarriedCount(count);
-      const isAlreadyShown = localStorage.getItem(`dayscore_shown_carried_${todayStr}`);
-      if (!isAlreadyShown) {
-        setShowAutoCarriedBanner(true);
+      setShowAutoCarriedBanner(true);
+    } else {
+      setAutoCarriedCount(count);
+      if (count === 0 || isAlreadyShown) {
+        setShowAutoCarriedBanner(false);
       }
     }
-  }, [tasks, todayStr, isCarriedTask, initialCarriedCount]);
+  }, [tasks, todayStr, isCarriedTask, user]);
 
   useEffect(() => {
     const runAutoCarryOver = async () => {
-      if (autoCarryOverDoneRef.current) return;
-      autoCarryOverDoneRef.current = true;
+      const currentUid = store.getUserId();
+      const processKey = `${currentUid}_${todayStr}`;
+      if (autoCarryOverProcessedRef.current === processKey) return;
+      autoCarryOverProcessedRef.current = processKey;
 
       // 1. Clean up tasks currently attached to todayStr
       const currentTodayTasks = store.getTasks(todayStr);
@@ -611,11 +618,11 @@ export default function TodayView() {
 
         if (carriedCount > 0) {
           setAutoCarriedCount(carriedCount);
-          const isAlreadyShown = localStorage.getItem(`dayscore_shown_carried_${todayStr}`);
+          const isAlreadyShown = localStorage.getItem(`dayscore_${currentUid}_shown_carried_${todayStr}`);
           if (!isAlreadyShown) {
             setShowAutoCarriedBanner(true);
             try {
-              localStorage.setItem(`dayscore_shown_carried_${todayStr}`, 'true');
+              localStorage.setItem(`dayscore_${currentUid}_shown_carried_${todayStr}`, 'true');
             } catch (e) {}
           }
         }
@@ -623,7 +630,7 @@ export default function TodayView() {
     };
 
     runAutoCarryOver();
-  }, [todayStr, archives]);
+  }, [todayStr, archives, user]);
 
   // Compute all dates that contain recorded task data or archives (plus today)
   const validTaskDates = useMemo(() => {
@@ -803,7 +810,8 @@ export default function TodayView() {
       setPastUnfinishedDates(datesList);
 
       try {
-        const isDismissed = sessionStorage.getItem(`dayscore_dismiss_pending_${todayStr}`);
+        const uid = store.getUserId();
+        const isDismissed = sessionStorage.getItem(`dayscore_${uid}_dismiss_pending_${todayStr}`);
         if (!isDismissed && datesList.length > 0) {
           setShowPastPendingBanner(true);
         }
@@ -2612,7 +2620,8 @@ export default function TodayView() {
             onClick={() => {
               setShowAutoCarriedBanner(false);
               try {
-                localStorage.setItem(`dayscore_shown_carried_${todayStr}`, 'true');
+                const uid = store.getUserId();
+                localStorage.setItem(`dayscore_${uid}_shown_carried_${todayStr}`, 'true');
               } catch (e) {}
             }}
             title="Dismiss"
