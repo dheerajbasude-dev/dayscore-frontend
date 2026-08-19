@@ -2021,48 +2021,6 @@ export default function TodayView() {
             details={scoreResult}
           />
 
-          {punishmentText ? (
-            <div className="penalty-banner">
-              <div className="penalty-banner-content">
-                <AlertTriangle size={24} style={{ flexShrink: 0 }} />
-                <div>
-                  <strong className="penalty-banner-title">Penalty Active!</strong>
-                  <span className="penalty-banner-text">Your Penalty: <strong>{punishmentText}</strong></span>
-                </div>
-              </div>
-              <button className="btn btn-danger btn-sm" onClick={handleAcknowledgePunishment} disabled={ackPunishmentLoading} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                {ackPunishmentLoading ? (
-                  <>
-                    <Loader2 size={14} className="btn-spinner" /> Saving...
-                  </>
-                ) : (
-                  'I Acknowledge'
-                )}
-              </button>
-            </div>
-          ) : (
-            todaysReward && (
-              <div className="reward-banner">
-                <div className="reward-banner-content">
-                  <Gift size={24} style={{ flexShrink: 0 }} />
-                  <div>
-                    <strong className="reward-banner-title">Great job today!</strong>
-                    <span className="reward-banner-text">Your Reward: <strong>{todaysReward}</strong></span>
-                  </div>
-                </div>
-                <button className="btn btn-success btn-sm" onClick={handleAcknowledgeReward} disabled={ackRewardLoading} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                  {ackRewardLoading ? (
-                    <>
-                      <Loader2 size={14} className="btn-spinner" /> Saving...
-                    </>
-                  ) : (
-                    'I Accept'
-                  )}
-                </button>
-              </div>
-            )
-          )}
-
           {autoCarriedToastInfo && (
             <div className="card-glass auto-carried-toast-banner animate-fade-in" style={{
               marginBottom: '16px',
