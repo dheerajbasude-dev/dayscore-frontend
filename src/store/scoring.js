@@ -88,29 +88,58 @@ export function calculateDailyScore(tasks) {
 
 export function calculateOverallAverageTaskScore(archives = [], todayTasks = []) {
   const allTasksMap = new Map();
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
 
   (archives || []).forEach(a => {
     if (a && Array.isArray(a.tasks)) {
+      const arcDate = a.date ? (typeof a.date === 'string' ? a.date.trim().substring(0, 10) : '') : '';
       a.tasks.forEach(t => {
         const id = t.id || t._id;
-        if (id) allTasksMap.set(id, t);
+        if (id) allTasksMap.set(id, { ...t, date: t.date || arcDate });
       });
     }
   });
 
   (todayTasks || []).forEach(t => {
     const id = t.id || t._id;
-    if (id) allTasksMap.set(id, t);
+    if (id) allTasksMap.set(id, { ...t, date: t.date || todayStr });
   });
 
-  const allCompleted = Array.from(allTasksMap.values()).filter(t => t.status === 'done');
-  if (allCompleted.length === 0) return 0;
+  const allTasks = Array.from(allTasksMap.values());
+  if (allTasks.length === 0) return 0;
 
-  const totalPoints = allCompleted.reduce((sum, t) => {
-    return sum + (t.rating != null ? Number(t.rating) : 10);
-  }, 0);
+  let totalTaskPoints = 0;
+  let evaluatedCount = 0;
 
-  return Number((totalPoints / allCompleted.length).toFixed(1));
+  for (const task of allTasks) {
+    const taskDateStr = task.date
+      ? (typeof task.date === 'string' ? task.date.trim().substring(0, 10) : '')
+      : todayStr;
+
+    const isPastDate = taskDateStr < todayStr;
+
+    if (task.status === 'done') {
+      evaluatedCount++;
+      if (task.rating != null && !isNaN(Number(task.rating))) {
+        totalTaskPoints += Number(task.rating);
+      } else {
+        totalTaskPoints += 10;
+      }
+    } else if (task.status === 'missed') {
+      if (isPastDate) {
+        evaluatedCount++;
+        totalTaskPoints += (task.rating != null && !isNaN(Number(task.rating))) ? Number(task.rating) : 0;
+      } else if (task.rating != null && !isNaN(Number(task.rating)) && Number(task.rating) > 0) {
+        evaluatedCount++;
+        totalTaskPoints += Number(task.rating);
+      }
+    }
+  }
+
+  if (evaluatedCount === 0) return 0;
+  const baseScore = totalTaskPoints / evaluatedCount;
+  const finalScore = Math.min(10, Math.max(0, baseScore));
+  return Number(finalScore.toFixed(1));
 }
 
 export function getRollingAverage(archives = [], days = 0, todayTasks = []) {
