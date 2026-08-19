@@ -200,6 +200,15 @@ function TaskCard({
     });
   }, [notesList, todayDateStr]);
 
+  const effectiveIsToday = useMemo(() => {
+    if (isToday === false) return false;
+    const taskDateClean = task.date ? (typeof task.date === 'string' ? task.date.split('T')[0] : '') : '';
+    if (taskDateClean && taskDateClean < todayDateStr) {
+      return false;
+    }
+    return Boolean(isToday);
+  }, [isToday, task.date, todayDateStr]);
+
   const handleClaimReward = async () => {
     if (!onClaimReward || claiming) return;
     setClaiming(true);
@@ -222,7 +231,7 @@ function TaskCard({
 
   const handleNoteSubmit = async (e) => {
     e.preventDefault();
-    if (!newNoteText.trim() || submittingNote || !onAddDailyNote || !isToday || isDone || isMissed || hasNoteForToday) return;
+    if (!newNoteText.trim() || submittingNote || !onAddDailyNote || !effectiveIsToday || isDone || isMissed || hasNoteForToday) return;
     setSubmittingNote(true);
     try {
       await onAddDailyNote(task, newNoteText.trim(), dailyRating);
@@ -420,12 +429,12 @@ function TaskCard({
   const hasHighRatingReward = isDone && (ratingNum == null || ratingNum > 4.0);
 
   const hasReward = Boolean(task.reward && hasHighRatingReward);
-  const hasPenalty = Boolean((task.penalty || (isMissed && (ratingDisplay || !isToday))) && (isMissed || hasLowRatingPenalty));
+  const hasPenalty = Boolean((task.penalty || (isMissed && (ratingDisplay || !effectiveIsToday))) && (isMissed || hasLowRatingPenalty));
 
   const hasUnclaimedReward = Boolean(hasReward && !isRewardClaimed);
   const hasUnacknowledgedPenalty = Boolean(hasPenalty && !isPenaltyAccepted);
 
-  const isCheckboxLocked = isDone || (isMissed && !isToday);
+  const isCheckboxLocked = isDone || (isMissed && !effectiveIsToday);
 
   const isFutureDueTask = useMemo(() => {
     if (isDone) return false;
@@ -444,7 +453,7 @@ function TaskCard({
     if (task.status === 'done' || isUpdatingStatus || isFutureDueTask) return;
 
     // On older/past dates (not Today), silently return without showing toast!
-    if (!isToday) return;
+    if (!effectiveIsToday) return;
 
     const isMultiDayTaskOrCarried = checkExtendsBeyondToday();
 
@@ -514,7 +523,7 @@ function TaskCard({
       className={`task-card ${effectiveCardStatus} ${isTransitioningState ? 'transitioning-card' : ''} ${isJustCompleted ? 'just-completed-highlight' : ''} ${(hasUnclaimedReward || hasUnacknowledgedPenalty) ? 'has-pending-action' : ''} ${isDeleting ? 'task-exit' : 'task-enter'}`}
       style={{ animationDelay: isDeleting ? '0s' : `${animDelay}s` }}
     >
-      {!isFutureDueTask && !(isMissed && !isToday) && (
+      {!isFutureDueTask && !(isMissed && !effectiveIsToday) && (
         isTransitioningState ? (
           <div 
             className="task-checkbox-loader-container"
@@ -543,7 +552,7 @@ function TaskCard({
               isDone 
                 ? 'Task completed' 
                 : isMissed 
-                  ? (isToday ? 'Rate missed task effort (0-3 range)' : 'Missed task on overred day (score 0)') 
+                  ? (effectiveIsToday ? 'Rate missed task effort (0-3 range)' : 'Missed task on overred day (score 0)') 
                   : 'Mark as done'
             }
             style={{ cursor: isCheckboxLocked ? 'not-allowed' : 'pointer' }}
@@ -572,7 +581,7 @@ function TaskCard({
             </span>
           </div>
           <div className="task-actions-right">
-            {(isMultiDayOrCarried && (effectiveNotesList.length > 0 || (isToday && !isDone && !isMissed))) && (
+            {(isMultiDayOrCarried && (effectiveNotesList.length > 0 || (effectiveIsToday && !isDone && !isMissed))) && (
               <button
                 type="button"
                 className={`task-note-toggle-btn ${showNotesInput ? 'active' : ''} ${effectiveNotesList.length > 0 ? 'has-notes' : ''}`}
@@ -601,7 +610,7 @@ function TaskCard({
               <span className="meta-dot">·</span>
               <span className={`rating-badge ${getRatingBadgeClass()}`}>★ {displayRatingVal}/{maxR}</span>
             </>
-          ) : (isMissed && !isToday) ? (
+          ) : (isMissed && !effectiveIsToday) ? (
             <>
               <span className="meta-dot">·</span>
               <span className="rating-badge rating-badge-low zero-score-badge-anim" title="Overred missed task final score: 0">

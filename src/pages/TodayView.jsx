@@ -2240,7 +2240,7 @@ export default function TodayView() {
                     <RotateCcw size={14} /> Clear All Filters
                   </button>
                 ) : (
-                  isToday && (
+                  (viewMode === 'all' || currentDateStr === todayStr) && (
                     <button
                       className="btn btn-primary"
                       onClick={handleOpenAddModal}
@@ -2257,7 +2257,7 @@ export default function TodayView() {
                     key={task.id || task._id}
                     index={idx + 1}
                     task={task}
-                    isToday={isToday}
+                    isToday={viewMode === 'all' ? ((task.date ? String(task.date).split('T')[0] : todayStr) === todayStr) : (currentDateStr === todayStr)}
                     animDelay={Math.min(idx * 0.04, 0.3)}
                     isDeleting={deletingTaskIds.has(task.id || task._id)}
                     onStatusChange={(taskId, newStatus) => handleStatusChange(taskId, newStatus)}
