@@ -63,9 +63,12 @@ export const calculateTaskAutoRating = (taskOrNotes, todayStrParam) => {
           const dueStr = format(dueObj, 'yyyy-MM-dd');
           if (dueStr < endStr) endStr = dueStr;
         } catch (e) {}
-      } else if (taskObj.date && (taskObj.status === 'missed' || taskObj.status === 'done')) {
-        const taskDateClean = String(taskObj.date).split('T')[0];
-        if (taskDateClean < endStr) endStr = taskDateClean;
+      } else {
+        const completedIso = taskObj.completedAt || taskObj.completed_at;
+        if (completedIso) {
+          const compDate = String(completedIso).split('T')[0];
+          if (compDate && compDate > endStr) endStr = compDate;
+        }
       }
 
       try {
@@ -512,9 +515,10 @@ export default function TodayView() {
       const currentTodayTasks = store.getTasks(todayStr);
       let cleanedUpCount = 0;
       for (const t of currentTodayTasks) {
+        // If task is completed on Today, leave it completed on Today!
+        if (t.status === 'done' || t.completed === true) continue;
+
         const dueIso = t.dueDateTime || t.due_date_time;
-        const orig = t.originalDate || t.original_date;
-        const origDate = orig ? (typeof orig === 'string' ? orig.trim().substring(0, 10) : '') : '';
         let dueDateStr = '';
         if (dueIso) {
           try {
@@ -523,15 +527,11 @@ export default function TodayView() {
           } catch (e) {}
         }
 
-        // A task only expired on a past date if its due date itself expired before today (dueDateStr < todayStr).
-        // If it has a due date on or after today (dueDateStr >= todayStr), it is active and extends into today/future!
+        // A task only expired on a past date if its due date itself EXPLICITLY expired before today (dueDateStr < todayStr).
+        // If it has NO due date or a due date on/after today, it is an active task on Today!
         let pastEndDate = '';
-        if (dueDateStr) {
-          if (dueDateStr < todayStr) {
-            pastEndDate = dueDateStr;
-          }
-        } else if (origDate && origDate < todayStr) {
-          pastEndDate = origDate;
+        if (dueDateStr && dueDateStr < todayStr) {
+          pastEndDate = dueDateStr;
         }
 
         if (pastEndDate) {
@@ -551,15 +551,6 @@ export default function TodayView() {
             }
           }
           await store.updateTask(todayStr, t.id || t._id, updates);
-          cleanedUpCount++;
-        }
-        // B: If a task originating from a PAST date carried over to today AND its due date is today or future, ensure status is 'pending'
-        else if (t.status === 'missed' && origDate && origDate < todayStr && (!dueDateStr || dueDateStr >= todayStr)) {
-          await store.updateTask(todayStr, t.id || t._id, {
-            status: 'pending',
-            carriedOver: true,
-            carried_over: 1
-          });
           cleanedUpCount++;
         }
       }
@@ -854,6 +845,12 @@ export default function TodayView() {
         if (!arc.date || !Array.isArray(arc.tasks)) continue;
 
         for (const task of arc.tasks) {
+          const isCarriedToToday = Boolean(task.carriedOver || task.carried_over || task.wasCarried || task.isCarried);
+          const completedDate = task.completedAt ? String(task.completedAt).substring(0, 10) : (task.completed_at ? String(task.completed_at).substring(0, 10) : '');
+          if (isCarriedToToday || completedDate === todayStr || task.date === todayStr) {
+            continue;
+          }
+
           const { hasRatedNote, avgRating } = calculateTaskAutoRating(task);
           const isDoneWithNote = hasRatedNote;
 
@@ -1401,9 +1398,11 @@ export default function TodayView() {
       shouldTriggerReward = true;
     }
 
-    const wasMissedTask = targetTask?.status === 'missed' || targetTask?.wasMissed || targetTask?.was_missed;
+    const isCarried = Boolean(targetTask?.carriedOver || targetTask?.carried_over || targetTask?.wasCarried || targetTask?.isCarried || (targetTask?.originalDate && targetTask?.originalDate < todayStr));
+    const origDate = targetTask?.originalDate || targetTask?.original_date || targetTask?.date || taskDate;
 
     const updates = {
+      date: taskDate || todayStr,
       status: 'done',
       completed: true,
       completedAt: now.toISOString(),
@@ -1420,7 +1419,13 @@ export default function TodayView() {
       penaltyAccepted: false,
       penalty_accepted: 0,
       wasMissed: wasMissedTask ? true : undefined,
-      was_missed: wasMissedTask ? 1 : undefined
+      was_missed: wasMissedTask ? 1 : undefined,
+      carriedOver: isCarried,
+      carried_over: isCarried ? 1 : 0,
+      originalDate: origDate,
+      original_date: origDate,
+      daily_notes: targetTask?.daily_notes || targetTask?.dailyNotes || [],
+      dailyNotes: targetTask?.daily_notes || targetTask?.dailyNotes || []
     };
 
     // 0ms Optimistic UI update so UI changes INSTANTLY without F5 refresh
