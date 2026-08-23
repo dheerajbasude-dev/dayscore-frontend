@@ -2,7 +2,29 @@ import { format, parseISO } from 'date-fns';
 import { calculateDailyScore } from './scoring';
 import { getApiBaseUrl, safeJsonParse } from '../utils/api';
 
-export const getDateKey = (date) => format(date || new Date(), 'yyyy-MM-dd');
+export const getLocalDateStr = (val) => {
+  if (!val) return '';
+  if (typeof val === 'string') {
+    const trimmed = val.trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+      return trimmed;
+    }
+    try {
+      const parsed = parseISO(trimmed);
+      if (!isNaN(parsed.getTime())) {
+        return format(parsed, 'yyyy-MM-dd');
+      }
+    } catch (e) {}
+    if (trimmed.length >= 10 && /^\d{4}-\d{2}-\d{2}/.test(trimmed)) {
+      return trimmed.substring(0, 10);
+    }
+  } else if (val instanceof Date && !isNaN(val.getTime())) {
+    return format(val, 'yyyy-MM-dd');
+  }
+  return '';
+};
+
+export const getDateKey = (date) => getLocalDateStr(date) || format(new Date(), 'yyyy-MM-dd');
 
 const getToken = () => localStorage.getItem('dayscore_token');
 
@@ -49,7 +71,7 @@ export function clearTaskMemoryCache() {
 
 export function getTasks(dateStr) {
   const uid = getUserId();
-  const cleanDate = dateStr ? (dateStr.includes('T') ? dateStr.split('T')[0] : dateStr.trim().substring(0, 10)) : format(new Date(), 'yyyy-MM-dd');
+  const cleanDate = getLocalDateStr(dateStr) || format(new Date(), 'yyyy-MM-dd');
   const todayStr = format(new Date(), 'yyyy-MM-dd');
   const cacheKey = `${uid}_${cleanDate}`;
 
@@ -124,7 +146,7 @@ export function getTasks(dateStr) {
 
 export function isTasksCached(dateStr) {
   const uid = getUserId();
-  const cleanDate = dateStr ? (dateStr.includes('T') ? dateStr.split('T')[0] : dateStr.trim().substring(0, 10)) : format(new Date(), 'yyyy-MM-dd');
+  const cleanDate = getLocalDateStr(dateStr) || format(new Date(), 'yyyy-MM-dd');
   return localStorage.getItem(`dayscore_${uid}_tasks_${cleanDate}`) !== null;
 }
 
@@ -138,24 +160,20 @@ export function formatServerTask(t) {
   const createdDate = t.createdAt || t.created_at || new Date().toISOString();
   const completedDate = t.completedAt || t.completed_at || null;
 
-  let taskDate = t.date;
-  if (taskDate && typeof taskDate === 'string' && taskDate.includes('T')) {
-    taskDate = taskDate.split('T')[0];
-  }
+  let taskDate = getLocalDateStr(t.date);
 
   // If completed, preserve completed date or task date
   if (completedDate && (t.status === 'done' || t.completed === true)) {
-    const cleanCompDate = typeof completedDate === 'string' ? completedDate.substring(0, 10) : '';
-    if (cleanCompDate && cleanCompDate.length >= 10) {
+    const cleanCompDate = getLocalDateStr(completedDate);
+    if (cleanCompDate) {
       taskDate = cleanCompDate;
     }
   } else if (!taskDate && createdDate) {
-    taskDate = typeof createdDate === 'string' ? createdDate.substring(0, 10) : format(new Date(), 'yyyy-MM-dd');
+    taskDate = getLocalDateStr(createdDate);
   }
-  if (!taskDate || typeof taskDate !== 'string' || taskDate.length < 10) {
+  if (!taskDate) {
     taskDate = format(new Date(), 'yyyy-MM-dd');
   }
-  taskDate = taskDate.trim().substring(0, 10);
 
   return {
     ...t,
@@ -176,13 +194,16 @@ export function formatServerTask(t) {
     completed_at: completedDate,
     createdAt: createdDate,
     created_at: createdDate,
-    carriedOver: isCarried
+    carriedOver: isCarried,
+    carried_over: isCarried ? 1 : 0,
+    daily_notes: Array.isArray(t.daily_notes || t.dailyNotes) ? (t.daily_notes || t.dailyNotes) : [],
+    dailyNotes: Array.isArray(t.daily_notes || t.dailyNotes) ? (t.daily_notes || t.dailyNotes) : []
   };
 }
 
 export async function fetchTasksApi(dateStr) {
+  const cleanDate = getLocalDateStr(dateStr) || format(new Date(), 'yyyy-MM-dd');
   const token = getToken();
-  const cleanDate = dateStr ? (dateStr.includes('T') ? dateStr.split('T')[0] : dateStr.trim().substring(0, 10)) : format(new Date(), 'yyyy-MM-dd');
   if (!token) return getTasks(cleanDate);
 
   try {
@@ -225,35 +246,27 @@ export async function fetchAllTasksApi() {
       tasksByDate.forEach((tasksList, d) => {
         if (d < todayStr) {
           tasksList.forEach(t => {
-            const dueIso = t.dueDateTime || t.due_date_time;
+            const dueDateStr = getLocalDateStr(t.dueDateTime || t.due_date_time);
             let shouldCarry = true;
-            if (dueIso) {
-              try {
-                const dueObj = typeof dueIso === 'string' ? parseISO(dueIso) : new Date(dueIso);
-                const dueDateStr = format(dueObj, 'yyyy-MM-dd');
-                if (dueDateStr < todayStr) shouldCarry = false;
-              } catch (e) {}
-            }
+            if (dueDateStr && dueDateStr < todayStr) shouldCarry = false;
 
-            const completedDate = t.completedAt ? String(t.completedAt).substring(0, 10) : (t.completed_at ? String(t.completed_at).substring(0, 10) : '');
+            const completedDate = getLocalDateStr(t.completedAt || t.completed_at);
             const isCompletedToday = (t.status === 'done' || t.completed === true) && completedDate === todayStr;
 
             if (shouldCarry && (t.status !== 'done' || isCompletedToday)) {
-              if (!tasksByDate.has(todayStr)) {
-                tasksByDate.set(todayStr, []);
-              }
-              const todayList = tasksByDate.get(todayStr);
-              const exists = todayList.some(existing => String(existing.id || existing._id) === String(t.id || t._id));
-              if (!exists) {
+              const todayList = tasksByDate.get(todayStr) || [];
+              const targetId = t.id || t._id;
+              const alreadyExists = todayList.some(ex => (ex.id || ex._id) === targetId);
+              if (!alreadyExists) {
                 todayList.push({
                   ...t,
                   date: todayStr,
-                  status: t.status || 'pending',
+                  wasCarried: true,
                   carriedOver: true,
                   carried_over: 1,
-                  originalDate: t.originalDate || t.original_date || d,
-                  original_date: t.originalDate || t.original_date || d
+                  originalDate: t.originalDate || t.original_date || d
                 });
+                tasksByDate.set(todayStr, todayList);
               }
             }
           });

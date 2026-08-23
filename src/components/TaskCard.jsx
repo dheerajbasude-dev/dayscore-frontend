@@ -3,6 +3,28 @@ import { X, Loader2, Check, AlertTriangle, Clock, FileText, Plus, Star, RotateCc
 import { format, parseISO } from 'date-fns';
 import { useTimer } from '../hooks/useTimer';
 
+export const getLocalDateStr = (val) => {
+  if (!val) return '';
+  if (typeof val === 'string') {
+    const trimmed = val.trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+      return trimmed;
+    }
+    try {
+      const parsed = parseISO(trimmed);
+      if (!isNaN(parsed.getTime())) {
+        return format(parsed, 'yyyy-MM-dd');
+      }
+    } catch (e) {}
+    if (trimmed.length >= 10 && /^\d{4}-\d{2}-\d{2}/.test(trimmed)) {
+      return trimmed.substring(0, 10);
+    }
+  } else if (val instanceof Date && !isNaN(val.getTime())) {
+    return format(val, 'yyyy-MM-dd');
+  }
+  return '';
+};
+
 export const getRatingTheme = (val) => {
   const num = Number(val);
   if (isNaN(num) || num <= 4.0) {
@@ -112,36 +134,21 @@ function TaskCard({
 
   // Compute effective notes list including auto-missed days (0 rating) for past days
   const effectiveNotesList = useMemo(() => {
-    const isMissedTask = task.status === 'missed' || task.missed === true;
-    const isCarriedTask = Boolean(
-      task.carriedOver ||
-      task.carried_over ||
-      task.wasCarried ||
-      task.isCarried ||
-      task.originalDate ||
-      task.original_date
-    );
-
     const dates = [];
-    const createdIso = task.createdAt || task.created_at;
-    if (createdIso) {
-      const d = String(createdIso).split('T')[0];
-      if (d && d.length >= 10) dates.push(d.substring(0, 10));
-    }
-    const orig = task.originalDate || task.original_date;
-    if (orig) {
-      const d = String(orig).split('T')[0];
-      if (d && d.length >= 10) dates.push(d.substring(0, 10));
-    }
-    if (task.date) {
-      const d = String(task.date).split('T')[0];
-      if (d && d.length >= 10) dates.push(d.substring(0, 10));
-    }
+    const createdClean = getLocalDateStr(task.createdAt || task.created_at);
+    if (createdClean) dates.push(createdClean);
+
+    const origClean = getLocalDateStr(task.originalDate || task.original_date);
+    if (origClean) dates.push(origClean);
+
+    const taskDateClean = getLocalDateStr(task.date);
+    if (taskDateClean) dates.push(taskDateClean);
+
     dates.sort();
     const cleanStartStr = dates.length > 0 ? dates[0] : todayDateStr;
 
     const existingDates = new Set(
-      notesList.map(n => n && n.date ? String(n.date).split('T')[0] : '')
+      notesList.map(n => n && n.date ? getLocalDateStr(n.date) : '').filter(Boolean)
     );
 
     const filled = [...notesList];
@@ -150,17 +157,12 @@ function TaskCard({
       const startDate = parseISO(cleanStartStr);
       
       let maxEndStr = todayDateStr;
-      const dueIso = task.dueDateTime || task.due_date_time;
-      if (dueIso) {
-        try {
-          const dueObj = typeof dueIso === 'string' ? parseISO(dueIso) : new Date(dueIso);
-          const dueStr = format(dueObj, 'yyyy-MM-dd');
-          if (dueStr < maxEndStr) {
-            maxEndStr = dueStr;
-          }
-        } catch (e) {}
-      } else if (task.date && (task.status === 'missed' || task.status === 'done')) {
-        const taskDateClean = String(task.date).split('T')[0];
+      const dueDateClean = getLocalDateStr(task.dueDateTime || task.due_date_time);
+      if (dueDateClean) {
+        if (dueDateClean < maxEndStr) {
+          maxEndStr = dueDateClean;
+        }
+      } else if (taskDateClean && (task.status === 'missed' || task.status === 'done')) {
         if (taskDateClean < maxEndStr) {
           maxEndStr = taskDateClean;
         }
@@ -189,20 +191,20 @@ function TaskCard({
       console.error('Error computing missed dates:', e);
     }
 
-    return filled.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+    return filled.sort((a, b) => (getLocalDateStr(a.date) || '').localeCompare(getLocalDateStr(b.date) || ''));
   }, [notesList, task, todayDateStr]);
 
   const hasNoteForToday = useMemo(() => {
     if (!notesList || notesList.length === 0) return false;
     return notesList.some(n => {
       if (!n || !n.date) return false;
-      return String(n.date).split('T')[0] === todayDateStr;
+      return getLocalDateStr(n.date) === todayDateStr;
     });
   }, [notesList, todayDateStr]);
 
   const effectiveIsToday = useMemo(() => {
     if (isToday === false) return false;
-    const taskDateClean = task.date ? (typeof task.date === 'string' ? task.date.split('T')[0] : '') : '';
+    const taskDateClean = getLocalDateStr(task.date);
     if (taskDateClean && taskDateClean < todayDateStr) {
       return false;
     }
@@ -328,16 +330,11 @@ function TaskCard({
   const completedFormatted = formatDateSafe(task.completedAt || task.completed_at);
   const dueFormatted = formatDateSafe(task.dueDateTime || task.due_date_time);
   const taskCreatedDateStr = useMemo(() => {
-    if (task.createdAt) return typeof task.createdAt === 'string' ? task.createdAt.substring(0, 10) : '';
-    if (task.created_at) return typeof task.created_at === 'string' ? task.created_at.substring(0, 10) : '';
-    return '';
+    return getLocalDateStr(task.createdAt || task.created_at);
   }, [task.createdAt, task.created_at]);
 
   const targetDateCompareStr = useMemo(() => {
-    if (task.date && typeof task.date === 'string' && task.date.length >= 10) {
-      return task.date.trim().substring(0, 10);
-    }
-    return todayDateStr;
+    return getLocalDateStr(task.date) || todayDateStr;
   }, [task.date, todayDateStr]);
 
   const hasRatingNote = useMemo(() => {
@@ -347,7 +344,7 @@ function TaskCard({
     return list.some(n => n && n.rating != null && Number(n.rating) > 0 && !n.isAutoMissed);
   }, [task.daily_notes, task.dailyNotes, task.notes]);
 
-  const isDone = task.status === 'done' || (isOverdue && hasRatingNote);
+  const isDone = task.status === 'done' || task.completed === true || isJustCompleted || (isOverdue && hasRatingNote);
 
   const isMissed = useMemo(() => {
     if (isDone || hasRatingNote) return false;
@@ -361,19 +358,10 @@ function TaskCard({
   const isCarriedOver = useMemo(() => {
     if (!task) return false;
 
-    const dueIso = task.dueDateTime || task.due_date_time;
-    const orig = task.originalDate || task.original_date;
-    const origDate = orig ? (typeof orig === 'string' ? orig.trim().substring(0, 10) : '') : '';
+    const origDate = getLocalDateStr(task.originalDate || task.original_date);
     const createdDate = taskCreatedDateStr || '';
-    const viewDate = task.date ? (typeof task.date === 'string' ? task.date.trim().substring(0, 10) : '') : todayDateStr;
-
-    let dueDateStr = '';
-    if (dueIso) {
-      try {
-        const d = typeof dueIso === 'string' ? parseISO(dueIso) : new Date(dueIso);
-        dueDateStr = format(d, 'yyyy-MM-dd');
-      } catch (e) {}
-    }
+    const viewDate = getLocalDateStr(task.date) || todayDateStr;
+    const dueDateStr = getLocalDateStr(task.dueDateTime || task.due_date_time);
 
     const startDateStr = origDate || createdDate || viewDate;
 
@@ -394,27 +382,20 @@ function TaskCard({
 
   const checkExtendsBeyondToday = () => {
     if (isCarriedOver) return true;
-    const dueIso = task.dueDateTime || task.due_date_time;
-    if (!dueIso) return false;
-    try {
-      const d = typeof dueIso === 'string' ? parseISO(dueIso) : new Date(dueIso);
-      const dueDateStr = format(d, 'yyyy-MM-dd');
+    const dueDateStr = getLocalDateStr(task.dueDateTime || task.due_date_time);
+    if (!dueDateStr) return false;
 
-      const orig = task.originalDate || task.original_date;
-      const origDate = orig ? (typeof orig === 'string' ? orig.trim().substring(0, 10) : '') : '';
-      const createdDate = taskCreatedDateStr || '';
-      const viewDate = task.date ? (typeof task.date === 'string' ? task.date.trim().substring(0, 10) : '') : todayDateStr;
-      const startDateStr = origDate || createdDate || viewDate;
+    const origDate = getLocalDateStr(task.originalDate || task.original_date);
+    const createdDate = taskCreatedDateStr || '';
+    const viewDate = getLocalDateStr(task.date) || todayDateStr;
+    const startDateStr = origDate || createdDate || viewDate;
 
-      // If start date and due date are the exact same day, it is a single-day task
-      if (startDateStr && dueDateStr && startDateStr === dueDateStr) {
-        return false;
-      }
-
-      return dueDateStr > startDateStr;
-    } catch (e) {
+    // If start date and due date are the exact same day, it is a single-day task
+    if (startDateStr && dueDateStr && startDateStr === dueDateStr) {
       return false;
     }
+
+    return dueDateStr > startDateStr;
   };
 
   const isMultiDayOrCarried = checkExtendsBeyondToday();
@@ -485,15 +466,12 @@ function TaskCard({
         const count = listToUse.length || 1;
         const computedAvg = hasRated ? Math.round((sumRating / count) * 10) / 10 : 8.0;
 
-        setIsUpdatingStatus(true);
+        setIsJustCompleted(true);
         try {
           await onAutoCompleteWithRating(task, computedAvg);
-          setIsJustCompleted(true);
-          setTimeout(() => setIsJustCompleted(false), 2500);
         } catch (err) {
           console.error('Auto completion error:', err);
-        } finally {
-          setIsUpdatingStatus(false);
+          setIsJustCompleted(false);
         }
         return;
       }

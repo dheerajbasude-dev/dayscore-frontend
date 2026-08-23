@@ -19,6 +19,28 @@ import { useDayRollover } from '../hooks/useDayRollover'
 import { useNotifications } from '../hooks/useNotifications'
 import { useAuth } from '../context/AuthContext'
 
+export const getLocalDateStr = (val) => {
+  if (!val) return '';
+  if (typeof val === 'string') {
+    const trimmed = val.trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+      return trimmed;
+    }
+    try {
+      const parsed = parseISO(trimmed);
+      if (!isNaN(parsed.getTime())) {
+        return format(parsed, 'yyyy-MM-dd');
+      }
+    } catch (e) {}
+    if (trimmed.length >= 10 && /^\d{4}-\d{2}-\d{2}/.test(trimmed)) {
+      return trimmed.substring(0, 10);
+    }
+  } else if (val instanceof Date && !isNaN(val.getTime())) {
+    return format(val, 'yyyy-MM-dd');
+  }
+  return '';
+};
+
 export const calculateTaskAutoRating = (taskOrNotes, todayStrParam) => {
   let taskObj = null;
   let notes = [];
@@ -37,64 +59,52 @@ export const calculateTaskAutoRating = (taskOrNotes, todayStrParam) => {
 
   if (taskObj) {
     const dates = [];
-    const createdIso = taskObj.createdAt || taskObj.created_at;
-    if (createdIso) {
-      const d = String(createdIso).split('T')[0];
-      if (d && d.length >= 10) dates.push(d.substring(0, 10));
-    }
-    const orig = taskObj.originalDate || taskObj.original_date;
-    if (orig) {
-      const d = String(orig).split('T')[0];
-      if (d && d.length >= 10) dates.push(d.substring(0, 10));
-    }
-    if (taskObj.date) {
-      const d = String(taskObj.date).split('T')[0];
-      if (d && d.length >= 10) dates.push(d.substring(0, 10));
-    }
+    const createdClean = getLocalDateStr(taskObj.createdAt || taskObj.created_at);
+    if (createdClean) dates.push(createdClean);
+
+    const origClean = getLocalDateStr(taskObj.originalDate || taskObj.original_date);
+    if (origClean) dates.push(origClean);
+
+    const taskDateClean = getLocalDateStr(taskObj.date);
+    if (taskDateClean) dates.push(taskDateClean);
+
     dates.sort();
     const cleanStartStr = dates.length > 0 ? dates[0] : todayStr;
-    const existingDates = new Set(notes.map(n => n && n.date ? String(n.date).split('T')[0] : ''));
+    const existingDates = new Set(notes.map(n => n && n.date ? getLocalDateStr(n.date) : '').filter(Boolean));
 
-      let endStr = todayStr;
-      const dueIso = taskObj.dueDateTime || taskObj.due_date_time;
-      if (dueIso) {
-        try {
-          const dueObj = typeof dueIso === 'string' ? parseISO(dueIso) : new Date(dueIso);
-          const dueStr = format(dueObj, 'yyyy-MM-dd');
-          if (dueStr < endStr) endStr = dueStr;
-        } catch (e) {}
-      } else {
-        const completedIso = taskObj.completedAt || taskObj.completed_at;
-        if (completedIso) {
-          const compDate = String(completedIso).split('T')[0];
-          if (compDate && compDate > endStr) endStr = compDate;
-        }
-      }
-
-      try {
-        const startDate = parseISO(cleanStartStr);
-        const endDate = parseISO(endStr);
-
-        if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime()) && startDate <= endDate) {
-          let curr = new Date(startDate);
-          while (curr <= endDate) {
-            const currStr = format(curr, 'yyyy-MM-dd');
-            if (!existingDates.has(currStr)) {
-              effectiveNotes.push({
-                id: `missed-${currStr}`,
-                date: currStr,
-                note: 'Missed',
-                rating: 0,
-                isAutoMissed: true
-              });
-            }
-            curr.setDate(curr.getDate() + 1);
-          }
-        }
-      } catch (e) {
-        console.error('Error filling missed days in rating calc:', e);
-      }
+    let endStr = todayStr;
+    const dueDateClean = getLocalDateStr(taskObj.dueDateTime || taskObj.due_date_time);
+    if (dueDateClean) {
+      if (dueDateClean < endStr) endStr = dueDateClean;
+    } else {
+      const completedDateClean = getLocalDateStr(taskObj.completedAt || taskObj.completed_at);
+      if (completedDateClean && completedDateClean > endStr) endStr = completedDateClean;
     }
+
+    try {
+      const startDate = parseISO(cleanStartStr);
+      const endDate = parseISO(endStr);
+
+      if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime()) && startDate <= endDate) {
+        let curr = new Date(startDate);
+        while (curr <= endDate) {
+          const currStr = format(curr, 'yyyy-MM-dd');
+          if (!existingDates.has(currStr)) {
+            effectiveNotes.push({
+              id: `missed-${currStr}`,
+              date: currStr,
+              note: 'Missed',
+              rating: 0,
+              isAutoMissed: true
+            });
+          }
+          curr.setDate(curr.getDate() + 1);
+        }
+      }
+    } catch (e) {
+      console.error('Error filling missed days in rating calc:', e);
+    }
+  }
 
   if (effectiveNotes.length === 0) return { hasRatedNote: false, avgRating: 0, sumRating: 0, totalCount: 0 };
 
@@ -377,20 +387,10 @@ export default function TodayView() {
   const isCarriedTask = useCallback((t) => {
     if (!t) return false;
 
-    const dueIso = t.dueDateTime || t.due_date_time;
-    const taskDate = t.date ? (typeof t.date === 'string' ? t.date.trim().substring(0, 10) : '') : currentDateStr;
-    const orig = t.originalDate || t.original_date;
-    const origDate = orig ? (typeof orig === 'string' ? orig.trim().substring(0, 10) : '') : '';
-    const createdDate = t.createdAt ? (typeof t.createdAt === 'string' ? t.createdAt.substring(0, 10) : '') : 
-                       (t.created_at ? (typeof t.created_at === 'string' ? t.created_at.substring(0, 10) : '') : '');
-
-    let dueDateStr = '';
-    if (dueIso) {
-      try {
-        const d = typeof dueIso === 'string' ? parseISO(dueIso) : new Date(dueIso);
-        dueDateStr = format(d, 'yyyy-MM-dd');
-      } catch (e) {}
-    }
+    const taskDate = getLocalDateStr(t.date) || currentDateStr;
+    const origDate = getLocalDateStr(t.originalDate || t.original_date);
+    const createdDate = getLocalDateStr(t.createdAt || t.created_at);
+    const dueDateStr = getLocalDateStr(t.dueDateTime || t.due_date_time);
 
     const startDateStr = origDate || createdDate || taskDate;
 
@@ -419,10 +419,8 @@ export default function TodayView() {
     todayTasks.forEach(t => {
       if (!t) return;
       const isCarried = Boolean(t.carriedOver || t.carried_over || t.wasCarried || t.isCarried);
-      const orig = t.originalDate || t.original_date;
-      const origDate = orig ? (typeof orig === 'string' ? orig.trim().substring(0, 10) : '') : '';
-      const createdDate = t.createdAt ? (typeof t.createdAt === 'string' ? t.createdAt.substring(0, 10) : '') : 
-                         (t.created_at ? (typeof t.created_at === 'string' ? t.created_at.substring(0, 10) : '') : '');
+      const origDate = getLocalDateStr(t.originalDate || t.original_date);
+      const createdDate = getLocalDateStr(t.createdAt || t.created_at);
       const effectiveOrig = origDate || createdDate;
       if (effectiveOrig && effectiveOrig < todayStr && t.status !== 'done') {
         carriedSet.add(String(t.id || t._id));
@@ -441,15 +439,9 @@ export default function TodayView() {
             const pastList = JSON.parse(localStorage.getItem(key)) || [];
             pastList.forEach(t => {
               if (t.status !== 'done') {
-                const dueIso = t.dueDateTime || t.due_date_time;
+                const dueDateStr = getLocalDateStr(t.dueDateTime || t.due_date_time);
                 let shouldCarry = true;
-                if (dueIso) {
-                  try {
-                    const dueObj = typeof dueIso === 'string' ? parseISO(dueIso) : new Date(dueIso);
-                    const dueDateStr = format(dueObj, 'yyyy-MM-dd');
-                    if (dueDateStr < todayStr) shouldCarry = false;
-                  } catch (e) {}
-                }
+                if (dueDateStr && dueDateStr < todayStr) shouldCarry = false;
                 if (shouldCarry) {
                   carriedSet.add(String(t.id || t._id));
                 }
