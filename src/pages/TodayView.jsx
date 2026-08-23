@@ -1321,23 +1321,27 @@ export default function TodayView() {
     setRatingTask(task);
   }
 
-  const handleRatingConfirm = async (ratingTaskId, rating, maxRating) => {
+  const handleRatingConfirm = async (ratingTaskId, rating, maxRating = 10) => {
     const targetTask = (typeof ratingTaskId === 'object' && ratingTaskId !== null)
       ? ratingTaskId
-      : (ratingTask || tasks.find(t => String(t.id || t._id) === String(ratingTaskId)));
+      : (ratingTask || tasks.find(t => String(t.id || t._id) === String(ratingTaskId)) || (Array.isArray(allTasksAcrossDates) ? allTasksAcrossDates.find(t => String(t.id || t._id) === String(ratingTaskId)) : null));
 
     const targetId = targetTask?.id || targetTask?._id || (typeof ratingTaskId === 'string' ? ratingTaskId : null);
-    if (!targetId) return;
+    if (!targetId) {
+      setRatingTask(null);
+      return;
+    }
 
     if (targetTask && targetTask.status === 'missed' && currentDateStr < todayStr) {
       setRatingTask(null);
       return;
     }
-    const taskDate = targetTask?.date || targetTask?.dateLabel || currentDateStr;
+    const taskDate = getLocalDateStr(targetTask?.date) || targetTask?.dateLabel || currentDateStr;
 
     const now = new Date();
 
-    const isCarriedTask = Boolean(targetTask?.carriedOver || targetTask?.carried_over || targetTask?.wasCarried || targetTask?.isCarried || (targetTask?.originalDate && targetTask?.originalDate < todayStr));
+    const isCarried = Boolean(targetTask?.carriedOver || targetTask?.carried_over || targetTask?.wasCarried || targetTask?.isCarried || (targetTask?.originalDate && getLocalDateStr(targetTask?.originalDate) < todayStr));
+    const wasMissedTask = targetTask?.status === 'missed' || targetTask?.missed === true || Boolean(targetTask?.wasMissed || targetTask?.was_missed);
 
     let dueDateObj = null;
     if (targetTask?.dueDateTime) {
@@ -1352,7 +1356,7 @@ export default function TodayView() {
       if (dueDateStr === todayStr) {
         isOverdue = dueDateObj < now;
       } else if (dueDateStr < todayStr) {
-        isOverdue = !isCarriedTask && taskDate < todayStr;
+        isOverdue = !isCarried && taskDate < todayStr;
       }
     }
 
@@ -1390,7 +1394,6 @@ export default function TodayView() {
       shouldTriggerReward = true;
     }
 
-    const isCarried = Boolean(targetTask?.carriedOver || targetTask?.carried_over || targetTask?.wasCarried || targetTask?.isCarried || (targetTask?.originalDate && targetTask?.originalDate < todayStr));
     const origDate = targetTask?.originalDate || targetTask?.original_date || targetTask?.date || taskDate;
 
     const updates = {
@@ -1428,13 +1431,13 @@ export default function TodayView() {
       return t;
     }));
 
+    // Close the rating modal FIRST so UI resets immediately
+    setRatingTask(null);
+
     await store.updateTask(taskDate, targetId, updates);
     await store.fetchAllTasksApi();
     setTasks(store.getTasks(currentDateStr));
     setArchives(store.getAllArchives());
-
-    // Close the rating modal FIRST so UI resets
-    setRatingTask(null);
 
     // After modal closes, trigger rewards/penalties banner & animations
     const pendingPenalty = taskPenalty;
