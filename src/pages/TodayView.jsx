@@ -1865,16 +1865,18 @@ export default function TodayView() {
               </div>
             )}
 
-            <div className="view-mode-toggle" style={{ display: 'flex', gap: '3px', background: 'var(--bg-glass-light)', padding: '2px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-glass)' }}>
+            <div className="view-mode-toggle" style={{ display: 'flex', gap: '4px', background: 'var(--bg-glass-light)', padding: '2px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-glass)' }}>
               <button
-                className={`btn btn-sm ${viewMode === 'date' ? 'btn-primary' : 'btn-ghost'}`}
+                type="button"
+                className={`btn btn-sm ${viewMode === 'date' ? 'btn-primary' : 'btn-secondary'}`}
                 onClick={() => handleSetViewMode('date')}
                 style={{ padding: '4px 10px', height: '28px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
               >
                 <Calendar size={13} /> Date View ({tasks.length})
               </button>
               <button
-                className={`btn btn-sm ${viewMode === 'all' ? 'btn-primary' : 'btn-ghost'}`}
+                type="button"
+                className={`btn btn-sm ${viewMode === 'all' ? 'btn-primary' : 'btn-secondary'}`}
                 onClick={() => handleSetViewMode('all')}
                 style={{ padding: '4px 10px', height: '28px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
               >

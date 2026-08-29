@@ -5994,9 +5994,23 @@ body::after {
   color: #0f172a !important;
 }
 
-/* Light Mode Action Buttons */
+/* Button System (Dark Mode Default & Light Mode Overrides) */
 .btn {
-  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.22s ease, border-color 0.22s ease !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  outline: none;
+  user-select: none;
+  white-space: nowrap;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.22s ease, border-color 0.22s ease, color 0.22s ease !important;
 }
 
 .btn:hover {
@@ -6012,12 +6026,51 @@ body::after {
   border: 1px solid rgba(255, 255, 255, 0.25) !important;
   box-shadow: 0 4px 16px rgba(99, 102, 241, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
   font-weight: 700 !important;
+  color: #ffffff !important;
   letter-spacing: -0.01em !important;
 }
 
 .btn-primary:hover {
   background: linear-gradient(135deg, #818CF8 0%, #6366F1 50%, #4F46E5 100%) !important;
   box-shadow: 0 10px 30px rgba(99, 102, 241, 0.55), 0 0 20px rgba(129, 140, 248, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
+  color: #ffffff !important;
+}
+
+.btn-secondary {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-glass);
+}
+
+.btn-secondary:hover {
+  background: var(--bg-glass-light);
+  color: var(--text-primary);
+  border-color: var(--border-glass-hover);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid transparent;
+}
+
+.btn-ghost:hover {
+  background: var(--bg-glass-light);
+  color: var(--text-primary);
+}
+
+.btn-sm {
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  border-radius: var(--radius-sm);
+}
+
+.btn-icon {
+  padding: 8px;
+  border-radius: var(--radius-md);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 [data-theme='light'] .btn-secondary {
@@ -6030,6 +6083,17 @@ body::after {
   background: #e2e8f0 !important;
   color: #0f172a !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+}
+
+[data-theme='light'] .btn-ghost {
+  background: transparent !important;
+  color: #475569 !important;
+  border: 1px solid transparent !important;
+}
+
+[data-theme='light'] .btn-ghost:hover {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
 }
 
 /* Light Mode Badges & Metadata */
