@@ -1799,16 +1799,26 @@ export default function TodayView() {
       ) : (
         <>
           {/* Date Navigation & View Mode Header */}
-          <div className="card-glass date-nav-card">
+          <div className="card-glass date-nav-card" style={{ padding: '6px 12px', marginBottom: '16px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '8px', position: 'relative', zIndex: 100 }}>
             {viewMode === 'date' ? (
-              <div className="date-nav-left">
+              <div className="date-nav-left" style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                 <button
                   className="btn btn-secondary btn-sm date-nav-btn"
                   onClick={handlePrevDay}
                   disabled={!canGoPrev}
                   title={canGoPrev ? "Previous Day with Tasks" : "No Earlier Tasks Found"}
+                  style={{
+                    padding: '4px 9px',
+                    height: '30px',
+                    fontSize: '0.8rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '3px',
+                    opacity: canGoPrev ? 1 : 0.4,
+                    cursor: canGoPrev ? 'pointer' : 'not-allowed'
+                  }}
                 >
-                  <ChevronLeft size={14} /> <span>Prev</span>
+                  <ChevronLeft size={14} /> Prev
                 </button>
 
                 <CustomDatePicker
@@ -1823,42 +1833,52 @@ export default function TodayView() {
                   onClick={handleNextDay}
                   disabled={!canGoNext}
                   title={canGoNext ? "Next Day with Tasks" : "Latest Date Reached"}
+                  style={{
+                    padding: '4px 9px',
+                    height: '30px',
+                    fontSize: '0.8rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '3px',
+                    opacity: !canGoNext ? 0.4 : 1,
+                    cursor: !canGoNext ? 'not-allowed' : 'pointer'
+                  }}
                 >
-                  <span>Next</span> <ChevronRight size={14} />
+                  Next <ChevronRight size={14} />
                 </button>
 
                 {currentDateStr !== todayStr && (
                   <button
-                    className="btn btn-primary btn-sm date-nav-btn date-today-badge-btn"
+                    className="btn btn-primary btn-sm date-nav-btn"
                     onClick={handleToday}
-                    title="Jump to Today"
+                    style={{ padding: '4px 9px', height: '30px', fontSize: '0.8rem' }}
                   >
                     Today
                   </button>
                 )}
               </div>
             ) : (
-              <div className="date-nav-left">
-                <span className="all-tasks-view-title">
+              <div className="date-nav-left" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontWeight: '700', fontSize: '0.85rem', color: 'var(--text-primary)', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
                   <Layers size={15} style={{ color: 'var(--accent-primary)' }} /> All Tasks View
                 </span>
               </div>
             )}
 
-            <div className="view-mode-toggle">
+            <div className="view-mode-toggle" style={{ display: 'flex', gap: '3px', background: 'var(--bg-glass-light)', padding: '2px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-glass)' }}>
               <button
-                type="button"
-                className={`view-toggle-pill ${viewMode === 'date' ? 'active' : ''}`}
+                className={`btn btn-sm ${viewMode === 'date' ? 'btn-primary' : 'btn-ghost'}`}
                 onClick={() => handleSetViewMode('date')}
+                style={{ padding: '4px 10px', height: '28px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
               >
-                <Calendar size={13} /> <span>Date View ({tasks.length})</span>
+                <Calendar size={13} /> Date View ({tasks.length})
               </button>
               <button
-                type="button"
-                className={`view-toggle-pill ${viewMode === 'all' ? 'active' : ''}`}
+                className={`btn btn-sm ${viewMode === 'all' ? 'btn-primary' : 'btn-ghost'}`}
                 onClick={() => handleSetViewMode('all')}
+                style={{ padding: '4px 10px', height: '28px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
               >
-                <Layers size={13} /> <span>All Tasks ({allTasksAcrossDates.length})</span>
+                <Layers size={13} /> All Tasks ({allTasksAcrossDates.length})
               </button>
             </div>
           </div>
