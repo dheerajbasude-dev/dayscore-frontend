@@ -2,28 +2,9 @@ import React, { useState, useMemo } from 'react';
 import { X, Loader2, Check, AlertTriangle, Clock, FileText, Plus, Star, RotateCcw } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useTimer } from '../hooks/useTimer';
+import { getLocalDateStr } from '../utils/taskUtils';
 
-export const getLocalDateStr = (val) => {
-  if (!val) return '';
-  if (typeof val === 'string') {
-    const trimmed = val.trim();
-    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
-      return trimmed;
-    }
-    try {
-      const parsed = parseISO(trimmed);
-      if (!isNaN(parsed.getTime())) {
-        return format(parsed, 'yyyy-MM-dd');
-      }
-    } catch (e) {}
-    if (trimmed.length >= 10 && /^\d{4}-\d{2}-\d{2}/.test(trimmed)) {
-      return trimmed.substring(0, 10);
-    }
-  } else if (val instanceof Date && !isNaN(val.getTime())) {
-    return format(val, 'yyyy-MM-dd');
-  }
-  return '';
-};
+export { getLocalDateStr };
 
 export const getRatingTheme = (val) => {
   const num = Number(val);
@@ -69,7 +50,7 @@ function TaskCard({
   isDeleting,
   animDelay = 0
 }) {
-  const { timeLeft, urgencyClass, isOverdue } = useTimer(task.dueDateTime);
+  const { timeLeft, urgencyClass, isOverdue } = useTimer(task?.dueDateTime || task?.due_date_time);
   const [claiming, setClaiming] = useState(false);
   const [accepting, setAccepting] = useState(false);
   const [newNoteText, setNewNoteText] = useState('');
@@ -79,61 +60,86 @@ function TaskCard({
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isJustCompleted, setIsJustCompleted] = useState(false);
 
-  if (task.isOptimistic) {
-    return (
-      <div
-        className="task-card card-glass animate-slide-up"
-        style={{
-          border: '1px solid rgba(99, 102, 241, 0.45)',
-          background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(168, 85, 247, 0.08) 100%)',
-          boxShadow: '0 8px 24px rgba(99, 102, 241, 0.18)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '14px',
-          padding: '14px 18px',
-          borderRadius: 'var(--radius-lg)',
-          marginBottom: '12px',
-          animation: 'optimisticPulse 1.8s ease-in-out infinite'
-        }}
-      >
-        <div style={{
-          width: '26px',
-          height: '26px',
-          borderRadius: '50%',
-          border: '2px solid rgba(99, 102, 241, 0.5)',
-          background: 'rgba(99, 102, 241, 0.15)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0
-        }}>
-          <Loader2 size={14} className="btn-spinner" style={{ color: 'var(--accent-primary)' }} />
-        </div>
-        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#f8fafc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {task.title}
-            </span>
-            <span className="badge badge-pri" style={{ fontSize: '0.68rem', padding: '2px 8px', borderRadius: '10px', whiteSpace: 'nowrap' }}>
-              Adding...
-            </span>
-          </div>
-          <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-            Syncing task...
-          </span>
-        </div>
-      </div>
-    );
-  }
-
-  const notesList = Array.isArray(task.daily_notes || task.dailyNotes)
+  const notesList = Array.isArray(task?.daily_notes || task?.dailyNotes)
     ? (task.daily_notes || task.dailyNotes)
     : [];
 
   const todayDateStr = format(new Date(), 'yyyy-MM-dd');
 
+  const taskCreatedDateStr = useMemo(() => {
+    return getLocalDateStr(task?.createdAt || task?.created_at);
+  }, [task?.createdAt, task?.created_at]);
+
+  const targetDateCompareStr = useMemo(() => {
+    return getLocalDateStr(task?.date) || todayDateStr;
+  }, [task?.date, todayDateStr]);
+
+  const hasRatingNote = useMemo(() => {
+    const list = Array.isArray(task?.daily_notes || task?.dailyNotes || task?.notes)
+      ? (task.daily_notes || task.dailyNotes || task.notes)
+      : [];
+    return list.some(n => n && n.rating != null && Number(n.rating) > 0 && !n.isAutoMissed);
+  }, [task?.daily_notes, task?.dailyNotes, task?.notes]);
+
+  const isDone = Boolean(task?.status === 'done' || task?.completed === true || isJustCompleted || (isOverdue && hasRatingNote));
+
+  const isMissed = useMemo(() => {
+    if (isDone || hasRatingNote) return false;
+    if (task?.status === 'missed' || task?.missed === true || task?.wasMissed === true || task?.was_missed === true) {
+      return true;
+    }
+    if (isOverdue) return true;
+    return false;
+  }, [isDone, hasRatingNote, task?.status, task?.missed, task?.wasMissed, task?.was_missed, isOverdue]);
+
+  const isCarriedOver = useMemo(() => {
+    if (!task) return false;
+
+    const origDate = getLocalDateStr(task.originalDate || task.original_date);
+    const createdDate = taskCreatedDateStr || '';
+    const viewDate = getLocalDateStr(task.date) || todayDateStr;
+    const dueDateStr = getLocalDateStr(task.dueDateTime || task.due_date_time);
+
+    const startDateStr = origDate || createdDate || viewDate;
+
+    // Single-day tasks created and due on the same day are NOT carried tasks
+    if (startDateStr && dueDateStr && startDateStr === dueDateStr && !Boolean(task.carriedOver || task.carried_over || task.wasCarried || task.isCarried)) {
+      return false;
+    }
+
+    if (Boolean(task.carriedOver || task.carried_over || task.wasCarried || task.isCarried)) {
+      return true;
+    }
+
+    if (origDate && viewDate && origDate < viewDate) return true;
+    if (createdDate && viewDate && createdDate < viewDate) return true;
+
+    return false;
+  }, [task, taskCreatedDateStr, todayDateStr]);
+
+  const checkExtendsBeyondToday = () => {
+    if (!task) return false;
+    if (isCarriedOver) return true;
+    const dueDateStr = getLocalDateStr(task.dueDateTime || task.due_date_time);
+    if (!dueDateStr) return false;
+
+    const origDate = getLocalDateStr(task.originalDate || task.original_date);
+    const createdDate = taskCreatedDateStr || '';
+    const viewDate = getLocalDateStr(task.date) || todayDateStr;
+    const startDateStr = origDate || createdDate || viewDate;
+
+    if (startDateStr && dueDateStr && startDateStr === dueDateStr) {
+      return false;
+    }
+
+    return dueDateStr > startDateStr;
+  };
+
+  const isMultiDayOrCarried = checkExtendsBeyondToday();
+
   // Compute effective notes list including auto-missed days (0 rating) for past days
   const effectiveNotesList = useMemo(() => {
+    if (!task) return [];
     const dates = [];
     const createdClean = getLocalDateStr(task.createdAt || task.created_at);
     if (createdClean) dates.push(createdClean);
@@ -204,93 +210,16 @@ function TaskCard({
 
   const effectiveIsToday = useMemo(() => {
     if (isToday === false) return false;
-    const taskDateClean = getLocalDateStr(task.date);
+    const taskDateClean = getLocalDateStr(task?.date);
     if (taskDateClean && taskDateClean < todayDateStr) {
       return false;
     }
     return Boolean(isToday);
-  }, [isToday, task.date, todayDateStr]);
-
-  const handleClaimReward = async () => {
-    if (!onClaimReward || claiming) return;
-    setClaiming(true);
-    try {
-      await onClaimReward(task);
-    } finally {
-      setClaiming(false);
-    }
-  };
-
-  const handleAcceptPenalty = async () => {
-    if (!onAcceptPenalty || accepting) return;
-    setAccepting(true);
-    try {
-      await onAcceptPenalty(task);
-    } finally {
-      setAccepting(false);
-    }
-  };
-
-  const handleNoteSubmit = async (e) => {
-    e.preventDefault();
-    if (!newNoteText.trim() || submittingNote || !onAddDailyNote || !effectiveIsToday || isDone || isMissed || hasNoteForToday) return;
-    setSubmittingNote(true);
-    try {
-      await onAddDailyNote(task, newNoteText.trim(), dailyRating);
-      setNewNoteText('');
-      setShowNotesInput(false);
-    } catch (err) {
-      console.error('Add daily note error:', err);
-    } finally {
-      setSubmittingNote(false);
-    }
-  };
-
-
-
-  const getCheckboxClass = () => {
-    if (isMissed) return 'missed-check';
-    switch (task.status) {
-      case 'inprogress': return 'half-filled';
-      case 'done': return 'checked';
-      case 'missed': return 'missed-check';
-      default: return 'empty';
-    }
-  };
-
-  const formatDateSafe = (isoStr) => {
-    if (!isoStr) return null;
-    try {
-      const d = typeof isoStr === 'string' ? parseISO(isoStr) : new Date(isoStr);
-      return format(d, 'MMM dd, h:mm a');
-    } catch (e) {
-      return null;
-    }
-  };
-
-  const formatNoteDate = (isoStr) => {
-    if (!isoStr) return 'Today';
-    try {
-      const d = typeof isoStr === 'string' ? parseISO(isoStr) : new Date(isoStr);
-      return format(d, 'MMM dd, yyyy');
-    } catch (e) {
-      return 'Today';
-    }
-  };
-
-  const formatOrigDate = (dateStr) => {
-    if (!dateStr) return null;
-    try {
-      const d = typeof dateStr === 'string' ? parseISO(dateStr) : new Date(dateStr);
-      return format(d, 'MMM dd, yyyy');
-    } catch (e) {
-      return dateStr;
-    }
-  };
+  }, [isToday, task?.date, todayDateStr]);
 
   const effectiveRating = useMemo(() => {
     if (!effectiveNotesList || effectiveNotesList.length === 0) {
-      return task.rating != null ? Number(task.rating) : null;
+      return task?.rating != null ? Number(task.rating) : null;
     }
     let sum = 0;
     let hasUserRating = false;
@@ -303,114 +232,77 @@ function TaskCard({
       }
     });
     if (!hasUserRating) {
-      return task.rating != null ? Number(task.rating) : null;
+      return task?.rating != null ? Number(task.rating) : null;
     }
     const totalDaysCount = effectiveNotesList.length;
     return Math.round((sum / totalDaysCount) * 10) / 10;
-  }, [effectiveNotesList, task.rating]);
+  }, [effectiveNotesList, task?.rating]);
 
-  const displayRatingVal = effectiveRating != null ? effectiveRating : (task.rating != null ? Number(task.rating) : null);
+  const displayRatingVal = effectiveRating != null ? effectiveRating : (task?.rating != null ? Number(task.rating) : null);
 
   const getRatingBadgeClass = () => {
-    const num = Number(displayRatingVal != null ? displayRatingVal : task.rating);
+    const num = Number(displayRatingVal != null ? displayRatingVal : task?.rating);
     if (isNaN(num) || num <= 4.0) return 'rating-badge-low';
     if (num <= 8.5) return 'rating-badge-medium';
     return 'rating-badge-high';
   };
 
-  const maxR = task.maxRating || task.max_rating || 10;
-  const ratingDisplay = task.status === 'done' && displayRatingVal != null;
+  const maxR = task?.maxRating || task?.max_rating || 10;
+  const ratingDisplay = task?.status === 'done' && displayRatingVal != null;
   const getStartDateISO = () => {
-    if (task.createdAt || task.created_at) return task.createdAt || task.created_at;
-    if (task.date) return `${task.date}T00:00:00`;
+    if (task?.createdAt || task?.created_at) return task.createdAt || task.created_at;
+    if (task?.date) return `${task.date}T00:00:00`;
     return null;
   };
 
-  const createdFormatted = formatDateSafe(getStartDateISO());
-  const completedFormatted = formatDateSafe(task.completedAt || task.completed_at);
-  const dueFormatted = formatDateSafe(task.dueDateTime || task.due_date_time);
-  const taskCreatedDateStr = useMemo(() => {
-    return getLocalDateStr(task.createdAt || task.created_at);
-  }, [task.createdAt, task.created_at]);
-
-  const targetDateCompareStr = useMemo(() => {
-    return getLocalDateStr(task.date) || todayDateStr;
-  }, [task.date, todayDateStr]);
-
-  const hasRatingNote = useMemo(() => {
-    const list = Array.isArray(task.daily_notes || task.dailyNotes || task.notes)
-      ? (task.daily_notes || task.dailyNotes || task.notes)
-      : [];
-    return list.some(n => n && n.rating != null && Number(n.rating) > 0 && !n.isAutoMissed);
-  }, [task.daily_notes, task.dailyNotes, task.notes]);
-
-  const isDone = task.status === 'done' || task.completed === true || isJustCompleted || (isOverdue && hasRatingNote);
-
-  const isMissed = useMemo(() => {
-    if (isDone || hasRatingNote) return false;
-    if (task.status === 'missed' || task.missed === true || task.wasMissed === true || task.was_missed === true) {
-      return true;
+  const formatDateSafe = (isoStr) => {
+    if (!isoStr) return null;
+    try {
+      const d = typeof isoStr === 'string' ? parseISO(isoStr) : new Date(isoStr);
+      if (isNaN(d.getTime())) return null;
+      return format(d, 'MMM dd, h:mm a');
+    } catch (e) {
+      return null;
     }
-    if (isOverdue) return true;
-    return false;
-  }, [isDone, hasRatingNote, task.status, task.missed, task.wasMissed, task.was_missed, isOverdue]);
-
-  const isCarriedOver = useMemo(() => {
-    if (!task) return false;
-
-    const origDate = getLocalDateStr(task.originalDate || task.original_date);
-    const createdDate = taskCreatedDateStr || '';
-    const viewDate = getLocalDateStr(task.date) || todayDateStr;
-    const dueDateStr = getLocalDateStr(task.dueDateTime || task.due_date_time);
-
-    const startDateStr = origDate || createdDate || viewDate;
-
-    // Single-day tasks created and due on the same day are NOT carried tasks
-    if (startDateStr && dueDateStr && startDateStr === dueDateStr && !Boolean(task.carriedOver || task.carried_over || task.wasCarried || task.isCarried)) {
-      return false;
-    }
-
-    if (Boolean(task.carriedOver || task.carried_over || task.wasCarried || task.isCarried)) {
-      return true;
-    }
-
-    if (origDate && viewDate && origDate < viewDate) return true;
-    if (createdDate && viewDate && createdDate < viewDate) return true;
-
-    return false;
-  }, [task, taskCreatedDateStr, todayDateStr]);
-
-  const checkExtendsBeyondToday = () => {
-    if (isCarriedOver) return true;
-    const dueDateStr = getLocalDateStr(task.dueDateTime || task.due_date_time);
-    if (!dueDateStr) return false;
-
-    const origDate = getLocalDateStr(task.originalDate || task.original_date);
-    const createdDate = taskCreatedDateStr || '';
-    const viewDate = getLocalDateStr(task.date) || todayDateStr;
-    const startDateStr = origDate || createdDate || viewDate;
-
-    // If start date and due date are the exact same day, it is a single-day task
-    if (startDateStr && dueDateStr && startDateStr === dueDateStr) {
-      return false;
-    }
-
-    return dueDateStr > startDateStr;
   };
 
-  const isMultiDayOrCarried = checkExtendsBeyondToday();
+  const formatNoteDate = (isoStr) => {
+    if (!isoStr) return 'Today';
+    try {
+      const d = typeof isoStr === 'string' ? parseISO(isoStr) : new Date(isoStr);
+      if (isNaN(d.getTime())) return 'Today';
+      return format(d, 'MMM dd, yyyy');
+    } catch (e) {
+      return 'Today';
+    }
+  };
 
-  const isRewardClaimed = task.rewardClaimed === true || task.rewardClaimed === 1 || task.rewardClaimed === '1' ||
-                    task.reward_claimed === true || task.reward_claimed === 1 || task.reward_claimed === '1';
-  const isPenaltyAccepted = task.penaltyAccepted === true || task.penaltyAccepted === 1 || task.penaltyAccepted === '1' ||
-                     task.penalty_accepted === true || task.penalty_accepted === 1 || task.penalty_accepted === '1';
+  const formatOrigDate = (dateStr) => {
+    if (!dateStr) return null;
+    try {
+      const d = typeof dateStr === 'string' ? parseISO(dateStr) : new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      return format(d, 'MMM dd, yyyy');
+    } catch (e) {
+      return dateStr;
+    }
+  };
 
-  const ratingNum = task.rating != null && !isNaN(Number(task.rating)) ? Number(task.rating) : null;
+  const createdFormatted = formatDateSafe(getStartDateISO());
+  const completedFormatted = formatDateSafe(task?.completedAt || task?.completed_at);
+  const dueFormatted = formatDateSafe(task?.dueDateTime || task?.due_date_time);
+
+  const isRewardClaimed = Boolean(task?.rewardClaimed === true || task?.rewardClaimed === 1 || task?.rewardClaimed === '1' ||
+                    task?.reward_claimed === true || task?.reward_claimed === 1 || task?.reward_claimed === '1');
+  const isPenaltyAccepted = Boolean(task?.penaltyAccepted === true || task?.penaltyAccepted === 1 || task?.penaltyAccepted === '1' ||
+                     task?.penalty_accepted === true || task?.penalty_accepted === 1 || task?.penalty_accepted === '1');
+
+  const ratingNum = task?.rating != null && !isNaN(Number(task.rating)) ? Number(task.rating) : null;
   const hasLowRatingPenalty = (isDone || isMissed) && (ratingNum == null || ratingNum <= 4.0);
   const hasHighRatingReward = isDone && (ratingNum == null || ratingNum > 4.0);
 
-  const hasReward = Boolean(task.reward && hasHighRatingReward);
-  const hasPenalty = Boolean((task.penalty || (isMissed && (ratingDisplay || !effectiveIsToday))) && (isMissed || hasLowRatingPenalty));
+  const hasReward = Boolean(task?.reward && hasHighRatingReward);
+  const hasPenalty = Boolean((task?.penalty || (isMissed && (ratingDisplay || !effectiveIsToday))) && (isMissed || hasLowRatingPenalty));
 
   const hasUnclaimedReward = Boolean(hasReward && !isRewardClaimed);
   const hasUnacknowledgedPenalty = Boolean(hasPenalty && !isPenaltyAccepted);
@@ -419,16 +311,112 @@ function TaskCard({
 
   const isFutureDueTask = useMemo(() => {
     if (isDone) return false;
-    const dueIso = task.dueDateTime || task.due_date_time;
+    const dueIso = task?.dueDateTime || task?.due_date_time;
     if (dueIso) {
       try {
         const dueObj = typeof dueIso === 'string' ? parseISO(dueIso) : new Date(dueIso);
-        const dueDateStr = format(dueObj, 'yyyy-MM-dd');
-        if (dueDateStr > todayDateStr) return true;
+        if (!isNaN(dueObj.getTime())) {
+          const dueDateStr = format(dueObj, 'yyyy-MM-dd');
+          if (dueDateStr > todayDateStr) return true;
+        }
       } catch (e) {}
     }
     return false;
-  }, [isDone, task.dueDateTime, task.due_date_time, todayDateStr]);
+  }, [isDone, task?.dueDateTime, task?.due_date_time, todayDateStr]);
+
+  const getCheckboxClass = () => {
+    if (isMissed) return 'missed-check';
+    switch (task?.status) {
+      case 'inprogress': return 'half-filled';
+      case 'done': return 'checked';
+      case 'missed': return 'missed-check';
+      default: return 'empty';
+    }
+  };
+
+  const handleClaimReward = async () => {
+    if (!onClaimReward || claiming || !task) return;
+    setClaiming(true);
+    try {
+      await onClaimReward(task);
+    } finally {
+      setClaiming(false);
+    }
+  };
+
+  const handleAcceptPenalty = async () => {
+    if (!onAcceptPenalty || accepting || !task) return;
+    setAccepting(true);
+    try {
+      await onAcceptPenalty(task);
+    } finally {
+      setAccepting(false);
+    }
+  };
+
+  const handleNoteSubmit = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (!newNoteText.trim() || submittingNote || !onAddDailyNote || !effectiveIsToday || isDone || isMissed || hasNoteForToday || !task) return;
+    setSubmittingNote(true);
+    try {
+      await onAddDailyNote(task, newNoteText.trim(), dailyRating);
+      setNewNoteText('');
+      setShowNotesInput(false);
+    } catch (err) {
+      console.error('Add daily note error:', err);
+    } finally {
+      setSubmittingNote(false);
+    }
+  };
+
+  if (!task) return null;
+
+  if (task.isOptimistic) {
+    return (
+      <div
+        className="task-card card-glass animate-slide-up"
+        style={{
+          border: '1px solid rgba(99, 102, 241, 0.45)',
+          background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(168, 85, 247, 0.08) 100%)',
+          boxShadow: '0 8px 24px rgba(99, 102, 241, 0.18)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '14px',
+          padding: '14px 18px',
+          borderRadius: 'var(--radius-lg)',
+          marginBottom: '12px',
+          animation: 'optimisticPulse 1.8s ease-in-out infinite'
+        }}
+      >
+        <div style={{
+          width: '26px',
+          height: '26px',
+          borderRadius: '50%',
+          border: '2px solid rgba(99, 102, 241, 0.5)',
+          background: 'rgba(99, 102, 241, 0.15)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0
+        }}>
+          <Loader2 size={14} className="btn-spinner" style={{ color: 'var(--accent-primary)' }} />
+        </div>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#f8fafc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {task.title}
+            </span>
+            <span className="badge badge-pri" style={{ fontSize: '0.68rem', padding: '2px 8px', borderRadius: '10px', whiteSpace: 'nowrap' }}>
+              Adding...
+            </span>
+          </div>
+          <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+            Syncing task...
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   const cycleStatus = async () => {
     if (task.status === 'done' || isUpdatingStatus || isFutureDueTask) return;

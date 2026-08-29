@@ -1,28 +1,9 @@
 import { format, parseISO } from 'date-fns';
 import { calculateDailyScore } from './scoring';
 import { getApiBaseUrl, safeJsonParse } from '../utils/api';
+import { getLocalDateStr } from '../utils/taskUtils';
 
-export const getLocalDateStr = (val) => {
-  if (!val) return '';
-  if (typeof val === 'string') {
-    const trimmed = val.trim();
-    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
-      return trimmed;
-    }
-    try {
-      const parsed = parseISO(trimmed);
-      if (!isNaN(parsed.getTime())) {
-        return format(parsed, 'yyyy-MM-dd');
-      }
-    } catch (e) {}
-    if (trimmed.length >= 10 && /^\d{4}-\d{2}-\d{2}/.test(trimmed)) {
-      return trimmed.substring(0, 10);
-    }
-  } else if (val instanceof Date && !isNaN(val.getTime())) {
-    return format(val, 'yyyy-MM-dd');
-  }
-  return '';
-};
+export { getLocalDateStr };
 
 export const getDateKey = (date) => getLocalDateStr(date) || format(new Date(), 'yyyy-MM-dd');
 
@@ -79,49 +60,64 @@ export function getTasks(dateStr) {
     return taskMemoryCache.get(cacheKey);
   }
 
-  const data = localStorage.getItem(`dayscore_${uid}_tasks_${cleanDate}`);
-  let tasks = data ? JSON.parse(data) : [];
+  let tasks = [];
+  try {
+    const data = localStorage.getItem(`dayscore_${uid}_tasks_${cleanDate}`);
+    if (data) {
+      const parsed = JSON.parse(data);
+      tasks = Array.isArray(parsed) ? parsed : [];
+    }
+  } catch (e) {
+    tasks = [];
+  }
 
   if (cleanDate === todayStr) {
     const prefix = `dayscore_${uid}_tasks_`;
     const pastCarried = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith(prefix) && key !== `dayscore_${uid}_tasks_${todayStr}`) {
-        const pastDate = key.replace(prefix, '').trim().substring(0, 10);
-        if (pastDate < todayStr) {
-          try {
-            const pastList = JSON.parse(localStorage.getItem(key)) || [];
-            pastList.forEach(t => {
-              const dueIso = t.dueDateTime || t.due_date_time;
-              let shouldCarry = true;
-              if (dueIso) {
-                try {
-                  const dueObj = typeof dueIso === 'string' ? parseISO(dueIso) : new Date(dueIso);
-                  const dueDateStr = format(dueObj, 'yyyy-MM-dd');
-                  if (dueDateStr < todayStr) shouldCarry = false;
-                } catch (e) {}
-              }
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith(prefix) && key !== `dayscore_${uid}_tasks_${todayStr}`) {
+          const pastDate = key.replace(prefix, '').trim().substring(0, 10);
+          if (pastDate < todayStr) {
+            try {
+              const rawPast = localStorage.getItem(key);
+              const parsed = rawPast ? JSON.parse(rawPast) : [];
+              const pastList = Array.isArray(parsed) ? parsed : [];
+              pastList.forEach(t => {
+                if (!t) return;
+                const dueIso = t.dueDateTime || t.due_date_time;
+                let shouldCarry = true;
+                if (dueIso) {
+                  try {
+                    const dueObj = typeof dueIso === 'string' ? parseISO(dueIso) : new Date(dueIso);
+                    if (!isNaN(dueObj.getTime())) {
+                      const dueDateStr = format(dueObj, 'yyyy-MM-dd');
+                      if (dueDateStr < todayStr) shouldCarry = false;
+                    }
+                  } catch (e) {}
+                }
 
-              const completedDate = t.completedAt ? String(t.completedAt).substring(0, 10) : (t.completed_at ? String(t.completed_at).substring(0, 10) : '');
-              const isCompletedToday = (t.status === 'done' || t.completed === true) && completedDate === todayStr;
+                const completedDate = t.completedAt ? String(t.completedAt).substring(0, 10) : (t.completed_at ? String(t.completed_at).substring(0, 10) : '');
+                const isCompletedToday = (t.status === 'done' || t.completed === true) && completedDate === todayStr;
 
-              if (shouldCarry && (t.status !== 'done' || isCompletedToday)) {
-                pastCarried.push({
-                  ...t,
-                  date: todayStr,
-                  status: t.status || 'pending',
-                  carriedOver: true,
-                  carried_over: 1,
-                  originalDate: t.originalDate || t.original_date || pastDate,
-                  original_date: t.originalDate || t.original_date || pastDate
-                });
-              }
-            });
-          } catch (e) {}
+                if (shouldCarry && (t.status !== 'done' || isCompletedToday)) {
+                  pastCarried.push({
+                    ...t,
+                    date: todayStr,
+                    status: t.status || 'pending',
+                    carriedOver: true,
+                    carried_over: 1,
+                    originalDate: t.originalDate || t.original_date || pastDate,
+                    original_date: t.originalDate || t.original_date || pastDate
+                  });
+                }
+              });
+            } catch (e) {}
+          }
         }
       }
-    }
+    } catch (e) {}
 
     if (pastCarried.length > 0) {
       const existingIds = new Set(tasks.map(t => String(t.id || t._id)));
@@ -135,7 +131,9 @@ export function getTasks(dateStr) {
         }
       });
       if (added) {
-        localStorage.setItem(`dayscore_${uid}_tasks_${cleanDate}`, JSON.stringify(tasks));
+        try {
+          localStorage.setItem(`dayscore_${uid}_tasks_${cleanDate}`, JSON.stringify(tasks));
+        } catch (e) {}
       }
     }
   }
@@ -515,8 +513,14 @@ export function isRewardsCached() {
 
 export function getRewards() {
   const uid = getUserId();
-  const data = localStorage.getItem(`dayscore_${uid}_rewards`);
-  return data ? JSON.parse(data) : [];
+  try {
+    const data = localStorage.getItem(`dayscore_${uid}_rewards`);
+    if (!data) return [];
+    const parsed = JSON.parse(data);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    return [];
+  }
 }
 
 export async function fetchRewardsApi() {
@@ -718,14 +722,26 @@ export function acknowledgePunishment() {
 
 export function getStreakMilestoneRewards() {
   const uid = getUserId();
-  const data = localStorage.getItem(`dayscore_${uid}_streak_milestones`);
-  return data ? JSON.parse(data) : { 7: '', 14: '', 30: '', 100: '' };
+  try {
+    const data = localStorage.getItem(`dayscore_${uid}_streak_milestones`);
+    if (!data) return { 7: '', 14: '', 30: '', 100: '' };
+    const parsed = JSON.parse(data);
+    return (parsed && typeof parsed === 'object') ? parsed : { 7: '', 14: '', 30: '', 100: '' };
+  } catch (e) {
+    return { 7: '', 14: '', 30: '', 100: '' };
+  }
 }
 
 export function getClaimedStreakMilestones() {
   const uid = getUserId();
-  const data = localStorage.getItem(`dayscore_${uid}_claimed_streak_milestones`);
-  return data ? JSON.parse(data) : { 7: false, 14: false, 30: false, 100: false };
+  try {
+    const data = localStorage.getItem(`dayscore_${uid}_claimed_streak_milestones`);
+    if (!data) return { 7: false, 14: false, 30: false, 100: false };
+    const parsed = JSON.parse(data);
+    return (parsed && typeof parsed === 'object') ? parsed : { 7: false, 14: false, 30: false, 100: false };
+  } catch (e) {
+    return { 7: false, 14: false, 30: false, 100: false };
+  }
 }
 
 export function saveStreakMilestoneRewards(milestones, claimed = null) {
@@ -1009,9 +1025,15 @@ export function isSettingsCached() {
 
 export function getSettings() {
   const uid = getUserId();
-  const data = localStorage.getItem(`dayscore_${uid}_settings`);
   const defaults = { theme: 'dark', notifications: false, reminderLeadTime: 30 };
-  return data ? { ...defaults, ...JSON.parse(data) } : defaults;
+  try {
+    const data = localStorage.getItem(`dayscore_${uid}_settings`);
+    if (!data) return defaults;
+    const parsed = JSON.parse(data);
+    return (parsed && typeof parsed === 'object') ? { ...defaults, ...parsed } : defaults;
+  } catch (e) {
+    return defaults;
+  }
 }
 
 export async function fetchSettingsApi() {

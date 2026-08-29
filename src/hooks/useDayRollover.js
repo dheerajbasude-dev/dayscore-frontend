@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { format } from 'date-fns';
 import { saveTasks } from '../store/store';
-import { calculateTaskAutoRating } from '../pages/TodayView';
+import { calculateTaskAutoRating } from '../utils/taskUtils';
 
 export function useDayRollover(currentDateStr, tasks, onRollover, onTasksUpdated) {
   const lastSystemDateRef = useRef(format(new Date(), 'yyyy-MM-dd'));

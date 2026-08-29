@@ -44,9 +44,15 @@ export function calculateDailyScore(tasks) {
         totalTaskPoints += 10;
       }
       if (task.dueDateTime && task.completedAt) {
-        if (isAfter(parseISO(task.completedAt), parseISO(task.dueDateTime))) {
-          allDoneOnTime = false;
-        }
+        try {
+          const compDate = parseISO(task.completedAt);
+          const dueDate = parseISO(task.dueDateTime);
+          if (!isNaN(compDate.getTime()) && !isNaN(dueDate.getTime())) {
+            if (isAfter(compDate, dueDate)) {
+              allDoneOnTime = false;
+            }
+          }
+        } catch (e) {}
       }
     } else if (task.status === 'missed') {
       missedCount++;
@@ -437,9 +443,13 @@ export function getMostMissedTimeOfDay(archives) {
     if (archive.tasks) {
       for (const task of archive.tasks) {
         if (task.status === 'missed' && task.dueDateTime) {
-          const date = parseISO(task.dueDateTime);
-          const hour = date.getHours();
-          hourCounts[hour] = (hourCounts[hour] || 0) + 1;
+          try {
+            const date = parseISO(task.dueDateTime);
+            if (!isNaN(date.getTime())) {
+              const hour = date.getHours();
+              hourCounts[hour] = (hourCounts[hour] || 0) + 1;
+            }
+          } catch (e) {}
         }
       }
     }
