@@ -62,10 +62,6 @@ export function calculateDailyScore(tasks) {
       if (isPastDate) {
         evaluatedCount++;
         totalTaskPoints += (task.rating != null && !isNaN(Number(task.rating))) ? Number(task.rating) : 0;
-      } else if (task.rating != null && !isNaN(Number(task.rating))) {
-        // On Today, if missed task has been rated by user (including 0), factor it into score!
-        evaluatedCount++;
-        totalTaskPoints += Number(task.rating);
       }
       // On Today (active day before EOD), unrated missed task (status === 'missed')
       // shows clean circle for user to rate, and is NOT factored into daily score until rated or day is overed!
@@ -139,7 +135,7 @@ export function calculateOverallAverageTaskScore(archives = [], todayTasks = [])
       if (isPastDate) {
         evaluatedCount++;
         totalTaskPoints += (task.rating != null && !isNaN(Number(task.rating))) ? Number(task.rating) : 0;
-      } else if (task.rating != null && !isNaN(Number(task.rating))) {
+      } else if (task.rating != null && !isNaN(Number(task.rating)) && Number(task.rating) > 0) {
         evaluatedCount++;
         totalTaskPoints += Number(task.rating);
       }
@@ -163,21 +159,16 @@ export function getRollingAverage(archives = [], days = 0, todayTasks = []) {
   const archiveMap = new Map();
   validArchives.forEach(a => {
     const cleanDate = a.date.includes('T') ? a.date.split('T')[0] : a.date.trim().substring(0, 10);
-    let scoreVal = null;
-    if (a.score != null && !isNaN(Number(a.score))) {
-      scoreVal = Number(a.score);
-    } else if (Array.isArray(a.tasks) && a.tasks.length > 0) {
+    let scoreVal = Number(a.score) || 0;
+    if (!scoreVal && Array.isArray(a.tasks) && a.tasks.length > 0) {
       scoreVal = calculateDailyScore(a.tasks).score;
     }
-    if (scoreVal != null) {
-      archiveMap.set(cleanDate, scoreVal);
-    }
+    archiveMap.set(cleanDate, scoreVal);
   });
 
   if (Array.isArray(todayTasks) && todayTasks.length > 0) {
-    const hasEvaluated = todayTasks.some(t => t.status === 'done' || (t.status === 'missed' && t.rating != null));
-    if (hasEvaluated) {
-      const todayResult = calculateDailyScore(todayTasks);
+    const todayResult = calculateDailyScore(todayTasks);
+    if (todayResult.score > 0) {
       archiveMap.set(todayStr, todayResult.score);
     }
   }
@@ -191,7 +182,7 @@ export function getRollingAverage(archives = [], days = 0, todayTasks = []) {
   let count = 0;
 
   for (const [dateStr, score] of archiveMap.entries()) {
-    if (score == null || isNaN(score)) continue;
+    if (!score || score <= 0) continue;
     try {
       const archiveDate = parseISO(dateStr);
       if (isNaN(archiveDate.getTime())) continue;
