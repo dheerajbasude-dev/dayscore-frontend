@@ -100,7 +100,7 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!title.trim()) return;
 
@@ -117,14 +117,18 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
       return;
     }
 
-    onAdd({
-      title: title.trim(),
-      category,
-      priority,
-      dueDateTime: dueObj.toISOString(),
-      status: 'pending'
-    });
-    onClose();
+    try {
+      await onAdd({
+        title: title.trim(),
+        category,
+        priority,
+        dueDateTime: dueObj.toISOString(),
+        status: 'pending'
+      });
+      onClose();
+    } catch (err) {
+      // Handled by onAdd / toast; keep modal open so user does not lose input
+    }
   };
 
   const applyTemplate = (tpl) => {

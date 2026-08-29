@@ -454,12 +454,14 @@ function TaskCard({
         const count = listToUse.length || 1;
         const computedAvg = hasRated ? Math.round((sumRating / count) * 10) / 10 : 8.0;
 
-        setIsJustCompleted(true);
         try {
           await onAutoCompleteWithRating(task, computedAvg);
         } catch (err) {
           console.error('Auto completion error:', err);
           setIsJustCompleted(false);
+          if (onShowToast) {
+            onShowToast(err.message || "Couldn't complete task — check your connection and try again");
+          }
         }
         return;
       }

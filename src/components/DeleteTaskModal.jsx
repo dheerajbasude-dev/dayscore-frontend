@@ -22,7 +22,11 @@ export default function DeleteTaskModal({ isOpen = true, task, onClose, onConfir
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!isConfirmEnabled || isDeleting) return;
-    await onConfirmDelete(task);
+    try {
+      await onConfirmDelete(task);
+    } catch (err) {
+      // Handled by onConfirmDelete / toast
+    }
   };
 
   return createPortal(

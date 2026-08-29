@@ -62,9 +62,9 @@ export default function MissedTasksModal({
   const handleComplete = async (task) => {
     const id = task.id || task._id;
     setProcessingId(`complete_${id}`);
-    setLocalRemovedIds(prev => new Set(prev).add(id));
     try {
       await onCompleteTask(task);
+      setLocalRemovedIds(prev => new Set(prev).add(id));
     } catch (e) {
       console.error('Complete task error:', e);
     } finally {
@@ -75,9 +75,9 @@ export default function MissedTasksModal({
   const handleDelete = async (task) => {
     const id = task.id || task._id;
     setProcessingId(`delete_${id}`);
-    setLocalRemovedIds(prev => new Set(prev).add(id));
     try {
       await onDeleteTask(task);
+      setLocalRemovedIds(prev => new Set(prev).add(id));
     } catch (e) {
       console.error('Delete task error:', e);
     } finally {
@@ -88,14 +88,14 @@ export default function MissedTasksModal({
   const handleBulkCarryOver = async () => {
     if (bulkProcessing) return;
     setBulkProcessing(true);
-    const allIds = activeUnfinishedTasks.map(t => t.id || t._id);
-    setLocalRemovedIds(prev => {
-      const next = new Set(prev);
-      allIds.forEach(id => next.add(id));
-      return next;
-    });
     try {
       await onCarryOverAll();
+      const allIds = activeUnfinishedTasks.map(t => t.id || t._id);
+      setLocalRemovedIds(prev => {
+        const next = new Set(prev);
+        allIds.forEach(id => next.add(id));
+        return next;
+      });
     } catch (e) {
       console.error('Bulk carry over error:', e);
     } finally {

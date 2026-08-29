@@ -177,44 +177,53 @@ export async function fetchAllTasksApi() {
       const serverTasks = (data.tasks || []).map(formatServerTask);
       const todayStr = format(new Date(), 'yyyy-MM-dd');
 
+      // Server-persisted carry-over for eligible past tasks
+      const carryOverPromises = [];
+      serverTasks.forEach(t => {
+        const d = getLocalDateStr(t.date) || todayStr;
+        if (d < todayStr) {
+          const isAlreadyCarried = Boolean(t.carriedOver || t.carried_over || t.wasCarried || t.isCarried || (t.originalDate && getLocalDateStr(t.originalDate) < todayStr));
+          if (isAlreadyCarried) return;
+
+          const dueDateStr = getLocalDateStr(t.dueDateTime || t.due_date_time);
+          let shouldCarry = true;
+          if (dueDateStr && dueDateStr < todayStr) shouldCarry = false;
+
+          const completedDate = getLocalDateStr(t.completedAt || t.completed_at);
+          const isCompletedToday = (t.status === 'done' || t.completed === true) && completedDate === todayStr;
+
+          if (shouldCarry && (t.status !== 'done' || isCompletedToday)) {
+            const targetId = t.id || t._id;
+            const origDate = t.originalDate || t.original_date || d;
+            const updates = {
+              date: todayStr,
+              carriedOver: true,
+              carried_over: 1,
+              originalDate: origDate,
+              original_date: origDate
+            };
+            Object.assign(t, updates);
+            carryOverPromises.push(
+              authFetch(`/api/tasks/${targetId}`, {
+                method: 'PUT',
+                body: JSON.stringify(updates)
+              }).catch(err => console.error('Carry-over update error for task', targetId, err))
+            );
+          }
+        }
+      });
+
+      if (carryOverPromises.length > 0) {
+        await Promise.all(carryOverPromises);
+      }
+
       const tasksByDate = new Map();
       serverTasks.forEach(t => {
-        const d = t.date || todayStr;
+        const d = getLocalDateStr(t.date) || todayStr;
         if (!tasksByDate.has(d)) {
           tasksByDate.set(d, []);
         }
         tasksByDate.get(d).push(t);
-      });
-
-      // Synchronously assign carried-over tasks to todayStr
-      tasksByDate.forEach((tasksList, d) => {
-        if (d < todayStr) {
-          tasksList.forEach(t => {
-            const dueDateStr = getLocalDateStr(t.dueDateTime || t.due_date_time);
-            let shouldCarry = true;
-            if (dueDateStr && dueDateStr < todayStr) shouldCarry = false;
-
-            const completedDate = getLocalDateStr(t.completedAt || t.completed_at);
-            const isCompletedToday = (t.status === 'done' || t.completed === true) && completedDate === todayStr;
-
-            if (shouldCarry && (t.status !== 'done' || isCompletedToday)) {
-              const todayList = tasksByDate.get(todayStr) || [];
-              const targetId = t.id || t._id;
-              const alreadyExists = todayList.some(ex => (ex.id || ex._id) === targetId);
-              if (!alreadyExists) {
-                todayList.push({
-                  ...t,
-                  date: todayStr,
-                  wasCarried: true,
-                  carriedOver: true,
-                  carried_over: 1,
-                  originalDate: t.originalDate || t.original_date || d
-                });
-                tasksByDate.set(todayStr, todayList);
-              }
-            }
-          });
-        }
       });
 
       // Clear local task cache for this user to remove stale/guest/un-synced items

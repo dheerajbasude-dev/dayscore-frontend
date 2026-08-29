@@ -18,6 +18,7 @@ import * as scoring from '../store/scoring'
 import { useDayRollover } from '../hooks/useDayRollover'
 import { useNotifications } from '../hooks/useNotifications'
 import { useAuth } from '../context/AuthContext'
+import { useToast } from '../context/ToastContext'
 
 import { getLocalDateStr, calculateTaskAutoRating } from '../utils/taskUtils'
 
@@ -25,6 +26,7 @@ export { getLocalDateStr, calculateTaskAutoRating }
 
 export default function TodayView() {
   const { user } = useAuth()
+  const { showToast } = useToast()
   const realTodayStr = format(new Date(), 'yyyy-MM-dd')
   const [todayStr, setTodayStr] = useState(realTodayStr)
 
@@ -274,7 +276,6 @@ export default function TodayView() {
   const [todaysReward, setTodaysReward] = useState(null)
   const [settings, setSettings] = useState({ notifications: false })
   const [loading, setLoading] = useState(true)
-  const [dateWarningToast, setDateWarningToast] = useState(null)
   const [autoCarriedToastInfo, setAutoCarriedToastInfo] = useState(null)
   const [taskToDelete, setTaskToDelete] = useState(null)
   const [isDeletingTask, setIsDeletingTask] = useState(false)
@@ -856,38 +857,16 @@ export default function TodayView() {
   useNotifications(tasks, settings.notifications, settings.reminderLeadTime ?? 30)
 
   const handleAddTask = async (newTask) => {
-    // 1. Close modal instantly for 0ms delay UX
-    setShowAddModal(false);
-
-    // 2. Create optimistic task object
-    const tempId = `temp-add-${Date.now()}`;
-    const optimisticTask = {
-      id: tempId,
-      _id: tempId,
-      title: newTask.title,
-      category: newTask.category || 'General',
-      priority: newTask.priority || 'Med',
-      dueDateTime: newTask.dueDateTime || null,
-      due_date_time: newTask.dueDateTime || null,
-      status: 'pending',
-      date: todayStr,
-      isOptimistic: true,
-      createdAt: new Date().toISOString()
-    };
-
-    // 3. Insert optimistic task immediately into UI state
-    setTasks(prev => [optimisticTask, ...prev]);
-
     try {
-      // 4. Save to backend API and sync store
       await store.addTask(todayStr, newTask);
       await store.fetchAllTasksApi();
-    } catch (err) {
-      console.error('Failed to save task:', err);
-    } finally {
-      // 5. Replace optimistic task with actual server task from store
       setTasks(store.getTasks(currentDateStr));
       setArchives(store.getAllArchives());
+      setShowAddModal(false);
+    } catch (err) {
+      console.error('Failed to save task:', err);
+      showToast("Couldn't save task — check your connection and try again", 'error');
+      throw err;
     }
   };
 
@@ -896,41 +875,51 @@ export default function TodayView() {
     const targetId = task.id || task._id;
     const sourceDate = task.sourceDate || task.date || task.dateLabel || currentDateStr;
 
-    // 1. Mark past task as missed on its original date
-    await store.updateTask(sourceDate, targetId, { status: 'missed' });
+    try {
+      // 1. Mark past task as missed on its original date
+      await store.updateTask(sourceDate, targetId, { status: 'missed' });
 
-    // 2. Create new pending task on TODAY's date (todayStr)
-    const newTask = {
-      title: task.title,
-      category: task.category || 'Work',
-      priority: task.priority || 'Med',
-      dueDateTime: task.dueDateTime || task.due_date_time || null,
-      due_date_time: task.dueDateTime || task.due_date_time || null,
-      status: 'pending',
-      createdAt: new Date().toISOString()
-    };
+      // 2. Create new pending task on TODAY's date (todayStr)
+      const newTask = {
+        title: task.title,
+        category: task.category || 'Work',
+        priority: task.priority || 'Med',
+        dueDateTime: task.dueDateTime || task.due_date_time || null,
+        due_date_time: task.dueDateTime || task.due_date_time || null,
+        status: 'pending',
+        createdAt: new Date().toISOString()
+      };
 
-    await store.addTask(todayStr, newTask);
-    await store.fetchAllTasksApi();
+      await store.addTask(todayStr, newTask);
+      await store.fetchAllTasksApi();
 
-    // 3. Refresh local view state
-    setTasks(store.getTasks(currentDateStr));
-    setArchives(store.getAllArchives());
-  }
+      // 3. Refresh local view state
+      setTasks(store.getTasks(currentDateStr));
+      setArchives(store.getAllArchives());
+    } catch (err) {
+      console.error('Failed to carry over task:', err);
+      showToast("Couldn't carry over task — check your connection and try again", 'error');
+    }
+  };
 
   const handleDismissCarryOver = async (task) => {
     if (!task) return;
     const targetId = task.id || task._id;
     const sourceDate = task.sourceDate || task.date || task.dateLabel || currentDateStr;
 
-    // Mark past task as missed on its original date
-    await store.updateTask(sourceDate, targetId, { status: 'missed' });
-    await store.fetchAllTasksApi();
+    try {
+      // Mark past task as missed on its original date
+      await store.updateTask(sourceDate, targetId, { status: 'missed' });
+      await store.fetchAllTasksApi();
 
-    // Refresh local view state
-    setTasks(store.getTasks(currentDateStr));
-    setArchives(store.getAllArchives());
-  }
+      // Refresh local view state
+      setTasks(store.getTasks(currentDateStr));
+      setArchives(store.getAllArchives());
+    } catch (err) {
+      console.error('Failed to dismiss carry over:', err);
+      showToast("Couldn't update task — check your connection and try again", 'error');
+    }
+  };
 
   const isTaskTimeOver = useCallback((task) => {
     if (!task) return false;
@@ -1130,11 +1119,15 @@ export default function TodayView() {
       }
     }
 
-    await store.updateTask(taskDate, targetId, updates);
-
-    await store.fetchAllTasksApi();
-    setTasks(store.getTasks(currentDateStr));
-    setArchives(store.getAllArchives());
+    try {
+      await store.updateTask(taskDate, targetId, updates);
+      await store.fetchAllTasksApi();
+      setTasks(store.getTasks(currentDateStr));
+      setArchives(store.getAllArchives());
+    } catch (err) {
+      console.error('Failed to save daily note:', err);
+      showToast("Couldn't save note — check your connection and try again", 'error');
+    }
   };
 
   const handleAutoCompleteWithRating = async (task, computedRating) => {
@@ -1167,18 +1160,16 @@ export default function TodayView() {
       updates.penaltyAccepted = false
       updates.penalty_accepted = 0
     }
-    await store.updateTask(taskDate, taskId, updates)
-    await store.fetchAllTasksApi()
-    setTasks(store.getTasks(currentDateStr))
-    setArchives(store.getAllArchives())
+    try {
+      await store.updateTask(taskDate, taskId, updates)
+      await store.fetchAllTasksApi()
+      setTasks(store.getTasks(currentDateStr))
+      setArchives(store.getAllArchives())
+    } catch (err) {
+      console.error('Failed to update task status:', err);
+      showToast("Couldn't update task — check your connection and try again", 'error');
+    }
   }
-
-  const showToast = useCallback((msg) => {
-    setDateWarningToast(msg);
-    setTimeout(() => {
-      setDateWarningToast(prev => (prev === msg ? null : prev));
-    }, 4000);
-  }, []);
 
   // Rating flow: open slider modal instead of directly completing
   const handleRequestComplete = (task) => {
@@ -1291,42 +1282,40 @@ export default function TodayView() {
       dailyNotes: targetTask?.daily_notes || targetTask?.dailyNotes || []
     };
 
-    // 0ms Optimistic UI update so UI changes INSTANTLY without F5 refresh
-    setTasks(prev => prev.map(t => {
-      if (String(t.id || t._id) === String(targetId)) {
-        return { ...t, ...updates };
-      }
-      return t;
-    }));
+    try {
+      await store.updateTask(taskDate, targetId, updates);
+      await store.fetchAllTasksApi();
+      setTasks(store.getTasks(currentDateStr));
+      setArchives(store.getAllArchives());
 
-    // Close the rating modal FIRST so UI resets immediately
-    setRatingTask(null);
+      // Close modal on success
+      setRatingTask(null);
 
-    await store.updateTask(taskDate, targetId, updates);
-    await store.fetchAllTasksApi();
-    setTasks(store.getTasks(currentDateStr));
-    setArchives(store.getAllArchives());
+      // After modal closes, trigger rewards/penalties banner & animations
+      const pendingPenalty = taskPenalty;
+      const pendingReward = taskReward;
+      const pendingTriggerPenalty = shouldTriggerPenalty;
+      const pendingTriggerReward = shouldTriggerReward;
 
-    // After modal closes, trigger rewards/penalties banner & animations
-    const pendingPenalty = taskPenalty;
-    const pendingReward = taskReward;
-    const pendingTriggerPenalty = shouldTriggerPenalty;
-    const pendingTriggerReward = shouldTriggerReward;
-
-    setTimeout(() => {
-      if (pendingTriggerPenalty && pendingPenalty) {
-        store.setActivePunishment(pendingPenalty)
-        setActivePunishment(store.getActivePunishment())
-        setShowConfetti(false)
-        setShowPenaltyFlash(true)
-        setTimeout(() => setShowPenaltyFlash(false), 3000)
-      } else if (pendingTriggerReward && pendingReward) {
-        setTodaysReward(pendingReward)
-        setShowPenaltyFlash(false)
-        setShowConfetti(true)
-        setTimeout(() => setShowConfetti(false), 3000)
-      }
-    }, 150)
+      setTimeout(() => {
+        if (pendingTriggerPenalty && pendingPenalty) {
+          store.setActivePunishment(pendingPenalty)
+          setActivePunishment(store.getActivePunishment())
+          setShowConfetti(false)
+          setShowPenaltyFlash(true)
+          setTimeout(() => setShowPenaltyFlash(false), 3000)
+        } else if (pendingTriggerReward && pendingReward) {
+          setTodaysReward(pendingReward)
+          setShowPenaltyFlash(false)
+          setShowConfetti(true)
+          setTimeout(() => setShowConfetti(false), 3000)
+        }
+      }, 150)
+    } catch (err) {
+      console.error('Failed to complete task:', err);
+      showToast("Couldn't save — check your connection and try again", 'error');
+      throw err;
+    }
   }
 
   const handleRatingCancel = () => {
@@ -1347,19 +1336,19 @@ export default function TodayView() {
     const taskDate = task.date || task.dateLabel || currentDateStr;
 
     setIsDeletingTask(true);
-    // 0ms Optimistic removal: remove task from React state instantly so layout collapses with 0ms gap delay!
-    setTasks(prev => prev.filter(t => String(t.id || t._id) !== String(taskId)));
 
     try {
       await store.deleteTask(taskDate, taskId);
       await store.fetchAllTasksApi();
-    } catch (err) {
-      console.error('Delete task error:', err);
-    } finally {
       setTasks(store.getTasks(currentDateStr));
       setArchives(store.getAllArchives());
-      setIsDeletingTask(false);
       setTaskToDelete(null);
+    } catch (err) {
+      console.error('Delete task error:', err);
+      showToast("Couldn't delete task — check your connection and try again", 'error');
+      throw err;
+    } finally {
+      setIsDeletingTask(false);
     }
   };
 
@@ -1392,6 +1381,9 @@ export default function TodayView() {
       const freshTasks = await store.fetchTasksApi(currentDateStr);
       setTasks(freshTasks);
       setActivePunishment(null);
+    } catch (err) {
+      console.error('Acknowledge punishment error:', err);
+      showToast("Couldn't update punishment — check your connection and try again", 'error');
     } finally {
       setAckPunishmentLoading(false);
     }
@@ -1425,6 +1417,9 @@ export default function TodayView() {
 
       const freshTasks = await store.fetchTasksApi(currentDateStr);
       setTasks(freshTasks);
+    } catch (err) {
+      console.error('Acknowledge reward error:', err);
+      showToast("Couldn't acknowledge reward — check your connection and try again", 'error');
     } finally {
       setAckRewardLoading(false);
     }
@@ -1435,19 +1430,24 @@ export default function TodayView() {
     const targetId = isObject ? (taskOrId.id || taskOrId._id) : taskOrId;
     const targetDate = isObject ? (taskOrId.date || taskOrId.dateLabel || currentDateStr) : currentDateStr;
 
-    await store.updateTask(targetDate, targetId, {
-      rewardClaimed: true,
-      reward_claimed: 1,
-      rewardAcknowledged: true,
-      reward_acknowledged: 1,
-      penaltyAccepted: false,
-      penalty_accepted: 0,
-      rewardClaimedAt: new Date().toISOString()
-    })
-    await store.fetchAllTasksApi()
-    setTasks(store.getTasks(currentDateStr))
-    setArchives(store.getAllArchives())
-    setTodaysReward(null)
+    try {
+      await store.updateTask(targetDate, targetId, {
+        rewardClaimed: true,
+        reward_claimed: 1,
+        rewardAcknowledged: true,
+        reward_acknowledged: 1,
+        penaltyAccepted: false,
+        penalty_accepted: 0,
+        rewardClaimedAt: new Date().toISOString()
+      });
+      await store.fetchAllTasksApi();
+      setTasks(store.getTasks(currentDateStr));
+      setArchives(store.getAllArchives());
+      setTodaysReward(null);
+    } catch (err) {
+      console.error('Claim reward error:', err);
+      showToast("Couldn't claim reward — check your connection and try again", 'error');
+    }
   }
 
   const handleAcceptTaskPenalty = async (taskOrId) => {
@@ -1455,19 +1455,24 @@ export default function TodayView() {
     const targetId = isObject ? (taskOrId.id || taskOrId._id) : taskOrId;
     const targetDate = isObject ? (taskOrId.date || taskOrId.dateLabel || currentDateStr) : currentDateStr;
 
-    await store.updateTask(targetDate, targetId, {
-      penaltyAccepted: true,
-      penalty_accepted: 1,
-      rewardClaimed: false,
-      reward_claimed: 0,
-      penaltyAcceptedAt: new Date().toISOString()
-    })
-    await store.fetchAllTasksApi()
-    setTasks(store.getTasks(currentDateStr))
-    setArchives(store.getAllArchives())
+    try {
+      await store.updateTask(targetDate, targetId, {
+        penaltyAccepted: true,
+        penalty_accepted: 1,
+        rewardClaimed: false,
+        reward_claimed: 0,
+        penaltyAcceptedAt: new Date().toISOString()
+      });
+      await store.fetchAllTasksApi();
+      setTasks(store.getTasks(currentDateStr));
+      setArchives(store.getAllArchives());
 
-    store.acknowledgePunishment()
-    setActivePunishment(null)
+      store.acknowledgePunishment();
+      setActivePunishment(null);
+    } catch (err) {
+      console.error('Accept penalty error:', err);
+      showToast("Couldn't accept penalty — check your connection and try again", 'error');
+    }
   }
 
   const sortTasksByDefaultHierarchy = (a, b) => {
@@ -2408,25 +2413,6 @@ export default function TodayView() {
               </div>
             </div>
           </div>
-        </div>,
-        document.body
-      )}
-
-      {dateWarningToast && createPortal(
-        <div className="responsive-toast-notification">
-          <div className="toast-icon-wrapper">
-            <AlertTriangle size={18} color="#fbbf24" />
-          </div>
-          <span style={{ flex: 1, color: '#f8fafc', fontWeight: 600 }}>{dateWarningToast}</span>
-          <button
-            type="button"
-            className="toast-close-btn"
-            onClick={() => setDateWarningToast(null)}
-            title="Close"
-            aria-label="Close Toast"
-          >
-            <X size={16} />
-          </button>
         </div>,
         document.body
       )}
