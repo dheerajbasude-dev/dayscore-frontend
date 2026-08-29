@@ -10,8 +10,18 @@ export default function ScoreRing({
   const radius = 70;
   const strokeWidth = 10;
   const circumference = 2 * Math.PI * radius;
-  const safeScore = Math.max(0, Math.min(10, score));
-  const offset = circumference - (safeScore / 10) * circumference;
+  const safeScore = Math.max(0, Math.min(10, Number(score) || 0));
+
+  const hasEvaluated = Boolean(
+    details?.breakdown?.totalTasks > 0 ||
+    details?.breakdown?.missedCount > 0 ||
+    details?.breakdown?.doneCount > 0 ||
+    (details?.score !== undefined && details?.score !== null)
+  );
+
+  // When score is 0 with evaluated tasks (e.g. 1 missed task with score 0), render a subtle red arc so the red penalty score is visibly reflected on the ring
+  const displayScore = (safeScore === 0 && hasEvaluated) ? 0.35 : safeScore;
+  const offset = circumference - (displayScore / 10) * circumference;
 
   let strokeColor = '#22c55e'; // Green (> 8.5)
   let glowColor = 'rgba(34, 197, 94, 0.35)';
@@ -41,7 +51,7 @@ export default function ScoreRing({
             r={radius}
             strokeWidth={strokeWidth}
           />
-          {safeScore > 0 && (
+          {(safeScore > 0 || hasEvaluated) && (
             <circle
               className="score-ring-progress"
               cx={center}
@@ -51,6 +61,7 @@ export default function ScoreRing({
               strokeWidth={strokeWidth}
               strokeDasharray={circumference}
               strokeDashoffset={offset}
+              strokeLinecap="round"
               transform={`rotate(-90 ${center} ${center})`}
             />
           )}
