@@ -521,21 +521,18 @@ export default function TodayView() {
 
     (allArcs || []).forEach(arc => {
       if (arc && arc.date) {
-        const cleanD = arc.date.includes('T') ? arc.date.split('T')[0] : arc.date.trim().substring(0, 10);
+        const cleanD = getLocalDateStr(arc.date);
         const hasData = (Array.isArray(arc.tasks) && arc.tasks.length > 0) || arc.hasDone || (arc.score && Number(arc.score) > 0);
-        if (hasData && cleanD <= todayStr) {
+        if (hasData && cleanD && cleanD <= todayStr) {
           dateSet.add(cleanD);
         }
       }
     });
 
     (tasks || []).forEach(t => {
-      const tDate = t.completedAt ? t.completedAt.substring(0, 10) : (t.date || todayStr);
-      if (tDate) {
-        const cleanD = tDate.includes('T') ? tDate.split('T')[0] : tDate.substring(0, 10);
-        if (cleanD <= todayStr) {
-          dateSet.add(cleanD);
-        }
+      const tDate = getLocalDateStr(t.completedAt || t.completed_at || t.date || todayStr);
+      if (tDate && tDate <= todayStr) {
+        dateSet.add(tDate);
       }
     });
 

@@ -157,20 +157,34 @@ export function formatServerTask(t) {
 
   const createdDate = t.createdAt || t.created_at || new Date().toISOString();
   const completedDate = t.completedAt || t.completed_at || null;
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
 
-  let taskDate = getLocalDateStr(t.date);
+  const dueIso = t.dueDateTime || t.due_date_time;
+  const dueDateStr = getLocalDateStr(dueIso);
 
-  // If completed, preserve completed date or task date
+  let taskDate = '';
+
+  // 1. If completed, task belongs to its completion date
   if (completedDate && (t.status === 'done' || t.completed === true)) {
-    const cleanCompDate = getLocalDateStr(completedDate);
-    if (cleanCompDate) {
-      taskDate = cleanCompDate;
-    }
-  } else if (!taskDate && createdDate) {
-    taskDate = getLocalDateStr(createdDate);
+    taskDate = getLocalDateStr(completedDate);
   }
+  // 2. If task has a due date:
+  // - If due date has passed (expired/missed), the task belongs to its target DUE DATE (not earlier intermediate dates)
+  // - If due date is today or in the future, it is active on Today
+  else if (dueDateStr) {
+    if (dueDateStr < todayStr) {
+      taskDate = dueDateStr;
+    } else {
+      taskDate = todayStr;
+    }
+  }
+  // 3. If no due date: use stored date or original/creation date
+  else {
+    taskDate = getLocalDateStr(t.date) || getLocalDateStr(t.originalDate || t.original_date) || getLocalDateStr(createdDate) || todayStr;
+  }
+
   if (!taskDate) {
-    taskDate = format(new Date(), 'yyyy-MM-dd');
+    taskDate = todayStr;
   }
 
   return {
@@ -467,11 +481,9 @@ export function getArchivesFromTasks() {
       try {
         const tasks = JSON.parse(localStorage.getItem(key));
         if (Array.isArray(tasks) && tasks.length > 0) {
-          let dateStr = key.replace(prefix, '');
-          if (dateStr.includes('T')) {
-            dateStr = dateStr.split('T')[0];
-          }
-          dateStr = dateStr.trim().substring(0, 10);
+          const rawDate = key.replace(prefix, '');
+          const dateStr = getLocalDateStr(rawDate);
+          if (!dateStr) continue;
 
           const scoreResult = calculateDailyScore(tasks);
           const hasDone = tasks.some(t => t && (t.status === 'done' || t.completedAt || t.completed_at));
