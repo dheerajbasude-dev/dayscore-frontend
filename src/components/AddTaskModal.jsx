@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { X, ChevronDown, Zap, Check, Calendar as CalendarIcon, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, ChevronDown, Zap, Check, Calendar as CalendarIcon, Clock, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { format, addHours, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths } from 'date-fns';
 import * as store from '../store/store';
 
@@ -8,6 +8,7 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('Work');
   const [priority, setPriority] = useState('Med');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const todayDateStr = format(new Date(), 'yyyy-MM-dd');
   const [selectedDate, setSelectedDate] = useState(() => format(addHours(new Date(), 2), 'yyyy-MM-dd'));
@@ -54,6 +55,7 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
       setIsDatePickerOpen(false);
       setIsHourPickerOpen(false);
       setIsMinutePickerOpen(false);
+      setIsSubmitting(false);
     } else {
       document.body.classList.remove('modal-open');
     }
@@ -102,7 +104,7 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!title.trim()) return;
+    if (!title.trim() || isSubmitting) return;
 
     const [year, month, day] = selectedDate.split('-').map(Number);
     const dueObj = new Date(year, month - 1, day, selectedHour, selectedMinute, 0);
@@ -117,6 +119,7 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
       return;
     }
 
+    setIsSubmitting(true);
     try {
       await onAdd({
         title: title.trim(),
@@ -128,6 +131,8 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
       onClose();
     } catch (err) {
       // Handled by onAdd / toast; keep modal open so user does not lose input
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -736,8 +741,34 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
           </div>
 
           <div className="modal-footer">
-            <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn btn-primary">Add Task</button>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={onClose}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className={`btn btn-primary ${isSubmitting ? 'btn-loading' : ''}`}
+              disabled={isSubmitting || !title.trim()}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 size={16} className="btn-spinner" />
+                  <span>Adding Task...</span>
+                </>
+              ) : (
+                <span>Add Task</span>
+              )}
+            </button>
           </div>
         </form>
       </div>
