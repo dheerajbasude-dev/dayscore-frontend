@@ -563,7 +563,13 @@ function TaskCard({
             <div className={`countdown ${urgencyClass}`}>
               {isDone ? (
                 wasOriginallyMissed ? <span style={{ color: '#f87171' }}>✓ Late</span> : <span className="text-success">✓ Done</span>
-              ) : isMissed ? <span className="text-danger">Missed</span> : timeLeft}
+              ) : isMissed ? (
+                <span className="text-danger">Missed</span>
+              ) : (!task?.dueDateTime && !task?.due_date_time) ? (
+                <span>No due date</span>
+              ) : (
+                timeLeft
+              )}
             </div>
             <button className="delete-btn" onClick={() => onDelete(task)} title="Delete Task"><X size={14} /></button>
           </div>

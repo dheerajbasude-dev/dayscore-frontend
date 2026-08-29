@@ -5,6 +5,7 @@ import { AuthProvider } from './context/AuthContext'
 import { ToastProvider } from './context/ToastContext'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import Navigation from './components/Navigation'
+import ScrollToTop from './components/ScrollToTop'
 import TodayView from './pages/TodayView'
 import AnalyticsView from './pages/AnalyticsView'
 import RewardsView from './pages/RewardsView'
@@ -17,6 +18,7 @@ function App() {
         <AuthProvider>
           <ToastProvider>
             <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+              <ScrollToTop />
               <div className="app-layout">
                 <Navigation />
                 <main className="main-content">
