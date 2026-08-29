@@ -47,25 +47,32 @@
 }
 
 [data-theme='light'] {
-  --bg-primary: #f0f0ff;
+  --bg-primary: #f8fafc;
   --bg-secondary: #ffffff;
-  --bg-tertiary: #e8e8f5;
-  --bg-glass: rgba(255, 255, 255, 0.85);
-  --bg-glass-light: rgba(0, 0, 0, 0.02);
-  --border-glass: rgba(0, 0, 0, 0.06);
-  --border-glass-hover: rgba(0, 0, 0, 0.12);
+  --bg-tertiary: #f1f5f9;
+  --bg-glass: rgba(255, 255, 255, 0.92);
+  --bg-glass-light: rgba(241, 245, 249, 0.7);
+  --border-glass: rgba(226, 232, 240, 0.85);
+  --border-glass-hover: rgba(99, 102, 241, 0.35);
 
-  --text-primary: #1a1a2e;
-  --text-secondary: #555570;
-  --text-muted: #8888a0;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
 
-  --accent-primary: #6366f1;
-  --accent-primary-rgb: 99, 102, 241;
+  --accent-primary: #4f46e5;
+  --accent-primary-rgb: 79, 70, 229;
+  --accent-secondary: #7c3aed;
+  --accent-success: #059669;
+  --accent-success-rgb: 5, 150, 105;
+  --accent-warning: #d97706;
+  --accent-warning-rgb: 217, 119, 6;
+  --accent-danger: #dc2626;
+  --accent-danger-rgb: 220, 38, 38;
 
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.1);
-  --shadow-glow: 0 0 20px rgba(var(--accent-primary-rgb), 0.08);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+  --shadow-md: 0 4px 16px -2px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.03);
+  --shadow-lg: 0 12px 36px -4px rgba(15, 23, 42, 0.08), 0 4px 12px -2px rgba(15, 23, 42, 0.04);
+  --shadow-glow: 0 0 24px rgba(79, 70, 229, 0.12);
 }
 
 /* ==========================================================================
@@ -5671,6 +5678,27 @@ body::after {
   transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.28s ease !important;
 }
 
+/* ==========================================================================
+   Ultra-Luxury Premium Light Mode Complete Styling System
+   ========================================================================== */
+
+[data-theme='light'] body {
+  background-color: #f8fafc !important;
+  background-image: 
+    radial-gradient(ellipse 80% 60% at 10% 8%, rgba(99, 102, 241, 0.09) 0%, transparent 60%),
+    radial-gradient(ellipse 70% 50% at 90% 85%, rgba(168, 85, 247, 0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 50% 45%, rgba(56, 189, 248, 0.06) 0%, transparent 70%) !important;
+  color: #0f172a !important;
+}
+
+[data-theme='light'] body::before {
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.12) 0%, rgba(168, 85, 247, 0.06) 45%, rgba(255, 255, 255, 0) 70%) !important;
+}
+
+[data-theme='light'] body::after {
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.10) 0%, rgba(52, 211, 153, 0.06) 45%, rgba(255, 255, 255, 0) 70%) !important;
+}
+
 /* Light Mode Luxury Glass Overrides */
 [data-theme='light'] .card-glass,
 [data-theme='light'] .task-controls-card,
@@ -5679,27 +5707,294 @@ body::after {
 [data-theme='light'] .task-card,
 [data-theme='light'] .modal-content,
 [data-theme='light'] .sidebar,
-[data-theme='light'] .mobile-topbar {
-  background: rgba(255, 255, 255, 0.85) !important;
-  backdrop-filter: blur(24px) saturate(190%) !important;
-  -webkit-backdrop-filter: blur(24px) saturate(190%) !important;
-  border: 1px solid rgba(0, 0, 0, 0.09) !important;
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.07), inset 0 1px 1px rgba(255, 255, 255, 0.9) !important;
+[data-theme='light'] .mobile-topbar,
+[data-theme='light'] .settings-card,
+[data-theme='light'] .analytics-card,
+[data-theme='light'] .history-card,
+[data-theme='light'] .calendar-card {
+  background: rgba(255, 255, 255, 0.94) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border: 1px solid rgba(226, 232, 240, 0.9) !important;
+  box-shadow: 0 10px 30px -4px rgba(15, 23, 42, 0.06), 
+              0 4px 12px -2px rgba(15, 23, 42, 0.03), 
+              inset 0 1px 0 rgba(255, 255, 255, 1) !important;
 }
 
-/* Task Card Interactive Glass & Lift Micro-Animation */
-.task-card {
-  position: relative;
-  overflow: hidden;
+/* Task Card Hover in Light Mode */
+[data-theme='light'] .task-card:hover {
+  transform: translateY(-2px) scale(1.003) !important;
+  border-color: rgba(99, 102, 241, 0.45) !important;
+  box-shadow: 0 16px 36px -6px rgba(99, 102, 241, 0.14), 
+              0 6px 16px -2px rgba(15, 23, 42, 0.05) !important;
 }
 
-.task-card:hover {
-  transform: translateY(-3px) scale(1.004) !important;
-  border-color: rgba(129, 140, 248, 0.5) !important;
-  box-shadow: 0 24px 56px rgba(0, 0, 0, 0.65), 0 0 28px rgba(99, 102, 241, 0.25) !important;
+/* Light Mode Typography & Headings */
+[data-theme='light'] h1, 
+[data-theme='light'] h2, 
+[data-theme='light'] h3, 
+[data-theme='light'] h4,
+[data-theme='light'] .task-title,
+[data-theme='light'] .page-title,
+[data-theme='light'] .modal-title,
+[data-theme='light'] .settings-title {
+  color: #0f172a !important;
 }
 
-/* Primary Action Buttons Luxury Gradient & Shimmer */
+[data-theme='light'] .task-meta,
+[data-theme='light'] .task-meta-item,
+[data-theme='light'] .task-category,
+[data-theme='light'] .task-due-time,
+[data-theme='light'] .settings-row-sublabel,
+[data-theme='light'] .settings-page-subtitle,
+[data-theme='light'] .analytics-metric-subtitle {
+  color: #475569 !important;
+}
+
+/* Light Mode Score Ring */
+[data-theme='light'] .score-ring-bg {
+  stroke: #e2e8f0 !important;
+}
+
+[data-theme='light'] .score-value {
+  color: #0f172a !important;
+}
+
+[data-theme='light'] .score-value-max {
+  color: #64748b !important;
+}
+
+[data-theme='light'] .score-label {
+  color: #475569 !important;
+}
+
+[data-theme='light'] .score-ring-ambient-glow {
+  opacity: 0.22 !important;
+  filter: blur(36px) !important;
+}
+
+[data-theme='light'] .streak-badge-active {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.14), rgba(234, 88, 12, 0.10)) !important;
+  color: #b45309 !important;
+  border: 1px solid rgba(245, 158, 11, 0.3) !important;
+}
+
+[data-theme='light'] .streak-badge-inactive {
+  background: #f1f5f9 !important;
+  color: #64748b !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+/* Light Mode Navigation & Date View Toggle */
+[data-theme='light'] .date-nav-btn,
+[data-theme='light'] .date-display-btn,
+[data-theme='light'] .view-toggle-btn {
+  background: #ffffff !important;
+  color: #334155 !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+}
+
+[data-theme='light'] .date-nav-btn:hover,
+[data-theme='light'] .date-display-btn:hover {
+  background: #f1f5f9 !important;
+  color: #4f46e5 !important;
+  border-color: #cbd5e1 !important;
+}
+
+[data-theme='light'] .view-toggle-btn.active,
+[data-theme='light'] .date-today-btn {
+  background: linear-gradient(135deg, #6366f1, #4f46e5) !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3) !important;
+}
+
+/* Light Mode Filter Chips */
+[data-theme='light'] .task-stat-chip.chip-pending {
+  background: rgba(99, 102, 241, 0.08) !important;
+  border: 1px solid rgba(99, 102, 241, 0.25) !important;
+  color: #4338ca !important;
+  box-shadow: none !important;
+}
+
+[data-theme='light'] .task-stat-chip.chip-done {
+  background: rgba(16, 185, 129, 0.1) !important;
+  border: 1px solid rgba(16, 185, 129, 0.25) !important;
+  color: #047857 !important;
+  box-shadow: none !important;
+}
+
+[data-theme='light'] .task-stat-chip.chip-missed {
+  background: rgba(239, 68, 68, 0.08) !important;
+  border: 1px solid rgba(239, 68, 68, 0.25) !important;
+  color: #b91c1c !important;
+  box-shadow: none !important;
+}
+
+[data-theme='light'] .task-stat-chip.chip-carried {
+  background: rgba(6, 182, 212, 0.1) !important;
+  border: 1px solid rgba(6, 182, 212, 0.25) !important;
+  color: #0e7490 !important;
+  box-shadow: none !important;
+}
+
+[data-theme='light'] .task-stat-chip.active {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+  font-weight: 700 !important;
+}
+
+/* Light Mode Inputs, Textareas, Search & Selects */
+[data-theme='light'] input,
+[data-theme='light'] textarea,
+[data-theme='light'] select,
+[data-theme='light'] .task-search-input,
+[data-theme='light'] .custom-select-trigger,
+[data-theme='light'] .reflection-textarea {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+}
+
+[data-theme='light'] input::placeholder,
+[data-theme='light'] textarea::placeholder,
+[data-theme='light'] .task-search-input::placeholder {
+  color: #94a3b8 !important;
+}
+
+[data-theme='light'] input:focus,
+[data-theme='light'] textarea:focus,
+[data-theme='light'] select:focus,
+[data-theme='light'] .task-search-input:focus,
+[data-theme='light'] .custom-select-trigger:focus,
+[data-theme='light'] .reflection-textarea:focus {
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18), 0 1px 3px rgba(0, 0, 0, 0.06) !important;
+  background: #ffffff !important;
+}
+
+/* Light Mode Reflection Box */
+[data-theme='light'] .reflection-section-top {
+  background: rgba(255, 255, 255, 0.94) !important;
+  border: 1px solid rgba(226, 232, 240, 0.9) !important;
+}
+
+[data-theme='light'] .reflection-prompt-chip {
+  background: #f1f5f9 !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #334155 !important;
+}
+
+[data-theme='light'] .reflection-prompt-chip:hover {
+  background: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+/* Light Mode Daily Notes & Tags */
+[data-theme='light'] .daily-notes-toggle-btn {
+  background: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #334155 !important;
+}
+
+[data-theme='light'] .daily-notes-toggle-btn:hover {
+  background: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+[data-theme='light'] .daily-notes-panel {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+[data-theme='light'] .daily-note-card {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #1e293b !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+}
+
+[data-theme='light'] .penalty-tag,
+[data-theme='light'] .task-penalty-container {
+  background: rgba(239, 68, 68, 0.08) !important;
+  border: 1px solid rgba(239, 68, 68, 0.22) !important;
+  color: #991b1b !important;
+}
+
+[data-theme='light'] .reward-tag,
+[data-theme='light'] .task-reward-container {
+  background: rgba(16, 185, 129, 0.08) !important;
+  border: 1px solid rgba(16, 185, 129, 0.22) !important;
+  color: #065f46 !important;
+}
+
+/* Light Mode Sidebar & Navigation */
+[data-theme='light'] .sidebar {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-right: 1px solid #e2e8f0 !important;
+}
+
+[data-theme='light'] .nav-link {
+  color: #475569 !important;
+}
+
+[data-theme='light'] .nav-link:hover {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+[data-theme='light'] .nav-link.active {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(168, 85, 247, 0.08)) !important;
+  color: #4f46e5 !important;
+  border-left: 3px solid #4f46e5 !important;
+  box-shadow: none !important;
+}
+
+[data-theme='light'] .sidebar-brand {
+  color: #0f172a !important;
+}
+
+[data-theme='light'] .user-profile-card {
+  background: #f1f5f9 !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+[data-theme='light'] .mobile-bottom-nav {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border-top: 1px solid #e2e8f0 !important;
+}
+
+/* Light Mode Modals & Overlays */
+[data-theme='light'] .modal-overlay {
+  background: rgba(15, 23, 42, 0.45) !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+[data-theme='light'] .modal-content {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.18), 0 10px 24px -6px rgba(0, 0, 0, 0.08) !important;
+  color: #0f172a !important;
+}
+
+[data-theme='light'] .modal-header,
+[data-theme='light'] .modal-title {
+  color: #0f172a !important;
+}
+
+[data-theme='light'] .modal-close-btn {
+  background: #f1f5f9 !important;
+  color: #64748b !important;
+}
+
+[data-theme='light'] .modal-close-btn:hover {
+  background: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+/* Light Mode Action Buttons */
 .btn {
   transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.22s ease, border-color 0.22s ease !important;
 }
@@ -5725,96 +6020,14 @@ body::after {
   box-shadow: 0 10px 30px rgba(99, 102, 241, 0.55), 0 0 20px rgba(129, 140, 248, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
 }
 
-.btn-secondary:hover {
-  box-shadow: 0 6px 20px rgba(255, 255, 255, 0.12) !important;
+[data-theme='light'] .btn-secondary {
+  background: #f1f5f9 !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #334155 !important;
 }
 
-.btn-danger:hover {
-  box-shadow: 0 8px 24px rgba(248, 113, 113, 0.45) !important;
-}
-
-.btn-success:hover {
-  box-shadow: 0 8px 24px rgba(52, 211, 153, 0.45) !important;
-}
-
-/* Input & Select Focus Glow Ring */
-input:focus,
-textarea:focus,
-select:focus,
-.task-search-input:focus,
-.custom-select-trigger:focus {
-  border-color: rgba(129, 140, 248, 0.65) !important;
-  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.28), 0 0 20px rgba(99, 102, 241, 0.25) !important;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
-}
-
-/* Glass Modal Entry Animation */
-@keyframes glassModalPop {
-  0% {
-    opacity: 0;
-    transform: scale(0.92) translateY(20px);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
-
-.modal-overlay {
-  backdrop-filter: blur(14px) !important;
-  -webkit-backdrop-filter: blur(14px) !important;
-  background: rgba(4, 6, 16, 0.78) !important;
-  transition: all 0.3s ease !important;
-}
-
-.modal-content {
-  animation: glassModalPop 0.32s cubic-bezier(0.16, 1, 0.3, 1) !important;
-  border-radius: 22px !important;
-}
-
-/* Navigation Links Smooth Micro-Transitional Glow */
-.nav-link {
-  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
-}
-
-.nav-link:hover {
-  transform: translateX(4px) !important;
-  background: rgba(255, 255, 255, 0.08) !important;
-}
-
-.nav-link.active {
-  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3) !important;
-}
-
-/* Glowing Neon Filter Chips */
-.task-stat-chip {
-  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
-}
-
-.task-stat-chip:hover {
-  transform: translateY(-2px) scale(1.04) !important;
-}
-
-.task-stat-chip.chip-pending {
-  background: rgba(99, 102, 241, 0.18) !important;
-  border: 1px solid rgba(129, 140, 248, 0.4) !important;
-  box-shadow: 0 0 12px rgba(99, 102, 241, 0.2) !important;
-}
-
-.task-stat-chip.chip-done {
-  background: rgba(52, 211, 153, 0.18) !important;
-  border: 1px solid rgba(52, 211, 153, 0.4) !important;
-  box-shadow: 0 0 12px rgba(52, 211, 153, 0.2) !important;
-}
-
-.task-stat-chip.chip-missed {
-  background: rgba(248, 113, 113, 0.18) !important;
-  border: 1px solid rgba(248, 113, 113, 0.4) !important;
-  box-shadow: 0 0 12px rgba(248, 113, 113, 0.2) !important;
-}
-
-.task-stat-chip.chip-carried {
-  background: rgba(10, 255, 255, 0.18) !important;
-  border: 1px solid rgba(10, 255, 255, 0.4) !important;
-  box-shadow: 0 0 12px rgba(10, 255, 255, 0.25) !important;
+[data-theme='light'] .btn-secondary:hover {
+  background: #e2e8f0 !important;
+  color: #0f172a !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
 }
