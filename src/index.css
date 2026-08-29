@@ -4075,13 +4075,12 @@ body {
 }
 
 /* ==========================================================================
-   Sticky Date Navigation & View Mode Switcher Header
+   Date Navigation & View Mode Switcher Header
    ========================================================================== */
 
 .date-nav-card {
-  position: sticky !important;
-  top: 14px;
-  z-index: 100 !important;
+  position: relative !important;
+  z-index: 10 !important;
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
@@ -4089,20 +4088,20 @@ body {
   padding: 8px 16px !important;
   margin-bottom: 16px !important;
   border-radius: var(--radius-lg, 16px) !important;
-  background: rgba(18, 20, 38, 0.9) !important;
-  backdrop-filter: blur(24px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
-  border: 1px solid rgba(99, 102, 241, 0.28) !important;
-  box-shadow: 0 10px 30px -4px rgba(0, 0, 0, 0.65), 0 4px 12px rgba(0, 0, 0, 0.3) !important;
-  transition: top 0.25s ease, background-color 0.25s ease, box-shadow 0.25s ease !important;
+  background: rgba(18, 20, 38, 0.75) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border: 1px solid rgba(99, 102, 241, 0.25) !important;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.2) !important;
+  transition: all var(--transition-normal) !important;
 }
 
 [data-theme='light'] .date-nav-card {
   background: rgba(255, 255, 255, 0.94) !important;
-  backdrop-filter: blur(24px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
   border: 1px solid rgba(226, 232, 240, 0.95) !important;
-  box-shadow: 0 10px 30px -4px rgba(15, 23, 42, 0.08), 0 4px 12px -2px rgba(15, 23, 42, 0.04) !important;
+  box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(15, 23, 42, 0.03) !important;
 }
 
 .date-nav-left {
@@ -4184,13 +4183,6 @@ body {
   color: #ffffff !important;
   font-weight: 700 !important;
   box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35) !important;
-}
-
-/* Sticky Offset for Mobile & Tablet (Docks below Mobile Topbar) */
-@media (max-width: 1023px) {
-  .date-nav-card {
-    top: calc(56px + env(safe-area-inset-top, 0px)) !important;
-  }
 }
 
 @media (max-width: 768px) {
