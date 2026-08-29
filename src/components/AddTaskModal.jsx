@@ -10,7 +10,7 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
   const [priority, setPriority] = useState('Med');
 
   const todayDateStr = format(new Date(), 'yyyy-MM-dd');
-  const [selectedDate, setSelectedDate] = useState(todayDateStr);
+  const [selectedDate, setSelectedDate] = useState(() => format(addHours(new Date(), 2), 'yyyy-MM-dd'));
   const [selectedHour, setSelectedHour] = useState(() => addHours(new Date(), 2).getHours());
   const [selectedMinute, setSelectedMinute] = useState(() => addHours(new Date(), 2).getMinutes());
 
@@ -24,7 +24,7 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
 
   // Calendar View Month state for Modal Date Picker
   const [calendarViewDate, setCalendarViewDate] = useState(() => {
-    try { return parseISO(todayDateStr); } catch { return new Date(); }
+    try { return addHours(new Date(), 2); } catch { return new Date(); }
   });
 
   const templateMenuRef = useRef(null);
@@ -40,8 +40,8 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
   useEffect(() => {
     if (isOpen) {
       document.body.classList.add('modal-open');
-      const initialDate = format(new Date(), 'yyyy-MM-dd');
       const initialDue = addHours(new Date(), 2);
+      const initialDate = format(initialDue, 'yyyy-MM-dd');
       setSelectedDate(initialDate);
       setSelectedHour(initialDue.getHours());
       setSelectedMinute(initialDue.getMinutes());
@@ -80,17 +80,23 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Clamp hour/minute if today is selected and selected time is in the past
+  // Clamp hour/minute if selected datetime is in the past
   useEffect(() => {
-    if (isSelectedToday) {
-      if (selectedHour < currentHour) {
-        setSelectedHour(currentHour);
-        setSelectedMinute(Math.min(currentMinute + 1, 59));
-      } else if (selectedHour === currentHour && selectedMinute <= currentMinute) {
-        setSelectedMinute(Math.min(currentMinute + 1, 59));
+    if (!selectedDate) return;
+    const [year, month, day] = selectedDate.split('-').map(Number);
+    const selectedDateTime = new Date(year, month - 1, day, selectedHour, selectedMinute, 0);
+    const nowTime = new Date();
+    if (selectedDateTime <= nowTime) {
+      if (selectedDate < todayDateStr) {
+        setSelectedDate(todayDateStr);
+      }
+      if (selectedDate <= todayDateStr) {
+        const nextMinute = new Date(nowTime.getTime() + 60 * 1000);
+        setSelectedHour(nextMinute.getHours());
+        setSelectedMinute(nextMinute.getMinutes());
       }
     }
-  }, [selectedDate, isSelectedToday, currentHour, currentMinute, selectedHour, selectedMinute]);
+  }, [selectedDate, todayDateStr, selectedHour, selectedMinute]);
 
   if (!isOpen) return null;
 
@@ -104,9 +110,10 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
     const currentTime = new Date();
     if (dueObj < currentTime) {
       alert("⚠️ Due date & time cannot be in the past! Please select a valid current or future date and time.");
-      setSelectedDate(format(currentTime, 'yyyy-MM-dd'));
-      setSelectedHour(currentTime.getHours());
-      setSelectedMinute(Math.min(currentTime.getMinutes() + 5, 59));
+      const fallbackDue = addHours(currentTime, 1);
+      setSelectedDate(format(fallbackDue, 'yyyy-MM-dd'));
+      setSelectedHour(fallbackDue.getHours());
+      setSelectedMinute(fallbackDue.getMinutes());
       return;
     }
 

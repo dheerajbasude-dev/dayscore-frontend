@@ -715,9 +715,9 @@ export default function TodayView() {
         if (!arc.date || !Array.isArray(arc.tasks)) continue;
 
         for (const task of arc.tasks) {
-          const isCarriedToToday = Boolean(task.carriedOver || task.carried_over || task.wasCarried || task.isCarried);
+          const isPastCarried = arc.date < todayStr && Boolean(task.carriedOver || task.carried_over || task.wasCarried || task.isCarried);
           const completedDate = task.completedAt ? String(task.completedAt).substring(0, 10) : (task.completed_at ? String(task.completed_at).substring(0, 10) : '');
-          if (isCarriedToToday || completedDate === todayStr || task.date === todayStr) {
+          if (isPastCarried || (completedDate === todayStr && (task.status === 'done' || task.completed))) {
             continue;
           }
 
