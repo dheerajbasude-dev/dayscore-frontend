@@ -6124,18 +6124,42 @@ body::after {
   font-weight: 700 !important;
 }
 
+/* Light Mode Task Countdown Timer Color Logic */
 [data-theme='light'] .countdown {
-  color: #475569 !important;
-  font-weight: 600 !important;
-}
-
-[data-theme='light'] .countdown.urgency-high {
-  color: #dc2626 !important;
+  font-variant-numeric: tabular-nums;
   font-weight: 700 !important;
 }
 
-[data-theme='light'] .countdown.urgency-medium {
-  color: #d97706 !important;
+[data-theme='light'] .countdown.timer-safe,
+[data-theme='light'] .timer-safe {
+  color: #059669 !important; /* Rich emerald green */
+}
+
+[data-theme='light'] .countdown.timer-warning,
+[data-theme='light'] .timer-warning {
+  color: #d97706 !important; /* Rich amber / warm yellow */
+}
+
+[data-theme='light'] .countdown.timer-danger,
+[data-theme='light'] .timer-danger {
+  color: #dc2626 !important; /* High-urgency coral red */
+}
+
+[data-theme='light'] .countdown.timer-missed,
+[data-theme='light'] .timer-missed {
+  color: #94a3b8 !important;
+  text-decoration: line-through !important;
+}
+
+[data-theme='light'] .countdown .text-success,
+[data-theme='light'] .text-success {
+  color: #059669 !important;
+  font-weight: 700 !important;
+}
+
+[data-theme='light'] .countdown .text-danger,
+[data-theme='light'] .text-danger {
+  color: #dc2626 !important;
   font-weight: 700 !important;
 }
 
