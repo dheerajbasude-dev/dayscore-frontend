@@ -72,14 +72,62 @@ export function getTasks(dateStr) {
   }
 
   if (cleanDate === todayStr) {
+    // 1. Immediately purge expired non-completed tasks from todayStr cache
+    const validTodayTasks = [];
+    const expiredTasksByDate = new Map();
+
+    tasks.forEach(t => {
+      if (!t) return;
+      const dueIso = t.dueDateTime || t.due_date_time;
+      const dueDateStr = getLocalDateStr(dueIso);
+      const isDone = t.status === 'done' || t.completed === true;
+
+      if (!isDone && dueDateStr && dueDateStr < todayStr) {
+        // Expired task belongs to its due date
+        if (!expiredTasksByDate.has(dueDateStr)) {
+          expiredTasksByDate.set(dueDateStr, []);
+        }
+        expiredTasksByDate.get(dueDateStr).push({
+          ...t,
+          date: dueDateStr,
+          carriedOver: false,
+          carried_over: 0,
+          status: 'missed'
+        });
+      } else {
+        validTodayTasks.push(t);
+      }
+    });
+
+    tasks = validTodayTasks;
+
+    // Save moved expired tasks to their respective past date localStorage
+    expiredTasksByDate.forEach((expList, expDate) => {
+      try {
+        const existingData = localStorage.getItem(`dayscore_${uid}_tasks_${expDate}`);
+        const existingList = existingData ? JSON.parse(existingData) : [];
+        const combined = Array.isArray(existingList) ? [...existingList] : [];
+        const existingIds = new Set(combined.map(ex => String(ex.id || ex._id)));
+        expList.forEach(et => {
+          const etId = String(et.id || et._id);
+          if (!existingIds.has(etId)) {
+            combined.push(et);
+            existingIds.add(etId);
+          }
+        });
+        localStorage.setItem(`dayscore_${uid}_tasks_${expDate}`, JSON.stringify(combined));
+      } catch (e) {}
+    });
+
+    // 2. Synchronously scan past dates for active carried tasks
     const prefix = `dayscore_${uid}_tasks_`;
     const pastCarried = [];
     try {
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (key && key.startsWith(prefix) && key !== `dayscore_${uid}_tasks_${todayStr}`) {
-          const pastDate = key.replace(prefix, '').trim().substring(0, 10);
-          if (pastDate < todayStr) {
+          const pastDate = getLocalDateStr(key.replace(prefix, ''));
+          if (pastDate && pastDate < todayStr) {
             try {
               const rawPast = localStorage.getItem(key);
               const parsed = rawPast ? JSON.parse(rawPast) : [];
@@ -87,18 +135,11 @@ export function getTasks(dateStr) {
               pastList.forEach(t => {
                 if (!t) return;
                 const dueIso = t.dueDateTime || t.due_date_time;
+                const dueDateStr = getLocalDateStr(dueIso);
                 let shouldCarry = true;
-                if (dueIso) {
-                  try {
-                    const dueObj = typeof dueIso === 'string' ? parseISO(dueIso) : new Date(dueIso);
-                    if (!isNaN(dueObj.getTime())) {
-                      const dueDateStr = format(dueObj, 'yyyy-MM-dd');
-                      if (dueDateStr < todayStr) shouldCarry = false;
-                    }
-                  } catch (e) {}
-                }
+                if (dueDateStr && dueDateStr < todayStr) shouldCarry = false;
 
-                const completedDate = t.completedAt ? String(t.completedAt).substring(0, 10) : (t.completed_at ? String(t.completed_at).substring(0, 10) : '');
+                const completedDate = getLocalDateStr(t.completedAt || t.completed_at);
                 const isCompletedToday = (t.status === 'done' || t.completed === true) && completedDate === todayStr;
 
                 if (shouldCarry && (t.status !== 'done' || isCompletedToday)) {
@@ -119,23 +160,33 @@ export function getTasks(dateStr) {
       }
     } catch (e) {}
 
-    if (pastCarried.length > 0) {
-      const existingIds = new Set(tasks.map(t => String(t.id || t._id)));
-      let added = false;
-      pastCarried.forEach(pt => {
-        const pid = String(pt.id || pt._id);
-        if (!existingIds.has(pid)) {
-          tasks.push(pt);
-          existingIds.add(pid);
-          added = true;
-        }
-      });
-      if (added) {
-        try {
-          localStorage.setItem(`dayscore_${uid}_tasks_${cleanDate}`, JSON.stringify(tasks));
-        } catch (e) {}
+    const existingIds = new Set(tasks.map(t => String(t.id || t._id)));
+    pastCarried.forEach(pt => {
+      const pid = String(pt.id || pt._id);
+      if (!existingIds.has(pid)) {
+        tasks.push(pt);
+        existingIds.add(pid);
       }
-    }
+    });
+
+    try {
+      localStorage.setItem(`dayscore_${uid}_tasks_${cleanDate}`, JSON.stringify(tasks));
+    } catch (e) {}
+  } else if (cleanDate < todayStr) {
+    // In past dates, filter out multi-day tasks whose target due date was on another date (unless completed on cleanDate)
+    tasks = tasks.filter(t => {
+      if (!t) return false;
+      const compDate = getLocalDateStr(t.completedAt || t.completed_at);
+      if ((t.status === 'done' || t.completed === true) && compDate) {
+        return compDate === cleanDate;
+      }
+      const dueIso = t.dueDateTime || t.due_date_time;
+      const dueDateStr = getLocalDateStr(dueIso);
+      if (dueDateStr && dueDateStr !== cleanDate) {
+        return false;
+      }
+      return true;
+    });
   }
 
   taskMemoryCache.set(cacheKey, tasks);

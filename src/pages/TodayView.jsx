@@ -396,30 +396,23 @@ export default function TodayView() {
   }, [tasks, todayStr, isCarriedTask, user]);
 
   useEffect(() => {
+    let isMounted = true;
     const runAutoCarryOver = async () => {
       const currentUid = store.getUserId();
       const processKey = `${currentUid}_${todayStr}`;
       if (autoCarryOverProcessedRef.current === processKey) return;
       autoCarryOverProcessedRef.current = processKey;
 
-      // 1. Clean up tasks currently attached to todayStr
       const currentTodayTasks = store.getTasks(todayStr);
+      const bgUpdates = [];
       let cleanedUpCount = 0;
+
       for (const t of currentTodayTasks) {
-        // If task is completed on Today, leave it completed on Today!
         if (t.status === 'done' || t.completed === true) continue;
 
         const dueIso = t.dueDateTime || t.due_date_time;
-        let dueDateStr = '';
-        if (dueIso) {
-          try {
-            const dueObj = typeof dueIso === 'string' ? parseISO(dueIso) : new Date(dueIso);
-            dueDateStr = format(dueObj, 'yyyy-MM-dd');
-          } catch (e) {}
-        }
+        const dueDateStr = getLocalDateStr(dueIso);
 
-        // A task only expired on a past date if its due date itself EXPLICITLY expired before today (dueDateStr < todayStr).
-        // If it has NO due date or a due date on/after today, it is an active task on Today!
         let pastEndDate = '';
         if (dueDateStr && dueDateStr < todayStr) {
           pastEndDate = dueDateStr;
@@ -441,15 +434,12 @@ export default function TodayView() {
               updates.rating = avgRating;
             }
           }
-          await store.updateTask(todayStr, t.id || t._id, updates);
+          bgUpdates.push(store.updateTask(todayStr, t.id || t._id, updates));
           cleanedUpCount++;
         }
       }
 
       // 2. Scan past tasks from previous dates:
-      // Carry over tasks that are unfinished (pending/inprogress/missed) ONLY IF:
-      // - task has NO due date, OR
-      // - task's due date extends into Today or future (dueDateStr >= todayStr)
       const allArcs = archives.length > 0 ? archives : store.getArchivesFromTasks();
       const pastTasksToCarry = [];
       allArcs.forEach(arc => {
@@ -457,15 +447,10 @@ export default function TodayView() {
           arc.tasks.forEach(t => {
             if (t.status !== 'done') {
               const dueIso = t.dueDateTime || t.due_date_time;
+              const dueDateStr = getLocalDateStr(dueIso);
               let shouldCarryOver = true;
-              if (dueIso) {
-                try {
-                  const dueObj = typeof dueIso === 'string' ? parseISO(dueIso) : new Date(dueIso);
-                  const dueDateStr = format(dueObj, 'yyyy-MM-dd');
-                  if (dueDateStr < todayStr) {
-                    shouldCarryOver = false;
-                  }
-                } catch (e) {}
+              if (dueDateStr && dueDateStr < todayStr) {
+                shouldCarryOver = false;
               }
               if (shouldCarryOver) {
                 pastTasksToCarry.push({ ...t, taskDate: arc.date });
@@ -481,38 +466,35 @@ export default function TodayView() {
         const taskId = task.id || task._id;
         if (!originDate || !taskId) continue;
 
-        await store.updateTask(originDate, taskId, {
+        bgUpdates.push(store.updateTask(originDate, taskId, {
           date: todayStr,
           status: task.status === 'done' ? 'done' : 'pending',
           carriedOver: true,
           carried_over: 1,
           originalDate: originDate,
           original_date: originDate
-        });
+        }));
         carriedCount++;
       }
 
-      if (carriedCount > 0 || cleanedUpCount > 0) {
+      if (bgUpdates.length > 0) {
+        await Promise.all(bgUpdates);
+      }
+
+      if ((carriedCount > 0 || cleanedUpCount > 0) && isMounted) {
         await store.fetchAllTasksApi();
-        setCurrentDateStr(todayStr);
-        setTasks(store.getTasks(todayStr));
+        setTasks(store.getTasks(currentDateStr));
         setArchives(store.getArchivesFromTasks());
 
         if (carriedCount > 0) {
           setAutoCarriedCount(carriedCount);
-          const isAlreadyShown = localStorage.getItem(`dayscore_${currentUid}_shown_carried_${todayStr}`);
-          if (!isAlreadyShown) {
-            setShowAutoCarriedBanner(true);
-            try {
-              localStorage.setItem(`dayscore_${currentUid}_shown_carried_${todayStr}`, 'true');
-            } catch (e) {}
-          }
         }
       }
     };
 
     runAutoCarryOver();
-  }, [todayStr, archives, user]);
+    return () => { isMounted = false; };
+  }, [todayStr, archives, user, currentDateStr]);
 
   // Compute all dates that contain recorded task data or archives (plus today)
   const validTaskDates = useMemo(() => {
