@@ -39,9 +39,9 @@ export default function CustomSelect({
           width: '100%',
           padding: '9px 12px',
           borderRadius: 'var(--radius-md)',
-          background: 'var(--bg-tertiary)',
+          background: 'var(--bg-secondary)',
           border: isOpen ? '1px solid var(--accent-primary)' : '1px solid var(--border-glass)',
-          color: '#ffffff',
+          color: 'var(--text-primary)',
           fontSize: '0.85rem',
           fontWeight: '600',
           display: 'flex',
@@ -65,20 +65,20 @@ export default function CustomSelect({
       {/* Floating Glassmorphic Menu */}
       {isOpen && (
         <div
-          className="animate-pop-in custom-select-popover"
+          className="animate-pop-in custom-select-popover card-glass"
           style={{
             position: 'absolute',
             top: 'calc(100% + 6px)',
             left: 0,
             right: 0,
             zIndex: 99999,
-            background: '#121426',
-            border: '1px solid rgba(99, 102, 241, 0.35)',
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border-glass)',
             borderRadius: '12px',
             padding: '6px',
             maxHeight: '220px',
             overflowY: 'auto',
-            boxShadow: '0 16px 40px rgba(0, 0, 0, 0.85)',
+            boxShadow: 'var(--shadow-lg)',
             backdropFilter: 'blur(20px)',
             display: 'flex',
             flexDirection: 'column',
@@ -88,7 +88,7 @@ export default function CustomSelect({
           {options.map((opt, idx) => {
             if (opt.disabled) {
               return (
-                <div key={opt.value || `header_${idx}`} style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, padding: '6px 10px', textTransform: 'uppercase' }}>
+                <div key={opt.value || `header_${idx}`} style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, padding: '6px 10px', textTransform: 'uppercase' }}>
                   {opt.label}
                 </div>
               );
@@ -105,8 +105,8 @@ export default function CustomSelect({
                 style={{
                   padding: '8px 12px',
                   borderRadius: '6px',
-                  background: isSel ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' : 'rgba(255, 255, 255, 0.03)',
-                  color: isSel ? '#ffffff' : '#f8fafc',
+                  background: isSel ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' : 'var(--bg-glass-light)',
+                  color: isSel ? '#ffffff' : 'var(--text-primary)',
                   cursor: 'pointer',
                   fontSize: '0.84rem',
                   fontWeight: isSel ? 700 : 500,

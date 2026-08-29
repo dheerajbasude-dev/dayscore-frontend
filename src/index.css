@@ -6031,3 +6031,219 @@ body::after {
   color: #0f172a !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
 }
+
+/* Light Mode Badges & Metadata */
+[data-theme='light'] .rating-badge-low {
+  background: rgba(239, 68, 68, 0.1) !important;
+  color: #dc2626 !important;
+  border: 1px solid rgba(239, 68, 68, 0.28) !important;
+  font-weight: 700 !important;
+}
+
+[data-theme='light'] .rating-badge-medium {
+  background: rgba(59, 130, 246, 0.1) !important;
+  color: #2563eb !important;
+  border: 1px solid rgba(59, 130, 246, 0.28) !important;
+  font-weight: 700 !important;
+}
+
+[data-theme='light'] .rating-badge-high {
+  background: rgba(16, 185, 129, 0.1) !important;
+  color: #059669 !important;
+  border: 1px solid rgba(16, 185, 129, 0.28) !important;
+  font-weight: 700 !important;
+}
+
+[data-theme='light'] .badge-work {
+  color: #4f46e5 !important;
+  font-weight: 700 !important;
+}
+
+[data-theme='light'] .badge-learning {
+  color: #059669 !important;
+  font-weight: 700 !important;
+}
+
+[data-theme='light'] .badge-health {
+  color: #0891b2 !important;
+  font-weight: 700 !important;
+}
+
+[data-theme='light'] .badge-personal {
+  color: #7c3aed !important;
+  font-weight: 700 !important;
+}
+
+[data-theme='light'] .priority-text.priority-high {
+  color: #ea580c !important;
+  font-weight: 700 !important;
+}
+
+[data-theme='light'] .priority-text.priority-med,
+[data-theme='light'] .priority-text.priority-medium {
+  color: #d97706 !important;
+  font-weight: 700 !important;
+}
+
+[data-theme='light'] .priority-text.priority-low {
+  color: #2563eb !important;
+  font-weight: 700 !important;
+}
+
+[data-theme='light'] .task-index-num {
+  color: #64748b !important;
+  background: #f1f5f9 !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+[data-theme='light'] .meta-dot {
+  color: #94a3b8 !important;
+}
+
+[data-theme='light'] .task-dates-inline {
+  color: #475569 !important;
+  font-weight: 600 !important;
+}
+
+[data-theme='light'] .dates-arrow {
+  color: #94a3b8 !important;
+}
+
+[data-theme='light'] .task-date-due {
+  color: #4f46e5 !important;
+  font-weight: 700 !important;
+}
+
+[data-theme='light'] .task-date-missed {
+  color: #dc2626 !important;
+  font-weight: 700 !important;
+}
+
+[data-theme='light'] .task-date-completed {
+  color: #059669 !important;
+  font-weight: 700 !important;
+}
+
+[data-theme='light'] .countdown {
+  color: #475569 !important;
+  font-weight: 600 !important;
+}
+
+[data-theme='light'] .countdown.urgency-high {
+  color: #dc2626 !important;
+  font-weight: 700 !important;
+}
+
+[data-theme='light'] .countdown.urgency-medium {
+  color: #d97706 !important;
+  font-weight: 700 !important;
+}
+
+[data-theme='light'] .action-banner.banner-reward {
+  background: rgba(16, 185, 129, 0.08) !important;
+  border: 1px solid rgba(16, 185, 129, 0.25) !important;
+  color: #065f46 !important;
+}
+
+[data-theme='light'] .action-banner.banner-penalty {
+  background: rgba(239, 68, 68, 0.08) !important;
+  border: 1px solid rgba(239, 68, 68, 0.25) !important;
+  color: #991b1b !important;
+}
+
+/* Light Mode Checkboxes & Check Circles */
+[data-theme='light'] .task-checkbox {
+  border: 2px solid #cbd5e1 !important;
+  background: #ffffff !important;
+}
+
+[data-theme='light'] .task-checkbox:hover {
+  border-color: #6366f1 !important;
+  background: rgba(99, 102, 241, 0.08) !important;
+}
+
+[data-theme='light'] .task-checkbox.done {
+  border-color: #10b981 !important;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  color: #ffffff !important;
+}
+
+[data-theme='light'] .task-checkbox.missed {
+  border-color: #ef4444 !important;
+  background: rgba(239, 68, 68, 0.1) !important;
+  color: #ef4444 !important;
+}
+
+[data-theme='light'] .task-checkbox.yellow-circle {
+  border-color: #f59e0b !important;
+  background: rgba(245, 158, 11, 0.15) !important;
+  color: #d97706 !important;
+}
+
+/* Light Mode Segmented Option Controls */
+[data-theme='light'] .segmented {
+  background: #f1f5f9 !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+[data-theme='light'] .segmented-option {
+  color: #475569 !important;
+}
+
+[data-theme='light'] .segmented-option:hover {
+  color: #0f172a !important;
+}
+
+[data-theme='light'] .segmented-option.active {
+  background: #ffffff !important;
+  color: #4f46e5 !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Light Mode Dropdowns & Popovers */
+[data-theme='light'] .date-picker-popover,
+[data-theme='light'] .custom-select-popover,
+[data-theme='light'] .glass-popover-time {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 16px 40px -6px rgba(15, 23, 42, 0.12), 0 4px 12px -2px rgba(15, 23, 42, 0.06) !important;
+  color: #0f172a !important;
+}
+
+/* Light Mode Rating Modal Notice Bars */
+[data-theme='light'] .star-rating-bar {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+[data-theme='light'] .rating-ontime-notice {
+  background: rgba(99, 102, 241, 0.08) !important;
+  border: 1px solid rgba(99, 102, 241, 0.25) !important;
+  color: #4338ca !important;
+}
+
+[data-theme='light'] .rating-overdue-notice {
+  background: rgba(239, 68, 68, 0.08) !important;
+  border: 1px solid rgba(239, 68, 68, 0.25) !important;
+  color: #b91c1c !important;
+}
+
+[data-theme='light'] .task-note-toggle-btn {
+  background: #f1f5f9 !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #475569 !important;
+}
+
+[data-theme='light'] .task-note-toggle-btn:hover {
+  background: #e2e8f0 !important;
+  color: #0f172a !important;
+  border-color: #94a3b8 !important;
+}
+
+[data-theme='light'] .task-note-toggle-btn.active,
+[data-theme='light'] .task-note-toggle-btn.has-notes {
+  background: rgba(99, 102, 241, 0.1) !important;
+  border-color: rgba(99, 102, 241, 0.35) !important;
+  color: #4f46e5 !important;
+}

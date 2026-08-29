@@ -10,27 +10,27 @@ export const getRatingTheme = (val) => {
   const num = Number(val);
   if (isNaN(num) || num <= 4.0) {
     return {
-      color: '#f87171',
-      bg: 'rgba(248, 113, 113, 0.16)',
-      border: 'rgba(248, 113, 113, 0.35)',
+      color: '#ef4444',
+      bg: 'rgba(239, 68, 68, 0.12)',
+      border: 'rgba(239, 68, 68, 0.32)',
       activeBg: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-      shadow: '0 2px 8px rgba(239, 68, 68, 0.4)'
+      shadow: '0 2px 8px rgba(239, 68, 68, 0.35)'
     };
   } else if (num <= 8.5) {
     return {
-      color: '#60a5fa',
-      bg: 'rgba(96, 165, 250, 0.16)',
-      border: 'rgba(96, 165, 250, 0.35)',
+      color: '#3b82f6',
+      bg: 'rgba(59, 130, 246, 0.12)',
+      border: 'rgba(59, 130, 246, 0.32)',
       activeBg: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-      shadow: '0 2px 8px rgba(59, 130, 246, 0.4)'
+      shadow: '0 2px 8px rgba(59, 130, 246, 0.35)'
     };
   } else {
     return {
-      color: '#34d399',
-      bg: 'rgba(52, 211, 153, 0.16)',
-      border: 'rgba(52, 211, 153, 0.35)',
+      color: '#10b981',
+      bg: 'rgba(16, 185, 129, 0.12)',
+      border: 'rgba(16, 185, 129, 0.32)',
       activeBg: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-      shadow: '0 2px 8px rgba(16, 185, 129, 0.4)'
+      shadow: '0 2px 8px rgba(16, 185, 129, 0.35)'
     };
   }
 };
@@ -647,12 +647,13 @@ function TaskCard({
         )}
 
         {showNotesInput && (
-          <div className="daily-notes-container" style={{
+          <div className="daily-notes-container card-glass" style={{
             marginTop: '8px',
             padding: '10px 12px',
             borderRadius: '10px',
-            background: 'rgba(15, 23, 42, 0.55)',
-            border: '1px solid rgba(255, 255, 255, 0.08)'
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border-glass)',
+            boxShadow: 'var(--shadow-sm)'
           }}>
             {effectiveNotesList.length > 0 && (
               <div className="daily-notes-list" style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: (isToday && !isDone && !isMissed) ? '10px' : '0' }}>
@@ -683,7 +684,7 @@ function TaskCard({
                         <span style={{
                           fontSize: '0.74rem',
                           fontWeight: 600,
-                          color: '#f87171',
+                          color: '#ef4444',
                           flexShrink: 0
                         }}>
                           Missed
@@ -708,7 +709,7 @@ function TaskCard({
 
                       <span style={{
                         wordBreak: 'break-word',
-                        color: isMissedDay ? '#f87171' : 'var(--text-primary)',
+                        color: isMissedDay ? '#ef4444' : 'var(--text-primary)',
                         fontStyle: isMissedDay ? 'italic' : 'normal'
                       }}>
                         {n.note || n.text}
@@ -726,19 +727,19 @@ function TaskCard({
                   alignItems: 'center',
                   gap: '4px',
                   fontSize: '0.72rem',
-                  color: '#34d399',
+                  color: '#10b981',
                   fontWeight: 600,
                   marginTop: effectiveNotesList.length > 0 ? '4px' : '0',
                   padding: '0 2px'
                 }}>
-                  <Check size={12} strokeWidth={2.5} style={{ color: '#34d399' }} />
+                  <Check size={12} strokeWidth={2.5} style={{ color: '#10b981' }} />
                   <span>Today's note & rating submitted</span>
                 </div>
               ) : (
                 <form onSubmit={handleNoteSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center' }}>
-                      <FileText size={13} style={{ position: 'absolute', left: '10px', color: 'rgba(148, 163, 184, 0.6)', pointerEvents: 'none' }} />
+                      <FileText size={13} style={{ position: 'absolute', left: '10px', color: 'var(--text-muted)', pointerEvents: 'none' }} />
                       <input
                         type="text"
                         placeholder="Add daily progress note..."
@@ -752,9 +753,9 @@ function TaskCard({
                           fontSize: '0.78rem',
                           padding: '4px 12px 4px 30px',
                           borderRadius: '8px',
-                          background: 'rgba(10, 13, 22, 0.6)',
-                          border: '1px solid rgba(255, 255, 255, 0.12)',
-                          color: '#f8fafc',
+                          background: 'var(--bg-primary)',
+                          border: '1px solid var(--border-glass)',
+                          color: 'var(--text-primary)',
                           outline: 'none',
                           transition: 'all 0.2s ease-in-out'
                         }}
@@ -799,10 +800,10 @@ function TaskCard({
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     gap: '6px',
-                    background: 'rgba(10, 13, 22, 0.4)',
+                    background: 'var(--bg-glass-light)',
                     padding: '4px 8px',
                     borderRadius: '8px',
-                    border: '1px solid rgba(255, 255, 255, 0.06)'
+                    border: '1px solid var(--border-glass)'
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
                       <span style={{
@@ -842,8 +843,8 @@ function TaskCard({
                               borderRadius: '5px',
                               fontSize: '0.7rem',
                               fontWeight: 700,
-                              border: isSelected ? `1px solid ${btnTheme.color}` : '1px solid rgba(255, 255, 255, 0.08)',
-                              background: isSelected ? btnTheme.activeBg : 'rgba(255, 255, 255, 0.04)',
+                              border: isSelected ? `1px solid ${btnTheme.color}` : '1px solid var(--border-glass)',
+                              background: isSelected ? btnTheme.activeBg : 'var(--bg-secondary)',
                               color: isSelected ? '#ffffff' : btnTheme.color,
                               cursor: 'pointer',
                               transition: 'all 0.15s ease'
@@ -869,8 +870,8 @@ function TaskCard({
                           borderRadius: '5px',
                           fontSize: '0.66rem',
                           fontWeight: 700,
-                          border: dailyRating % 1 !== 0 ? `1px solid ${currentTheme.color}` : '1px solid rgba(255, 255, 255, 0.08)',
-                          background: dailyRating % 1 !== 0 ? currentTheme.bg : 'rgba(255, 255, 255, 0.04)',
+                          border: dailyRating % 1 !== 0 ? `1px solid ${currentTheme.color}` : '1px solid var(--border-glass)',
+                          background: dailyRating % 1 !== 0 ? currentTheme.bg : 'var(--bg-secondary)',
                           color: dailyRating % 1 !== 0 ? currentTheme.color : 'var(--text-muted)',
                           cursor: 'pointer',
                           transition: 'all 0.15s ease'

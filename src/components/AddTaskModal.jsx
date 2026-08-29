@@ -278,20 +278,20 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
                 {/* Custom Floating Glass Menu */}
                 {isTemplateMenuOpen && (
                   <div 
-                    className="animate-pop-in"
+                    className="animate-pop-in card-glass"
                     style={{
                       position: 'absolute',
                       top: 'calc(100% + 6px)',
                       left: 0,
                       right: 0,
                       zIndex: 99999,
-                      background: '#121426',
-                      border: '1px solid rgba(99, 102, 241, 0.35)',
+                      background: 'var(--bg-secondary)',
+                      border: '1px solid var(--border-glass)',
                       borderRadius: 'var(--radius-md)',
                       padding: '6px',
                       maxHeight: '220px',
                       overflowY: 'auto',
-                      boxShadow: '0 16px 40px rgba(0, 0, 0, 0.8)',
+                      boxShadow: 'var(--shadow-lg)',
                       backdropFilter: 'blur(20px)',
                       display: 'flex',
                       flexDirection: 'column',
@@ -307,8 +307,8 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
                           style={{
                             padding: '8px 12px',
                             borderRadius: '8px',
-                            background: isSelected ? 'rgba(99, 102, 241, 0.25)' : 'rgba(255, 255, 255, 0.03)',
-                            border: isSelected ? '1px solid rgba(99, 102, 241, 0.45)' : '1px solid transparent',
+                            background: isSelected ? 'rgba(99, 102, 241, 0.25)' : 'var(--bg-glass-light)',
+                            border: isSelected ? '1px solid var(--accent-primary)' : '1px solid transparent',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
@@ -321,7 +321,7 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
                             <span style={{ fontSize: '0.72rem', fontWeight: '800', color: 'var(--accent-primary)', background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '4px', padding: '1px 5px', flexShrink: 0 }}>
                               #{idx + 1}
                             </span>
-                            <span style={{ fontWeight: '700', fontSize: '0.88rem', color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            <span style={{ fontWeight: '700', fontSize: '0.88rem', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {t.title}
                             </span>
                           </div>
@@ -330,7 +330,7 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
                             <span className="badge badge-cat" style={{ fontSize: '0.65rem', padding: '1px 5px' }}>{t.category}</span>
                             <span className="badge badge-pri" style={{ fontSize: '0.65rem', padding: '1px 5px' }}>{t.priority}</span>
                             {t.relativeTime && (
-                              <span style={{ fontSize: '0.65rem', color: '#fbbf24', fontWeight: '700' }}>⏰ {t.relativeTime}</span>
+                              <span style={{ fontSize: '0.65rem', color: '#f59e0b', fontWeight: '700' }}>⏰ {t.relativeTime}</span>
                             )}
                             {isSelected && <Check size={14} color="var(--accent-primary)" style={{ marginLeft: '4px' }} />}
                           </div>
@@ -422,9 +422,9 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
                       width: '100%',
                       padding: '9px 6px',
                       borderRadius: 'var(--radius-md)',
-                      background: 'var(--bg-tertiary)',
+                      background: 'var(--bg-secondary)',
                       border: isDatePickerOpen ? '1px solid var(--accent-primary)' : '1px solid var(--border-glass)',
-                      color: '#ffffff',
+                      color: 'var(--text-primary)',
                       fontSize: '0.82rem',
                       fontWeight: '600',
                       display: 'flex',
@@ -444,7 +444,7 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
                   {/* Calendar Popover */}
                   {isDatePickerOpen && (
                     <div
-                      className="animate-pop-in date-picker-popover"
+                      className="animate-pop-in date-picker-popover card-glass"
                       style={{
                         position: 'absolute',
                         bottom: 'calc(100% + 8px)',
@@ -453,11 +453,11 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
                         width: '270px',
                         padding: '14px',
                         borderRadius: '16px',
-                        background: '#121426',
-                        border: '1px solid rgba(99, 102, 241, 0.35)',
-                        boxShadow: '0 20px 48px rgba(0, 0, 0, 0.85)',
+                        background: 'var(--bg-secondary)',
+                        border: '1px solid var(--border-glass)',
+                        boxShadow: 'var(--shadow-lg)',
                         backdropFilter: 'blur(20px)',
-                        color: '#ffffff'
+                        color: 'var(--text-primary)'
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
@@ -472,9 +472,9 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
                                 width: '26px',
                                 height: '26px',
                                 borderRadius: '6px',
-                                border: '1px solid rgba(255, 255, 255, 0.12)',
-                                background: 'rgba(255, 255, 255, 0.06)',
-                                color: '#fff',
+                                border: '1px solid var(--border-glass)',
+                                background: 'var(--bg-glass-light)',
+                                color: 'var(--text-primary)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
@@ -486,17 +486,17 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
                             </button>
                           );
                         })()}
-                        <strong style={{ fontSize: '0.88rem', color: '#ffffff', fontWeight: 700 }}>
+                        <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 700 }}>
                           {format(calendarViewDate, 'MMMM yyyy')}
                         </strong>
-                        <button type="button" onClick={() => setCalendarViewDate(addMonths(calendarViewDate, 1))} style={{ width: '26px', height: '26px', borderRadius: '6px', border: '1px solid rgba(255, 255, 255, 0.12)', background: 'rgba(255, 255, 255, 0.06)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                        <button type="button" onClick={() => setCalendarViewDate(addMonths(calendarViewDate, 1))} style={{ width: '26px', height: '26px', borderRadius: '6px', border: '1px solid var(--border-glass)', background: 'var(--bg-glass-light)', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                           <ChevronRight size={14} />
                         </button>
                       </div>
 
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', textAlign: 'center', marginBottom: '6px' }}>
                         {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((d) => (
-                          <span key={d} style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8' }}>{d}</span>
+                          <span key={d} style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)' }}>{d}</span>
                         ))}
                       </div>
 
@@ -522,9 +522,9 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
                               style={{
                                 height: '30px',
                                 borderRadius: '6px',
-                                border: isSel ? '1px solid #818cf8' : '1px solid transparent',
-                                background: isSel ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' : (isTod ? 'rgba(99, 102, 241, 0.18)' : 'rgba(255, 255, 255, 0.04)'),
-                                color: isSel ? '#ffffff' : (isPast ? '#475569' : '#f8fafc'),
+                                border: isSel ? '1px solid var(--accent-primary)' : '1px solid transparent',
+                                background: isSel ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' : (isTod ? 'rgba(99, 102, 241, 0.18)' : 'var(--bg-glass-light)'),
+                                color: isSel ? '#ffffff' : (isPast ? 'var(--text-muted)' : 'var(--text-primary)'),
                                 opacity: isPast ? 0.3 : 1,
                                 cursor: isPast ? 'not-allowed' : 'pointer',
                                 fontSize: '0.8rem',
@@ -554,9 +554,9 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
                       width: '100%',
                       padding: '9px 6px',
                       borderRadius: 'var(--radius-md)',
-                      background: 'var(--bg-tertiary)',
+                      background: 'var(--bg-secondary)',
                       border: isHourPickerOpen ? '1px solid var(--accent-primary)' : '1px solid var(--border-glass)',
-                      color: '#ffffff',
+                      color: 'var(--text-primary)',
                       fontSize: '0.82rem',
                       fontWeight: '600',
                       display: 'flex',
@@ -578,20 +578,20 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
                   {/* Hour Popover */}
                   {isHourPickerOpen && (
                     <div
-                      className="animate-pop-in glass-popover-time"
+                      className="animate-pop-in glass-popover-time card-glass"
                       style={{
                         position: 'absolute',
                         bottom: 'calc(100% + 8px)',
                         left: 0,
                         right: 0,
                         zIndex: 99999,
-                        background: '#121426',
-                        border: '1px solid rgba(99, 102, 241, 0.35)',
+                        background: 'var(--bg-secondary)',
+                        border: '1px solid var(--border-glass)',
                         borderRadius: '12px',
                         padding: '6px',
                         maxHeight: '200px',
                         overflowY: 'auto',
-                        boxShadow: '0 16px 40px rgba(0, 0, 0, 0.85)',
+                        boxShadow: 'var(--shadow-lg)',
                         backdropFilter: 'blur(20px)',
                         display: 'flex',
                         flexDirection: 'column',
@@ -615,8 +615,8 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
                             style={{
                               padding: '7px 10px',
                               borderRadius: '6px',
-                              background: isSel ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' : 'rgba(255, 255, 255, 0.04)',
-                              color: isSel ? '#ffffff' : '#f8fafc',
+                              background: isSel ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' : 'var(--bg-glass-light)',
+                              color: isSel ? '#ffffff' : 'var(--text-primary)',
                               cursor: 'pointer',
                               fontSize: '0.82rem',
                               fontWeight: isSel ? 700 : 500,
@@ -648,9 +648,9 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
                       width: '100%',
                       padding: '9px 10px',
                       borderRadius: 'var(--radius-md)',
-                      background: 'var(--bg-tertiary)',
+                      background: 'var(--bg-secondary)',
                       border: isMinutePickerOpen ? '1px solid var(--accent-primary)' : '1px solid var(--border-glass)',
-                      color: '#ffffff',
+                      color: 'var(--text-primary)',
                       fontSize: '0.85rem',
                       fontWeight: '600',
                       display: 'flex',
@@ -666,20 +666,20 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
                   {/* Minute Popover */}
                   {isMinutePickerOpen && (
                     <div
-                      className="animate-pop-in glass-popover-time"
+                      className="animate-pop-in glass-popover-time card-glass"
                       style={{
                         position: 'absolute',
                         bottom: 'calc(100% + 8px)',
                         left: 0,
                         right: 0,
                         zIndex: 99999,
-                        background: '#121426',
-                        border: '1px solid rgba(99, 102, 241, 0.35)',
+                        background: 'var(--bg-secondary)',
+                        border: '1px solid var(--border-glass)',
                         borderRadius: '12px',
                         padding: '6px',
                         maxHeight: '200px',
                         overflowY: 'auto',
-                        boxShadow: '0 16px 40px rgba(0, 0, 0, 0.85)',
+                        boxShadow: 'var(--shadow-lg)',
                         backdropFilter: 'blur(20px)',
                         display: 'flex',
                         flexDirection: 'column',
@@ -701,8 +701,8 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
                             style={{
                               padding: '7px 10px',
                               borderRadius: '6px',
-                              background: isSel ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' : 'rgba(255, 255, 255, 0.04)',
-                              color: isSel ? '#ffffff' : '#f8fafc',
+                              background: isSel ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' : 'var(--bg-glass-light)',
+                              color: isSel ? '#ffffff' : 'var(--text-primary)',
                               cursor: 'pointer',
                               fontSize: '0.82rem',
                               fontWeight: isSel ? 700 : 500,

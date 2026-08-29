@@ -112,7 +112,7 @@ export default function CustomDatePicker({
       {/* Popover Calendar Grid */}
       {isOpen && (
         <div
-          className="animate-pop-in date-picker-popover"
+          className="animate-pop-in date-picker-popover card-glass"
           style={{
             position: 'absolute',
             top: 'calc(100% + 8px)',
@@ -121,11 +121,11 @@ export default function CustomDatePicker({
             width: '290px',
             padding: '16px',
             borderRadius: '16px',
-            background: '#121426',
-            border: '1px solid rgba(99, 102, 241, 0.35)',
-            boxShadow: '0 20px 48px rgba(0, 0, 0, 0.8)',
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border-glass)',
+            boxShadow: 'var(--shadow-lg)',
             backdropFilter: 'blur(20px)',
-            color: '#ffffff'
+            color: 'var(--text-primary)'
           }}
         >
           {/* Header Month Nav */}
@@ -138,9 +138,9 @@ export default function CustomDatePicker({
                 width: '30px',
                 height: '30px',
                 borderRadius: '8px',
-                border: '1px solid rgba(255, 255, 255, 0.12)',
-                background: 'rgba(255, 255, 255, 0.06)',
-                color: '#ffffff',
+                border: '1px solid var(--border-glass)',
+                background: 'var(--bg-glass-light)',
+                color: 'var(--text-primary)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -150,7 +150,7 @@ export default function CustomDatePicker({
             >
               <ChevronLeft size={16} />
             </button>
-            <strong style={{ fontSize: '0.95rem', color: '#ffffff', fontWeight: 700, letterSpacing: '0.3px' }}>
+            <strong style={{ fontSize: '0.95rem', color: 'var(--text-primary)', fontWeight: 700, letterSpacing: '0.3px' }}>
               {format(viewDate, 'MMMM yyyy')}
             </strong>
             <button
@@ -161,9 +161,9 @@ export default function CustomDatePicker({
                 width: '30px',
                 height: '30px',
                 borderRadius: '8px',
-                border: '1px solid rgba(255, 255, 255, 0.12)',
-                background: 'rgba(255, 255, 255, 0.06)',
-                color: '#ffffff',
+                border: '1px solid var(--border-glass)',
+                background: 'var(--bg-glass-light)',
+                color: 'var(--text-primary)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -178,7 +178,7 @@ export default function CustomDatePicker({
           {/* Days of Week Row */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', textAlign: 'center', marginBottom: '8px' }}>
             {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day) => (
-              <span key={day} style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8' }}>
+              <span key={day} style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>
                 {day}
               </span>
             ))}
@@ -214,14 +214,14 @@ export default function CustomDatePicker({
                     height: '34px',
                     borderRadius: '8px',
                     border: isSelected
-                      ? '1px solid #818cf8'
-                      : (hasData ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid transparent'),
+                      ? '1px solid var(--accent-primary)'
+                      : (hasData ? '1px solid var(--border-glass)' : '1px solid transparent'),
                     background: isSelected
                       ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)'
-                      : (isToday ? 'rgba(99, 102, 241, 0.18)' : (hasData ? 'rgba(255, 255, 255, 0.04)' : 'transparent')),
+                      : (isToday ? 'rgba(99, 102, 241, 0.18)' : (hasData ? 'var(--bg-glass-light)' : 'transparent')),
                     color: isSelected
                       ? '#ffffff'
-                      : (hasData ? '#f8fafc' : '#475569'),
+                      : (hasData ? 'var(--text-primary)' : 'var(--text-muted)'),
                     opacity: hasData ? 1 : 0.25,
                     cursor: hasData ? 'pointer' : 'not-allowed',
                     pointerEvents: hasData ? 'auto' : 'none',
@@ -243,7 +243,7 @@ export default function CustomDatePicker({
                       width: '4px',
                       height: '4px',
                       borderRadius: '50%',
-                      background: isToday ? '#fbbf24' : '#818cf8',
+                      background: isToday ? '#f59e0b' : 'var(--accent-primary)',
                       position: 'absolute',
                       bottom: '3px'
                     }} />

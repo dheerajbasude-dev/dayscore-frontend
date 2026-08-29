@@ -1904,8 +1904,8 @@ export default function TodayView() {
               borderRadius: 'var(--radius-md)',
               boxShadow: '0 4px 20px rgba(245, 158, 11, 0.15)'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', color: '#fef3c7' }}>
-                <RotateCcw size={16} style={{ color: '#fbbf24', flexShrink: 0 }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+                <RotateCcw size={16} style={{ color: '#f59e0b', flexShrink: 0 }} />
                 <span>
                   ⚡ <strong>{autoCarriedToastInfo.count} task{autoCarriedToastInfo.count > 1 ? 's' : ''}</strong> automatically carried over to Today!
                 </span>

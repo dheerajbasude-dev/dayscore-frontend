@@ -688,7 +688,7 @@ export default function SettingsView() {
                     {/* Calendar Popover */}
                     {isTDatePickerOpen && (
                       <div
-                        className="animate-pop-in date-picker-popover"
+                        className="animate-pop-in date-picker-popover card-glass"
                         style={{
                           position: 'absolute',
                           bottom: 'calc(100% + 8px)',
@@ -697,11 +697,11 @@ export default function SettingsView() {
                           width: '270px',
                           padding: '14px',
                           borderRadius: '16px',
-                          background: '#121426',
-                          border: '1px solid rgba(99, 102, 241, 0.35)',
-                          boxShadow: '0 20px 48px rgba(0, 0, 0, 0.85)',
+                          background: 'var(--bg-secondary)',
+                          border: '1px solid var(--border-glass)',
+                          boxShadow: 'var(--shadow-lg)',
                           backdropFilter: 'blur(20px)',
-                          color: '#ffffff'
+                          color: 'var(--text-primary)'
                         }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
@@ -716,9 +716,9 @@ export default function SettingsView() {
                                   width: '26px',
                                   height: '26px',
                                   borderRadius: '6px',
-                                  border: '1px solid rgba(255, 255, 255, 0.12)',
-                                  background: 'rgba(255, 255, 255, 0.06)',
-                                  color: '#fff',
+                                  border: '1px solid var(--border-glass)',
+                                  background: 'var(--bg-glass-light)',
+                                  color: 'var(--text-primary)',
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
@@ -730,17 +730,17 @@ export default function SettingsView() {
                               </button>
                             );
                           })()}
-                          <strong style={{ fontSize: '0.88rem', color: '#ffffff', fontWeight: 700 }}>
+                          <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 700 }}>
                             {format(tCalendarViewDate, 'MMMM yyyy')}
                           </strong>
-                          <button type="button" onClick={() => setTCalendarViewDate(addMonths(tCalendarViewDate, 1))} style={{ width: '26px', height: '26px', borderRadius: '6px', border: '1px solid rgba(255, 255, 255, 0.12)', background: 'rgba(255, 255, 255, 0.06)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                          <button type="button" onClick={() => setTCalendarViewDate(addMonths(tCalendarViewDate, 1))} style={{ width: '26px', height: '26px', borderRadius: '6px', border: '1px solid var(--border-glass)', background: 'var(--bg-glass-light)', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                             <ChevronRight size={14} />
                           </button>
                         </div>
 
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', textAlign: 'center', marginBottom: '6px' }}>
                           {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((d) => (
-                            <span key={d} style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8' }}>{d}</span>
+                            <span key={d} style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)' }}>{d}</span>
                           ))}
                         </div>
 
@@ -766,9 +766,9 @@ export default function SettingsView() {
                                 style={{
                                   height: '30px',
                                   borderRadius: '6px',
-                                  border: isSel ? '1px solid #818cf8' : '1px solid transparent',
-                                  background: isSel ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' : (isTod ? 'rgba(99, 102, 241, 0.18)' : 'rgba(255, 255, 255, 0.04)'),
-                                  color: isSel ? '#ffffff' : (isPast ? '#475569' : '#f8fafc'),
+                                  border: isSel ? '1px solid var(--accent-primary)' : '1px solid transparent',
+                                  background: isSel ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' : (isTod ? 'rgba(99, 102, 241, 0.18)' : 'var(--bg-glass-light)'),
+                                  color: isSel ? '#ffffff' : (isPast ? 'var(--text-muted)' : 'var(--text-primary)'),
                                   opacity: isPast ? 0.3 : 1,
                                   cursor: isPast ? 'not-allowed' : 'pointer',
                                   fontSize: '0.8rem',
@@ -798,9 +798,9 @@ export default function SettingsView() {
                         width: '100%',
                         padding: '9px 6px',
                         borderRadius: 'var(--radius-md)',
-                        background: 'var(--bg-tertiary)',
+                        background: 'var(--bg-secondary)',
                         border: isTHourPickerOpen ? '1px solid var(--accent-primary)' : '1px solid var(--border-glass)',
-                        color: '#ffffff',
+                        color: 'var(--text-primary)',
                         fontSize: '0.82rem',
                         fontWeight: '600',
                         display: 'flex',
@@ -822,20 +822,20 @@ export default function SettingsView() {
                     {/* Hour Popover */}
                     {isTHourPickerOpen && (
                       <div
-                        className="animate-pop-in glass-popover-time"
+                        className="animate-pop-in glass-popover-time card-glass"
                         style={{
                           position: 'absolute',
                           bottom: 'calc(100% + 8px)',
                           left: 0,
                           right: 0,
                           zIndex: 99999,
-                          background: '#121426',
-                          border: '1px solid rgba(99, 102, 241, 0.35)',
+                          background: 'var(--bg-secondary)',
+                          border: '1px solid var(--border-glass)',
                           borderRadius: '12px',
                           padding: '6px',
                           maxHeight: '200px',
                           overflowY: 'auto',
-                          boxShadow: '0 16px 40px rgba(0, 0, 0, 0.85)',
+                          boxShadow: 'var(--shadow-lg)',
                           backdropFilter: 'blur(20px)',
                           display: 'flex',
                           flexDirection: 'column',
@@ -859,8 +859,8 @@ export default function SettingsView() {
                               style={{
                                 padding: '7px 10px',
                                 borderRadius: '6px',
-                                background: isSel ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' : 'rgba(255, 255, 255, 0.04)',
-                                color: isSel ? '#ffffff' : '#f8fafc',
+                                background: isSel ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' : 'var(--bg-glass-light)',
+                                color: isSel ? '#ffffff' : 'var(--text-primary)',
                                 cursor: 'pointer',
                                 fontSize: '0.82rem',
                                 fontWeight: isSel ? 700 : 500,
@@ -892,9 +892,9 @@ export default function SettingsView() {
                         width: '100%',
                         padding: '9px 10px',
                         borderRadius: 'var(--radius-md)',
-                        background: 'var(--bg-tertiary)',
+                        background: 'var(--bg-secondary)',
                         border: isTMinutePickerOpen ? '1px solid var(--accent-primary)' : '1px solid var(--border-glass)',
-                        color: '#ffffff',
+                        color: 'var(--text-primary)',
                         fontSize: '0.85rem',
                         fontWeight: '600',
                         display: 'flex',
@@ -910,20 +910,20 @@ export default function SettingsView() {
                     {/* Minute Popover */}
                     {isTMinutePickerOpen && (
                       <div
-                        className="animate-pop-in glass-popover-time"
+                        className="animate-pop-in glass-popover-time card-glass"
                         style={{
                           position: 'absolute',
                           bottom: 'calc(100% + 8px)',
                           left: 0,
                           right: 0,
                           zIndex: 99999,
-                          background: '#121426',
-                          border: '1px solid rgba(99, 102, 241, 0.35)',
+                          background: 'var(--bg-secondary)',
+                          border: '1px solid var(--border-glass)',
                           borderRadius: '12px',
                           padding: '6px',
                           maxHeight: '200px',
                           overflowY: 'auto',
-                          boxShadow: '0 16px 40px rgba(0, 0, 0, 0.85)',
+                          boxShadow: 'var(--shadow-lg)',
                           backdropFilter: 'blur(20px)',
                           display: 'flex',
                           flexDirection: 'column',
@@ -945,8 +945,8 @@ export default function SettingsView() {
                               style={{
                                 padding: '7px 10px',
                                 borderRadius: '6px',
-                                background: isSel ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' : 'rgba(255, 255, 255, 0.04)',
-                                color: isSel ? '#ffffff' : '#f8fafc',
+                                background: isSel ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' : 'var(--bg-glass-light)',
+                                color: isSel ? '#ffffff' : 'var(--text-primary)',
                                 cursor: 'pointer',
                                 fontSize: '0.82rem',
                                 fontWeight: isSel ? 700 : 500,

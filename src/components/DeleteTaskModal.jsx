@@ -57,10 +57,10 @@ export default function DeleteTaskModal({ isOpen = true, task, onClose, onConfir
               <AlertTriangle size={20} color="#f87171" />
             </div>
             <div>
-              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#ffffff' }}>
+              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                 Delete Task
               </h3>
-              <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                 This action cannot be undone
               </span>
             </div>
@@ -71,9 +71,9 @@ export default function DeleteTaskModal({ isOpen = true, task, onClose, onConfir
             onClick={onClose} 
             disabled={isDeleting}
             aria-label="Close modal"
-            style={{ borderRadius: '50%', padding: '6px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+            style={{ borderRadius: '50%', padding: '6px', background: 'var(--bg-glass-light)', border: '1px solid var(--border-glass)' }}
           >
-            <X size={18} color="#94a3b8" />
+            <X size={18} color="var(--text-muted)" />
           </button>
         </div>
 
@@ -92,10 +92,10 @@ export default function DeleteTaskModal({ isOpen = true, task, onClose, onConfir
             gap: '10px'
           }}>
             <div style={{ minWidth: 0, flex: 1 }}>
-              <span style={{ fontSize: '0.72rem', color: '#f87171', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              <span style={{ fontSize: '0.72rem', color: '#ef4444', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                 Target Task
               </span>
-              <h4 style={{ margin: '2px 0 0 0', fontSize: '0.92rem', fontWeight: 700, color: '#f8fafc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <h4 style={{ margin: '2px 0 0 0', fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {task.title}
               </h4>
             </div>
@@ -106,7 +106,7 @@ export default function DeleteTaskModal({ isOpen = true, task, onClose, onConfir
 
           {/* Confirmation Prompt */}
           <div style={{ marginBottom: '18px' }}>
-            <label style={{ display: 'block', fontSize: '0.85rem', color: '#cbd5e1', fontWeight: 600, marginBottom: '8px' }}>
+            <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '8px' }}>
               Type <span style={{ color: '#ef4444', background: 'rgba(239, 68, 68, 0.15)', padding: '2px 7px', borderRadius: '6px', fontFamily: 'monospace', fontWeight: 800 }}>delete</span> to confirm:
             </label>
             <input
@@ -121,9 +121,9 @@ export default function DeleteTaskModal({ isOpen = true, task, onClose, onConfir
                 width: '100%',
                 padding: '11px 14px',
                 borderRadius: '10px',
-                background: 'rgba(15, 23, 42, 0.8)',
-                border: isConfirmEnabled ? '1px solid #ef4444' : '1px solid rgba(255, 255, 255, 0.12)',
-                color: '#ffffff',
+                background: 'var(--bg-primary)',
+                border: isConfirmEnabled ? '1px solid var(--accent-danger)' : '1px solid var(--border-glass)',
+                color: 'var(--text-primary)',
                 fontSize: '0.9rem',
                 fontWeight: 600,
                 outline: 'none',
@@ -156,7 +156,7 @@ export default function DeleteTaskModal({ isOpen = true, task, onClose, onConfir
                 border: isConfirmEnabled ? '1px solid rgba(239, 68, 68, 0.5)' : '1px solid transparent',
                 background: isConfirmEnabled 
                   ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' 
-                  : 'rgba(255, 255, 255, 0.08)',
+                  : 'var(--bg-glass-light)',
                 cursor: (isConfirmEnabled && !isDeleting) ? 'pointer' : 'not-allowed',
                 opacity: (isConfirmEnabled && !isDeleting) ? 1 : 0.45,
                 boxShadow: isConfirmEnabled ? '0 4px 16px rgba(239, 68, 68, 0.4)' : 'none',
