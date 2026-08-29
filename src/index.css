@@ -6247,3 +6247,63 @@ body::after {
   border-color: rgba(99, 102, 241, 0.35) !important;
   color: #4f46e5 !important;
 }
+
+/* Light Mode DayScore Brand Logo */
+[data-theme='light'] .brand-logo-icon-wrapper {
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 50%, #3b82f6 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.6) !important;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35), 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+}
+
+[data-theme='light'] .brand-text-day {
+  color: #0f172a !important;
+  font-weight: 900 !important;
+}
+
+[data-theme='light'] .brand-text-score {
+  background: linear-gradient(135deg, #4f46e5 0%, #0284c7 50%, #059669 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  filter: drop-shadow(0 1px 2px rgba(79, 70, 229, 0.18)) !important;
+  font-weight: 900 !important;
+}
+
+/* Light Mode Floating Center Scroll-to-Top Button */
+[data-theme='light'] .scroll-to-top-btn {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #4f46e5 !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.1), 0 2px 6px rgba(99, 102, 241, 0.15) !important;
+}
+
+[data-theme='light'] .scroll-to-top-btn:hover {
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
+  color: #ffffff !important;
+  border-color: #4f46e5 !important;
+  box-shadow: 0 10px 28px rgba(99, 102, 241, 0.45) !important;
+}
+
+/* Light Mode Bottom Navigation & Floating Buttons */
+[data-theme='light'] .bottom-nav {
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border-top: 1px solid #e2e8f0 !important;
+  box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.05) !important;
+}
+
+[data-theme='light'] .bottom-nav-item {
+  color: #64748b !important;
+}
+
+[data-theme='light'] .bottom-nav-item.active {
+  color: #4f46e5 !important;
+}
+
+[data-theme='light'] .bottom-nav-add-icon {
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4) !important;
+}
