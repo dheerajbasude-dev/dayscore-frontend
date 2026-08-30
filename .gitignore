@@ -10,3 +10,5 @@ server/database.sqlite
 *.log
 .agents
 MEMORY.md
+
+.vercel

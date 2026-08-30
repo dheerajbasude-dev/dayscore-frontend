@@ -19,7 +19,6 @@ import { useDayRollover } from '../hooks/useDayRollover'
 import { useNotifications } from '../hooks/useNotifications'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
-import { getApiBaseUrl } from '../utils/api'
 
 import { getLocalDateStr, calculateTaskAutoRating } from '../utils/taskUtils'
 
@@ -864,12 +863,6 @@ export default function TodayView() {
       setTasks(store.getTasks(currentDateStr));
       setArchives(store.getAllArchives());
       setShowAddModal(false);
-
-      // Trigger instant reminder evaluation if task is created within reminder window
-      if (settings.notifications) {
-        const baseUrl = getApiBaseUrl();
-        fetch(`${baseUrl}/api/cron/check-reminders`).catch(() => {});
-      }
     } catch (err) {
       console.error('Failed to save task:', err);
       showToast("Couldn't save task — check your connection and try again", 'error');
