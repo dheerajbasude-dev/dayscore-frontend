@@ -130,6 +130,71 @@ export function useNotifications(tasks, enabled, leadTimeMinutes = 30) {
     checkPermission();
   }, [enabled, checkPermission]);
 
+  useEffect(() => {
+    if (!enabled || !tasks || tasks.length === 0) return;
+    if ('Notification' in window && Notification.permission !== 'granted') return;
+
+    const timeouts = [];
+    const notifiedEvents = getNotifiedEvents();
+    const now = Date.now();
+    const leadTimeMs = Number(leadTimeMinutes) * 60 * 1000;
+
+    tasks.forEach(task => {
+      if (task.status === 'pending' || task.status === 'inprogress') {
+        const rawDue = task.dueDateTime || task.due_date_time;
+        const taskId = task.id || task._id;
+
+        if (rawDue && taskId) {
+          const dueTime = new Date(rawDue).getTime();
+
+          if (!isNaN(dueTime) && dueTime > now) {
+            // 1. Schedule Lead Time Reminder (if leadTime > 0 and in future)
+            if (leadTimeMs > 0) {
+              const notifyTime = dueTime - leadTimeMs;
+              const leadEventId = `${taskId}_lead_${notifyTime}`;
+              const timeDiffLead = notifyTime - now;
+
+              if (timeDiffLead > 0 && timeDiffLead <= 24 * 60 * 60 * 1000) {
+                if (!notifiedEvents.has(leadEventId)) {
+                  const t = setTimeout(() => {
+                    markEventNotified(leadEventId);
+                    triggerDesktopNotification(
+                      `⏰ Task Due Soon: ${task.title}`,
+                      `Task '${task.title}' (${task.priority || 'Med'} Priority) is due in ${leadTimeMinutes} minutes!`,
+                      `dayscore-task-lead-${taskId}`
+                    );
+                  }, timeDiffLead);
+                  timeouts.push(t);
+                }
+              }
+            }
+
+            // 2. Schedule Exact Due Time Reminder (Always fires when task reaches due time!)
+            const dueEventId = `${taskId}_exact_${dueTime}`;
+            const timeDiffDue = dueTime - now;
+
+            if (timeDiffDue > 0 && timeDiffDue <= 24 * 60 * 60 * 1000) {
+              if (!notifiedEvents.has(dueEventId)) {
+                const t = setTimeout(() => {
+                  markEventNotified(dueEventId);
+                  triggerDesktopNotification(
+                    `⏰ Task Due: ${task.title}`,
+                    `Task '${task.title}' (${task.priority || 'Med'} Priority) is due right now!`,
+                    `dayscore-task-due-${taskId}`
+                  );
+                }, timeDiffDue);
+                timeouts.push(t);
+              }
+            }
+          }
+        }
+      }
+    });
+
+    return () => {
+      timeouts.forEach(t => clearTimeout(t));
+    };
+  }, [tasks, enabled, leadTimeMinutes]);
+
   return { permissionGranted };
 }
-
