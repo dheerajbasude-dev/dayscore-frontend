@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { getApiBaseUrl } from '../utils/api';
 
 export function playNotificationSound() {
   try {
@@ -130,8 +131,25 @@ export function useNotifications(tasks, enabled, leadTimeMinutes = 30) {
     checkPermission();
   }, [enabled, checkPermission]);
 
-  // Reminders are dispatched exclusively by the backend cron Web Push engine
-  // to prevent duplicated client-side notifications and sound chimes.
+  // Periodic heartbeat triggers backend reminder evaluation every 30 seconds
+  // while the app is active, ensuring 100% on-time push delivery on Vercel Serverless
+  useEffect(() => {
+    if (!enabled) return;
+
+    const triggerReminderHeartbeat = async () => {
+      try {
+        const baseUrl = getApiBaseUrl();
+        await fetch(`${baseUrl}/api/cron/check-reminders`, { method: 'GET' });
+      } catch (e) {
+        // Silent heartbeat catch
+      }
+    };
+
+    triggerReminderHeartbeat();
+    const interval = setInterval(triggerReminderHeartbeat, 30000);
+
+    return () => clearInterval(interval);
+  }, [enabled]);
 
   return { permissionGranted };
 }
