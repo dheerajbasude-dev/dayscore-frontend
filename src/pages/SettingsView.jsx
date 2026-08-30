@@ -235,8 +235,9 @@ export default function SettingsView() {
     }
 
     setTestPushStatus('sending');
-    const minutes = settings.reminderLeadTime ?? 30;
-    const label = minutes === 0 ? 'at exact due time' : `${minutes} minutes before due time`;
+    const rawMin = settings.reminderLeadTime ?? 30;
+    const minutes = rawMin === 0 ? 10 : rawMin;
+    const label = `${minutes} minutes before due time (with +1m early cron buffer)`;
 
     // 2. Play audio chime
     playNotificationSound();
@@ -425,7 +426,7 @@ export default function SettingsView() {
                     {isPushSubscribing ? (
                       <span style={{ color: 'var(--accent-primary)' }}>Registering background push notification worker...</span>
                     ) : settings.notifications ? (
-                      settings.reminderLeadTime === 0 ? 'Notifies at exact due time' : `Notifies ${settings.reminderLeadTime ?? 30} min before due time`
+                      settings.reminderLeadTime === 0 ? 'Notifies 10 min before due time (at 11m buffer)' : `Notifies ${settings.reminderLeadTime ?? 30} min before due time`
                     ) : (
                       'Notifications disabled'
                     )}
