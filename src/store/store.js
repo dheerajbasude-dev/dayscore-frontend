@@ -987,12 +987,24 @@ export function isSettingsCached() {
 
 export function getSettings() {
   const uid = getUserId();
-  const defaults = { theme: 'dark', notifications: false, reminderLeadTime: 30 };
+  const defaults = { theme: 'dark', notifications: false, reminderLeadTime: 30, reminder_lead_time: 30 };
   try {
     const data = localStorage.getItem(`dayscore_${uid}_settings`);
     if (!data) return defaults;
     const parsed = JSON.parse(data);
-    return (parsed && typeof parsed === 'object') ? { ...defaults, ...parsed } : defaults;
+    if (parsed && typeof parsed === 'object') {
+      const rawLead = parsed.reminderLeadTime !== undefined ? parsed.reminderLeadTime : parsed.reminder_lead_time;
+      const leadTime = (rawLead !== undefined && rawLead !== null && !isNaN(Number(rawLead))) ? Number(rawLead) : 30;
+      const notifs = Boolean(parsed.notifications === 1 || parsed.notifications === true || parsed.notifications === '1');
+      return {
+        ...defaults,
+        ...parsed,
+        notifications: notifs,
+        reminderLeadTime: leadTime,
+        reminder_lead_time: leadTime
+      };
+    }
+    return defaults;
   } catch (e) {
     return defaults;
   }
@@ -1006,8 +1018,19 @@ export async function fetchSettingsApi() {
     const res = await authFetch('/api/settings');
     if (res.ok) {
       const data = await safeJsonParse(res);
+      const serverSettings = data.settings || {};
+      const rawLead = serverSettings.reminderLeadTime !== undefined ? serverSettings.reminderLeadTime : serverSettings.reminder_lead_time;
+      const leadTime = (rawLead !== undefined && rawLead !== null && !isNaN(Number(rawLead))) ? Number(rawLead) : 30;
+      const notifs = Boolean(serverSettings.notifications === 1 || serverSettings.notifications === true || serverSettings.notifications === '1');
+
       const current = getSettings();
-      const updated = { ...current, ...data.settings };
+      const updated = {
+        ...current,
+        ...serverSettings,
+        notifications: notifs,
+        reminderLeadTime: leadTime,
+        reminder_lead_time: leadTime
+      };
       saveSettings(updated);
       return updated;
     }
@@ -1021,13 +1044,30 @@ export async function fetchSettingsApi() {
 
 export function saveSettings(settings) {
   const uid = getUserId();
-  localStorage.setItem(`dayscore_${uid}_settings`, JSON.stringify(settings));
+  const rawLead = settings.reminderLeadTime !== undefined ? settings.reminderLeadTime : settings.reminder_lead_time;
+  const leadTime = (rawLead !== undefined && rawLead !== null && !isNaN(Number(rawLead))) ? Number(rawLead) : 30;
+  const notifs = Boolean(settings.notifications === 1 || settings.notifications === true || settings.notifications === '1');
+
+  const normalized = {
+    ...settings,
+    notifications: notifs,
+    reminderLeadTime: leadTime,
+    reminder_lead_time: leadTime
+  };
+
+  localStorage.setItem(`dayscore_${uid}_settings`, JSON.stringify(normalized));
 
   const token = getToken();
   if (token) {
     authFetch('/api/settings', {
       method: 'PUT',
-      body: JSON.stringify(settings)
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        notifications: notifs ? 1 : 0,
+        reminderLeadTime: leadTime,
+        reminder_lead_time: leadTime,
+        theme: settings.theme || 'dark'
+      })
     }).catch(err => console.error('Save settings API error:', err));
   }
 }

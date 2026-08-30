@@ -209,10 +209,11 @@ export default function SettingsView() {
   }
 
   const handleReminderChange = (minutes) => {
-    const newSettings = { ...settings, reminderLeadTime: minutes }
-    store.saveSettings(newSettings)
-    setSettings(newSettings)
-  }
+    const numMinutes = Number(minutes);
+    const newSettings = { ...settings, reminderLeadTime: numMinutes, reminder_lead_time: numMinutes };
+    store.saveSettings(newSettings);
+    setSettings(newSettings);
+  };
 
   const handleTestNotification = async () => {
     if (testPushStatus === 'sending') return
@@ -446,15 +447,23 @@ export default function SettingsView() {
                     { label: '15 Min Before', value: 15 },
                     { label: '30 Min Before', value: 30 },
                     { label: '1 Hour Before', value: 60 },
-                  ].map(opt => (
-                    <div
-                      key={opt.value}
-                      className={`segmented-option ${(settings.reminderLeadTime ?? 30) === opt.value ? 'active' : ''}`}
-                      onClick={() => handleReminderChange(opt.value)}
-                    >
-                      {opt.label}
-                    </div>
-                  ))}
+                  ].map(opt => {
+                    const currentLead = (settings.reminderLeadTime !== undefined && settings.reminderLeadTime !== null)
+                      ? Number(settings.reminderLeadTime)
+                      : ((settings.reminder_lead_time !== undefined && settings.reminder_lead_time !== null)
+                        ? Number(settings.reminder_lead_time)
+                        : 30);
+                    const isActive = currentLead === opt.value;
+                    return (
+                      <div
+                        key={opt.value}
+                        className={`segmented-option ${isActive ? 'active' : ''}`}
+                        onClick={() => handleReminderChange(opt.value)}
+                      >
+                        {opt.label}
+                      </div>
+                    );
+                  })}
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', flexWrap: 'wrap', gap: '8px' }}>
