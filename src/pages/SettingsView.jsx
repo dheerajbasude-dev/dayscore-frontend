@@ -190,8 +190,8 @@ export default function SettingsView() {
       try {
         await subscribeToPushNotifications()
         const newSettings = { ...settings, notifications: true }
-        store.saveSettings(newSettings)
         setSettings(newSettings)
+        await store.saveSettings(newSettings)
       } catch (err) {
         console.warn('Push subscription failed:', err)
         alert('⚠️ Notification permission is required for background reminders.\n\nPlease check your browser address bar permissions and ensure notifications are allowed for DayScore.')
@@ -203,15 +203,16 @@ export default function SettingsView() {
         await unsubscribePushNotifications()
       } catch (e) {}
       const newSettings = { ...settings, notifications: false }
-      store.saveSettings(newSettings)
       setSettings(newSettings)
+      await store.saveSettings(newSettings)
     }
   }
 
-  const handleReminderChange = (minutes) => {
-    const newSettings = { ...settings, reminderLeadTime: minutes }
-    store.saveSettings(newSettings)
+  const handleReminderChange = async (minutes) => {
+    const minVal = Number(minutes)
+    const newSettings = { ...settings, reminderLeadTime: minVal }
     setSettings(newSettings)
+    await store.saveSettings(newSettings)
   }
 
   const handleTestNotification = async () => {
@@ -449,7 +450,7 @@ export default function SettingsView() {
                   ].map(opt => (
                     <div
                       key={opt.value}
-                      className={`segmented-option ${(settings.reminderLeadTime ?? 30) === opt.value ? 'active' : ''}`}
+                      className={`segmented-option ${Number(settings.reminderLeadTime ?? 30) === opt.value ? 'active' : ''}`}
                       onClick={() => handleReminderChange(opt.value)}
                     >
                       {opt.label}
