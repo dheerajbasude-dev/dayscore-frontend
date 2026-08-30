@@ -992,14 +992,7 @@ export function getSettings() {
     const data = localStorage.getItem(`dayscore_${uid}_settings`);
     if (!data) return defaults;
     const parsed = JSON.parse(data);
-    if (!parsed || typeof parsed !== 'object') return defaults;
-    const rawLead = parsed.reminderLeadTime !== undefined ? parsed.reminderLeadTime : parsed.reminder_lead_time;
-    return {
-      ...defaults,
-      ...parsed,
-      notifications: Boolean(parsed.notifications === true || parsed.notifications === 1),
-      reminderLeadTime: typeof rawLead === 'number' ? rawLead : 30
-    };
+    return (parsed && typeof parsed === 'object') ? { ...defaults, ...parsed } : defaults;
   } catch (e) {
     return defaults;
   }
@@ -1013,45 +1006,29 @@ export async function fetchSettingsApi() {
     const res = await authFetch('/api/settings');
     if (res.ok) {
       const data = await safeJsonParse(res);
-      const raw = data.settings || {};
       const current = getSettings();
-      const rawLead = raw.reminderLeadTime !== undefined ? raw.reminderLeadTime : raw.reminder_lead_time;
-      const updated = {
-        ...current,
-        notifications: raw.notifications !== undefined ? Boolean(raw.notifications === true || raw.notifications === 1) : current.notifications,
-        reminderLeadTime: typeof rawLead === 'number' ? rawLead : (current.reminderLeadTime ?? 30),
-        theme: raw.theme || current.theme || 'dark'
-      };
-      const uid = getUserId();
-      localStorage.setItem(`dayscore_${uid}_settings`, JSON.stringify(updated));
+      const updated = { ...current, ...data.settings };
+      saveSettings(updated);
       return updated;
     }
   } catch (e) {
     console.warn('Fetch settings API error:', e);
   }
   const fallback = getSettings();
+  saveSettings(fallback);
   return fallback;
 }
 
-export async function saveSettings(settings) {
+export function saveSettings(settings) {
   const uid = getUserId();
   localStorage.setItem(`dayscore_${uid}_settings`, JSON.stringify(settings));
 
   const token = getToken();
   if (token) {
-    try {
-      await authFetch('/api/settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...settings,
-          reminderLeadTime: settings.reminderLeadTime !== undefined ? settings.reminderLeadTime : 30,
-          reminder_lead_time: settings.reminderLeadTime !== undefined ? settings.reminderLeadTime : 30
-        })
-      });
-    } catch (err) {
-      console.error('Save settings API error:', err);
-    }
+    authFetch('/api/settings', {
+      method: 'PUT',
+      body: JSON.stringify(settings)
+    }).catch(err => console.error('Save settings API error:', err));
   }
 }
 
