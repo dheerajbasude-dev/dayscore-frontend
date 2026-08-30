@@ -459,7 +459,7 @@ export default function SettingsView() {
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', flexWrap: 'wrap', gap: '8px' }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    💡 Reminders are pushed directly by the server to your device OS even when DayScore is closed.
+                    💡 Reminders are delivered to your device even when DayScore is closed.
                   </div>
                   <button 
                     type="button" 
