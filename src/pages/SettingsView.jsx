@@ -426,7 +426,7 @@ export default function SettingsView() {
                     {isPushSubscribing ? (
                       <span style={{ color: 'var(--accent-primary)' }}>Registering background push notification worker...</span>
                     ) : settings.notifications ? (
-                      settings.reminderLeadTime === 0 ? 'Notifies 10 min before due time (at 11m buffer)' : `Notifies ${settings.reminderLeadTime ?? 30} min before due time`
+                      settings.reminderLeadTime === 0 ? 'Notifies 10 min before due time' : `Notifies ${settings.reminderLeadTime ?? 30} min before due time`
                     ) : (
                       'Notifications disabled'
                     )}
