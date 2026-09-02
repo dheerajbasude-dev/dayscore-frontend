@@ -1,4 +1,6 @@
-// DayScore Service Worker (Background Push & Notification Delivery)
+// DayScore Service Worker v2.2 (Build: 2026-09-02-B)
+const SW_VERSION = 'dayscore-sw-v2.2-2026-09-02-B';
+
 self.addEventListener('install', (event) => {
   self.skipWaiting();
 });

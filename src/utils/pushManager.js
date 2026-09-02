@@ -68,7 +68,7 @@ export async function getExistingPushSubscription() {
 /**
  * Subscribe current device to Web Push notifications and sync with backend
  */
-export async function subscribeToPushNotifications() {
+export async function subscribeToPushNotifications(forceRenew = false) {
   if (!isPushNotificationSupported()) {
     throw new Error('Push notifications are not supported by your current browser.');
   }
@@ -83,18 +83,44 @@ export async function subscribeToPushNotifications() {
     throw new Error('Notification permission was not granted.');
   }
 
-  // 2. Ensure Service Worker registration is active
+  // 2. Ensure Service Worker registration is active and updated
   let reg = await navigator.serviceWorker.getRegistration();
   if (!reg) {
     reg = await navigator.serviceWorker.register('/sw.js');
   }
   reg = await navigator.serviceWorker.ready;
+  try {
+    await reg.update();
+  } catch (e) {}
 
   // 3. Obtain VAPID Public Key & subscribe
   const vapidPublicKey = await getVapidPublicKey();
   const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
 
   let subscription = await reg.pushManager.getSubscription();
+
+  // If forceRenew is requested or subscription exists, renew if needed
+  if (subscription && forceRenew) {
+    try {
+      const oldEndpoint = subscription.endpoint;
+      await subscription.unsubscribe();
+      subscription = null;
+      // Also notify backend to remove old endpoint
+      const token = localStorage.getItem('dayscore_token');
+      const baseUrl = getApiBaseUrl();
+      fetch(`${baseUrl}/api/notifications/unsubscribe`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ endpoint: oldEndpoint })
+      }).catch(() => {});
+    } catch (unsubErr) {
+      console.warn('Unsubscribe during renewal note:', unsubErr);
+    }
+  }
+
   if (!subscription) {
     subscription = await reg.pushManager.subscribe({
       userVisibleOnly: true,

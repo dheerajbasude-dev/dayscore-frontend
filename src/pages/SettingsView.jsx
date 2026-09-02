@@ -188,7 +188,7 @@ export default function SettingsView() {
     if (nextState) {
       setIsPushSubscribing(true)
       try {
-        await subscribeToPushNotifications()
+        await subscribeToPushNotifications(true)
         const newSettings = { ...settings, notifications: true }
         store.saveSettings(newSettings)
         setSettings(newSettings)
@@ -244,9 +244,9 @@ export default function SettingsView() {
     playNotificationSound();
 
     try {
-      // 3. Ensure device is registered with Web Push
+      // 3. Ensure device is registered with Web Push (force fresh token if needed)
       try {
-        await subscribeToPushNotifications();
+        await subscribeToPushNotifications(true);
       } catch (subErr) {
         console.warn('Push subscription note during test:', subErr);
       }
