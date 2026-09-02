@@ -12,7 +12,7 @@ self.addEventListener('push', (event) => {
   let data = {
     title: '⏰ DayScore Reminder',
     body: 'You have a scheduled task reminder.',
-    icon: '/favicon.svg',
+    icon: '/icons/icon-192.png',
     badge: '/icons/badge-96.png',
     url: '/',
     tag: 'dayscore-push-reminder'
@@ -27,30 +27,26 @@ self.addEventListener('push', (event) => {
     }
   }
 
-  // Device detection: Mobile (Android/iOS) vs Desktop (Windows/macOS/Linux)
-  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent || '');
-  const transparentIcon = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAA';
-
   const notificationOptions = {
     body: data.body,
-    // Desktop displays full /favicon.svg icon; Mobile displays transparent (empty) thumbnail
-    icon: isMobile ? transparentIcon : (data.icon || '/favicon.svg'),
+    icon: data.icon || '/icons/icon-192.png',
     badge: data.badge || '/icons/badge-96.png',
     tag: data.tag || `dayscore-notif-${Date.now()}`,
     data: {
       url: data.url || '/'
     },
     renotify: true,
-    requireInteraction: true,
-    vibrate: [200, 100, 200, 100, 200],
-    actions: [
-      { action: 'open', title: 'Open DayScore' },
-      { action: 'dismiss', title: 'Dismiss' }
-    ]
+    vibrate: [200, 100, 200, 100, 200]
   };
 
   event.waitUntil(
-    self.registration.showNotification(data.title, notificationOptions)
+    self.registration.showNotification(data.title, notificationOptions).catch((err) => {
+      console.warn('showNotification rich options failed, falling back to minimal notification:', err);
+      return self.registration.showNotification(data.title, {
+        body: data.body,
+        icon: '/favicon.svg'
+      });
+    })
   );
 });
 
@@ -90,14 +86,18 @@ self.addEventListener('pushsubscriptionchange', (event) => {
   event.waitUntil(
     self.registration.pushManager.subscribe(event.oldSubscription ? event.oldSubscription.options : { userVisibleOnly: true })
       .then((subscription) => {
-        return fetch('/api/notifications/subscribe', {
+        const oldEndpoint = event.oldSubscription ? event.oldSubscription.endpoint : '';
+        return fetch('/api/notifications/refresh-subscription', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ subscription })
+          body: JSON.stringify({
+            oldEndpoint,
+            newSubscription: subscription.toJSON ? subscription.toJSON() : subscription
+          })
         });
       })
       .catch((err) => {
-        console.warn('Push subscription change renewal failed:', err);
+        console.warn('Push subscription change renewal note:', err);
       })
   );
 });

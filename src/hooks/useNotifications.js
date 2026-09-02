@@ -117,14 +117,28 @@ export async function triggerDesktopNotification(title, body, tag = 'dayscore-no
   return { success: displayed, permission };
 }
 
+import { subscribeToPushNotifications, isPushNotificationSupported } from '../utils/pushManager';
+
 export function useNotifications(tasks, enabled, leadTimeMinutes = 30) {
   const [permissionGranted, setPermissionGranted] = useState(false);
 
   const checkPermission = useCallback(() => {
     if (typeof window !== 'undefined' && 'Notification' in window) {
-      setPermissionGranted(Notification.permission === 'granted');
+      const granted = Notification.permission === 'granted';
+      setPermissionGranted(granted);
+
+      // If notifications are enabled and permission is granted, ensure active registration with backend
+      if (granted && enabled !== false && isPushNotificationSupported()) {
+        const token = localStorage.getItem('dayscore_token');
+        if (token) {
+          subscribeToPushNotifications().catch(err => {
+            // Silently log; does not disrupt user flow
+            console.debug('Background push subscription sync note:', err?.message || err);
+          });
+        }
+      }
     }
-  }, []);
+  }, [enabled]);
 
   useEffect(() => {
     checkPermission();
