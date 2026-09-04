@@ -2381,7 +2381,7 @@ body {
   padding: 8px 8px;
   border-radius: calc(var(--radius-md) - 3px);
   cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   font-size: 0.78rem;
   font-weight: 500;
   color: var(--text-secondary);
@@ -2392,6 +2392,13 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  background: transparent;
+  border: none;
+  font-family: inherit;
+  line-height: inherit;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
 }
 
 @media (min-width: 480px) {
@@ -2401,9 +2408,11 @@ body {
   }
 }
 
-.segmented-option:hover:not(.active) {
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--text-primary);
+@media (hover: hover) and (pointer: fine) {
+  .segmented-option:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-primary);
+  }
 }
 
 .segmented-option.active {
@@ -4300,6 +4309,37 @@ body {
   .settings-segmented-grid {
     grid-template-columns: repeat(4, 1fr);
   }
+}
+
+.settings-segmented-grid .segmented-option {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  padding: 10px 8px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  min-height: 40px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .settings-segmented-grid .segmented-option:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+}
+
+.settings-segmented-grid .segmented-option.active {
+  background: var(--accent-primary) !important;
+  border-color: var(--accent-primary) !important;
+  color: #ffffff !important;
+  font-weight: 600;
+  box-shadow: 0 2px 10px rgba(var(--accent-primary-rgb), 0.4) !important;
 }
 
 .settings-template-grid {
@@ -6278,8 +6318,14 @@ body::after {
   color: #475569 !important;
 }
 
-[data-theme='light'] .segmented-option:hover {
-  color: #0f172a !important;
+@media (hover: hover) and (pointer: fine) {
+  [data-theme='light'] .segmented-option:hover {
+    color: #0f172a !important;
+  }
+  [data-theme='light'] .settings-segmented-grid .segmented-option:hover:not(.active) {
+    background: #f8fafc !important;
+    border-color: #cbd5e1 !important;
+  }
 }
 
 [data-theme='light'] .segmented-option.active {
@@ -6287,6 +6333,19 @@ body::after {
   color: #4f46e5 !important;
   font-weight: 700 !important;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08) !important;
+}
+
+[data-theme='light'] .settings-segmented-grid .segmented-option {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #475569 !important;
+}
+
+[data-theme='light'] .settings-segmented-grid .segmented-option.active {
+  background: #6366f1 !important;
+  border-color: #6366f1 !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25) !important;
 }
 
 /* Light Mode Dropdowns & Popovers */

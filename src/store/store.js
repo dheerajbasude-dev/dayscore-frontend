@@ -1031,15 +1031,14 @@ export async function fetchSettingsApi() {
         reminderLeadTime: leadTime,
         reminder_lead_time: leadTime
       };
-      saveSettings(updated);
+      const uid = getUserId();
+      localStorage.setItem(`dayscore_${uid}_settings`, JSON.stringify(updated));
       return updated;
     }
   } catch (e) {
     console.warn('Fetch settings API error:', e);
   }
-  const fallback = getSettings();
-  saveSettings(fallback);
-  return fallback;
+  return getSettings();
 }
 
 export function saveSettings(settings) {

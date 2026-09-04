@@ -81,18 +81,20 @@ export default function AuthModal({ isOpen, onClose }) {
         </div>
 
         <div className="segmented auth-segmented">
-          <div 
+          <button 
+            type="button"
             className={`segmented-option ${!isSignUp ? 'active' : ''}`}
             onClick={() => { setIsSignUp(false); setError(''); }}
           >
             <LogIn size={15} style={{ marginRight: 6 }} /> Sign In
-          </div>
-          <div 
+          </button>
+          <button 
+            type="button"
             className={`segmented-option ${isSignUp ? 'active' : ''}`}
             onClick={() => { setIsSignUp(true); setError(''); }}
           >
             <UserPlus size={15} style={{ marginRight: 6 }} /> Sign Up
-          </div>
+          </button>
         </div>
 
         {error && (

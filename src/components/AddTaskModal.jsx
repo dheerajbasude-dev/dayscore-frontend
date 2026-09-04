@@ -377,13 +377,14 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
               <label className="form-label">Category</label>
               <div className="segmented">
                 {['Work', 'Learning', 'Health', 'Personal'].map(cat => (
-                  <div 
+                  <button 
                     key={cat} 
+                    type="button"
                     className={`segmented-option ${category === cat ? 'active' : ''}`} 
                     onClick={() => setCategory(cat)}
                   >
                     {cat}
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>
@@ -393,13 +394,14 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
               <label className="form-label">Priority</label>
               <div className="segmented">
                 {['High', 'Med', 'Low'].map(pri => (
-                  <div 
+                  <button 
                     key={pri} 
+                    type="button"
                     className={`segmented-option ${priority === pri ? 'active' : ''}`} 
                     onClick={() => setPriority(pri)}
                   >
                     {pri}
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>

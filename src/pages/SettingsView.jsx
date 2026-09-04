@@ -22,6 +22,7 @@ export default function SettingsView() {
   const [resetConfirmText, setResetConfirmText] = useState('')
   const [isResetting, setIsResetting] = useState(false)
   const fileInputRef = useRef(null)
+  const lastUserChangeRef = useRef(0)
 
   const [isTDatePickerOpen, setIsTDatePickerOpen] = useState(false)
   const [isTHourPickerOpen, setIsTHourPickerOpen] = useState(false)
@@ -170,7 +171,16 @@ export default function SettingsView() {
       const userSettings = await store.fetchSettingsApi()
       const userTemplates = await store.fetchTemplatesApi()
       if (!isMounted) return;
-      setSettings(userSettings)
+      setSettings(prev => {
+        if (Date.now() - lastUserChangeRef.current < 5000) {
+          return {
+            ...userSettings,
+            reminderLeadTime: prev.reminderLeadTime,
+            reminder_lead_time: prev.reminder_lead_time
+          };
+        }
+        return userSettings;
+      });
       setTemplates(userTemplates || store.getTemplates())
       setLoading(false)
     }
@@ -210,9 +220,16 @@ export default function SettingsView() {
 
   const handleReminderChange = (minutes) => {
     const numMinutes = Number(minutes);
-    const newSettings = { ...settings, reminderLeadTime: numMinutes, reminder_lead_time: numMinutes };
-    store.saveSettings(newSettings);
-    setSettings(newSettings);
+    lastUserChangeRef.current = Date.now();
+    setSettings(prev => {
+      const updated = {
+        ...prev,
+        reminderLeadTime: numMinutes,
+        reminder_lead_time: numMinutes
+      };
+      store.saveSettings(updated);
+      return updated;
+    });
   };
 
   const handleTestNotification = async () => {
@@ -465,13 +482,14 @@ export default function SettingsView() {
                         : 30);
                     const isActive = currentLead === opt.value;
                     return (
-                      <div
+                      <button
                         key={opt.value}
+                        type="button"
                         className={`segmented-option ${isActive ? 'active' : ''}`}
                         onClick={() => handleReminderChange(opt.value)}
                       >
                         {opt.label}
-                      </div>
+                      </button>
                     );
                   })}
                 </div>
@@ -631,7 +649,7 @@ export default function SettingsView() {
                 <label className="form-label">Category</label>
                 <div className="segmented">
                   {['Work', 'Learning', 'Health', 'Personal'].map(cat => (
-                    <div key={cat} className={`segmented-option ${tCategory === cat ? 'active' : ''}`} onClick={() => !isSavingTemplate && setTCategory(cat)}>{cat}</div>
+                    <button key={cat} type="button" className={`segmented-option ${tCategory === cat ? 'active' : ''}`} onClick={() => !isSavingTemplate && setTCategory(cat)}>{cat}</button>
                   ))}
                 </div>
               </div>
@@ -640,7 +658,7 @@ export default function SettingsView() {
                 <label className="form-label">Priority</label>
                 <div className="segmented">
                   {['High', 'Med', 'Low'].map(pri => (
-                    <div key={pri} className={`segmented-option ${tPriority === pri ? 'active' : ''}`} onClick={() => !isSavingTemplate && setTPriority(pri)}>{pri}</div>
+                    <button key={pri} type="button" className={`segmented-option ${tPriority === pri ? 'active' : ''}`} onClick={() => !isSavingTemplate && setTPriority(pri)}>{pri}</button>
                   ))}
                 </div>
               </div>
