@@ -1041,7 +1041,7 @@ export async function fetchSettingsApi() {
   return getSettings();
 }
 
-export function saveSettings(settings) {
+export async function saveSettings(settings) {
   const uid = getUserId();
   const rawLead = settings.reminderLeadTime !== undefined ? settings.reminderLeadTime : settings.reminder_lead_time;
   const leadTime = (rawLead !== undefined && rawLead !== null && !isNaN(Number(rawLead))) ? Number(rawLead) : 30;
@@ -1058,17 +1058,24 @@ export function saveSettings(settings) {
 
   const token = getToken();
   if (token) {
-    authFetch('/api/settings', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        notifications: notifs ? 1 : 0,
-        reminderLeadTime: leadTime,
-        reminder_lead_time: leadTime,
-        theme: settings.theme || 'dark'
-      })
-    }).catch(err => console.error('Save settings API error:', err));
+    try {
+      await authFetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          notifications: notifs ? 1 : 0,
+          reminderLeadTime: leadTime,
+          reminder_lead_time: leadTime,
+          theme: settings.theme || 'dark'
+        })
+      });
+      return normalized;
+    } catch (err) {
+      console.error('Save settings API error:', err);
+      throw err;
+    }
   }
+  return normalized;
 }
 
 export function exportAllData() {

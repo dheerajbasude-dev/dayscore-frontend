@@ -23,6 +23,9 @@ export default function SettingsView() {
   const [isResetting, setIsResetting] = useState(false)
   const fileInputRef = useRef(null)
   const lastUserChangeRef = useRef(0)
+  const [savingLeadTimeValue, setSavingLeadTimeValue] = useState(null)
+  const [leadSaveSuccess, setLeadSaveSuccess] = useState(false)
+  const saveSuccessTimeoutRef = useRef(null)
 
   const [isTDatePickerOpen, setIsTDatePickerOpen] = useState(false)
   const [isTHourPickerOpen, setIsTHourPickerOpen] = useState(false)
@@ -218,18 +221,32 @@ export default function SettingsView() {
     }
   }
 
-  const handleReminderChange = (minutes) => {
+  const handleReminderChange = async (minutes) => {
+    if (savingLeadTimeValue !== null) return;
     const numMinutes = Number(minutes);
     lastUserChangeRef.current = Date.now();
-    setSettings(prev => {
-      const updated = {
-        ...prev,
-        reminderLeadTime: numMinutes,
-        reminder_lead_time: numMinutes
-      };
-      store.saveSettings(updated);
-      return updated;
-    });
+    setSavingLeadTimeValue(numMinutes);
+    setLeadSaveSuccess(false);
+    if (saveSuccessTimeoutRef.current) clearTimeout(saveSuccessTimeoutRef.current);
+
+    const updated = {
+      ...settings,
+      reminderLeadTime: numMinutes,
+      reminder_lead_time: numMinutes
+    };
+    setSettings(updated);
+
+    try {
+      await store.saveSettings(updated);
+      setLeadSaveSuccess(true);
+      saveSuccessTimeoutRef.current = setTimeout(() => {
+        setLeadSaveSuccess(false);
+      }, 1500);
+    } catch (err) {
+      console.error('Save settings error:', err);
+    } finally {
+      setSavingLeadTimeValue(null);
+    }
   };
 
   const handleTestNotification = async () => {
@@ -467,7 +484,19 @@ export default function SettingsView() {
             {/* Lead time selection */}
             {settings.notifications && (
               <div className="settings-notification-panel">
-                <label className="form-label" style={{ fontSize: '0.82rem', marginBottom: '8px' }}>Notification Lead Time</label>
+                <div className="settings-lead-header">
+                  <label className="form-label" style={{ fontSize: '0.82rem', margin: 0 }}>Notification Lead Time</label>
+                  {savingLeadTimeValue !== null && (
+                    <span className="lead-saving-badge">
+                      <Loader2 size={11} className="spin-fast" /> Saving...
+                    </span>
+                  )}
+                  {savingLeadTimeValue === null && leadSaveSuccess && (
+                    <span className="lead-saved-badge">
+                      <Check size={11} /> Saved
+                    </span>
+                  )}
+                </div>
                 <div className="settings-segmented-grid">
                   {[
                     { label: 'At Due Time', value: 0 },
@@ -481,14 +510,23 @@ export default function SettingsView() {
                         ? Number(settings.reminder_lead_time)
                         : 30);
                     const isActive = currentLead === opt.value;
+                    const isSavingThis = savingLeadTimeValue === opt.value;
                     return (
                       <button
                         key={opt.value}
                         type="button"
                         className={`segmented-option ${isActive ? 'active' : ''}`}
                         onClick={() => handleReminderChange(opt.value)}
+                        disabled={savingLeadTimeValue !== null}
                       >
-                        {opt.label}
+                        {isSavingThis ? (
+                          <>
+                            <Loader2 size={13} className="spin-fast" style={{ marginRight: 6 }} />
+                            <span>{opt.label}</span>
+                          </>
+                        ) : (
+                          opt.label
+                        )}
                       </button>
                     );
                   })}
