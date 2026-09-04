@@ -4296,15 +4296,9 @@ body {
   width: 100%;
 }
 
-@media (min-width: 460px) {
+@media (min-width: 540px) {
   .settings-segmented-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-@media (min-width: 680px) {
-  .settings-segmented-grid {
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(4, 1fr);
   }
 }
 

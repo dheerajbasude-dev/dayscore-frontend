@@ -241,12 +241,10 @@ export default function SettingsView() {
       : ((settings.reminder_lead_time !== undefined && settings.reminder_lead_time !== null)
         ? Number(settings.reminder_lead_time)
         : 30);
-    const minutes = [0, 10, 15, 30, 60].includes(rawMin) ? rawMin : 30;
-    const label = minutes === 0
-      ? 'at exact due time'
-      : minutes === 60
-        ? '1 hour before due time'
-        : `${minutes} minutes before due time`;
+    const baseLead = rawMin === 0 ? 10 : rawMin;
+    const label = baseLead === 60
+      ? '1 hour before due time'
+      : `${baseLead} minutes before due time`;
 
     // 2. Play audio chime
     playNotificationSound();
@@ -436,7 +434,7 @@ export default function SettingsView() {
                       <span style={{ color: 'var(--accent-primary)' }}>Registering background push notification worker...</span>
                     ) : settings.notifications ? (
                       settings.reminderLeadTime === 0
-                        ? 'Notifies at due time'
+                        ? 'Notifies 10 min before due time'
                         : settings.reminderLeadTime === 60
                           ? 'Notifies 1 hour before due time'
                           : `Notifies ${settings.reminderLeadTime ?? 30} min before due time`
@@ -456,7 +454,6 @@ export default function SettingsView() {
                 <div className="settings-segmented-grid">
                   {[
                     { label: 'At Due Time', value: 0 },
-                    { label: '10 Min Before', value: 10 },
                     { label: '15 Min Before', value: 15 },
                     { label: '30 Min Before', value: 30 },
                     { label: '1 Hour Before', value: 60 },
