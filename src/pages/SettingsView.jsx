@@ -236,9 +236,15 @@ export default function SettingsView() {
     }
 
     setTestPushStatus('sending');
-    const rawMin = settings.reminderLeadTime ?? 30;
-    const minutes = rawMin === 0 ? 10 : rawMin;
-    const label = `${minutes} minutes before due time (with +1m early cron buffer)`;
+    const rawMin = (settings.reminderLeadTime !== undefined && settings.reminderLeadTime !== null)
+      ? Number(settings.reminderLeadTime)
+      : ((settings.reminder_lead_time !== undefined && settings.reminder_lead_time !== null)
+        ? Number(settings.reminder_lead_time)
+        : 30);
+    const baseLead = rawMin === 0 ? 10 : rawMin;
+    const label = baseLead === 60
+      ? '1 hour before due time'
+      : `${baseLead} minutes before due time`;
 
     // 2. Play audio chime
     playNotificationSound();
@@ -254,7 +260,7 @@ export default function SettingsView() {
       // 4. Dispatch live Web Push from backend (delivered once via Service Worker)
       let pushDelivered = false;
       try {
-        const pushRes = await dispatchTestPushNotification(minutes);
+        const pushRes = await dispatchTestPushNotification(baseLead);
         if (pushRes && pushRes.sentCount > 0) {
           pushDelivered = true;
         }
@@ -427,7 +433,11 @@ export default function SettingsView() {
                     {isPushSubscribing ? (
                       <span style={{ color: 'var(--accent-primary)' }}>Registering background push notification worker...</span>
                     ) : settings.notifications ? (
-                      settings.reminderLeadTime === 0 ? 'Notifies 10 min before due time' : `Notifies ${settings.reminderLeadTime ?? 30} min before due time`
+                      settings.reminderLeadTime === 0
+                        ? 'Notifies 10 min before due time'
+                        : settings.reminderLeadTime === 60
+                          ? 'Notifies 1 hour before due time'
+                          : `Notifies ${settings.reminderLeadTime ?? 30} min before due time`
                     ) : (
                       'Notifications disabled'
                     )}
