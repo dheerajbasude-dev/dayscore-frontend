@@ -274,8 +274,14 @@ export default function TodayView() {
   const [showPastPendingBanner, setShowPastPendingBanner] = useState(false)
 
   const [todaysReward, setTodaysReward] = useState(null)
-  const [settings, setSettings] = useState({ notifications: false })
+  const [settings, setSettings] = useState(() => store.getSettings())
   const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    return store.onSettingsChange((newSettings) => {
+      if (newSettings) setSettings(newSettings);
+    });
+  }, []);
   const [autoCarriedToastInfo, setAutoCarriedToastInfo] = useState(null)
   const [taskToDelete, setTaskToDelete] = useState(null)
   const [isDeletingTask, setIsDeletingTask] = useState(false)
