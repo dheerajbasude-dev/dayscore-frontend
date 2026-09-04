@@ -155,88 +155,29 @@ export default function SettingsView() {
 
   useEffect(() => {
     let isMounted = true;
-
-    // 1. Instant local/broadcast listener (syncs across tabs and windows in real-time)
-    const unsubscribe = store.onSettingsChange((updatedSettings) => {
-      if (isMounted && updatedSettings) {
-        setSettings(prev => {
-          const prevLead = prev.reminderLeadTime !== undefined ? prev.reminderLeadTime : prev.reminder_lead_time;
-          const newLead = updatedSettings.reminderLeadTime !== undefined ? updatedSettings.reminderLeadTime : updatedSettings.reminder_lead_time;
-          if (
-            prevLead !== newLead ||
-            prev.notifications !== updatedSettings.notifications ||
-            prev.theme !== updatedSettings.theme
-          ) {
-            return updatedSettings;
-          }
-          return prev;
-        });
-      }
-    });
-
-    // 2. Initial load from cache & API
     const loadSettingsData = async () => {
-      const cached = store.getSettings();
-      if (cached && isMounted) setSettings(cached);
-      setTemplates(store.getTemplates());
+      // Instant cache load so switching tabs has ZERO delay and no re-triggering of loading spinners!
+      const cached = store.getSettings()
+      if (cached) setSettings(cached)
+      setTemplates(store.getTemplates())
 
       if (store.isSettingsCached()) {
-        setLoading(false);
+        setLoading(false)
       } else {
-        setLoading(true);
+        setLoading(true)
       }
 
-      const userSettings = await store.fetchSettingsApi();
-      const userTemplates = await store.fetchTemplatesApi();
+      const userSettings = await store.fetchSettingsApi()
+      const userTemplates = await store.fetchTemplatesApi()
       if (!isMounted) return;
-      if (userSettings) setSettings(userSettings);
-      if (userTemplates) setTemplates(userTemplates);
-      setLoading(false);
-    };
-    loadSettingsData();
+      setSettings(userSettings)
+      setTemplates(userTemplates || store.getTemplates())
+      setLoading(false)
+    }
 
-    // 3. Live polling for real-time synchronization across different devices without refreshing
-    const syncLiveSettings = async () => {
-      if (typeof document !== 'undefined' && document.hidden) return;
-      try {
-        const remoteSettings = await store.fetchSettingsApi();
-        if (isMounted && remoteSettings) {
-          setSettings(prev => {
-            const prevLead = prev.reminderLeadTime !== undefined ? prev.reminderLeadTime : prev.reminder_lead_time;
-            const remoteLead = remoteSettings.reminderLeadTime !== undefined ? remoteSettings.reminderLeadTime : remoteSettings.reminder_lead_time;
-            if (
-              prevLead !== remoteLead ||
-              prev.notifications !== remoteSettings.notifications ||
-              prev.theme !== remoteSettings.theme
-            ) {
-              return remoteSettings;
-            }
-            return prev;
-          });
-        }
-      } catch (e) {}
-    };
-
-    // Immediate sync on window focus or tab visibility change (e.g. user picks up phone or switches tab)
-    const onFocusOrVisible = () => {
-      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
-        syncLiveSettings();
-      }
-    };
-    window.addEventListener('focus', onFocusOrVisible);
-    document.addEventListener('visibilitychange', onFocusOrVisible);
-
-    // Live background polling (every 1.5s while Settings is open & active)
-    const liveSyncInterval = setInterval(syncLiveSettings, 1500);
-
-    return () => {
-      isMounted = false;
-      unsubscribe();
-      window.removeEventListener('focus', onFocusOrVisible);
-      document.removeEventListener('visibilitychange', onFocusOrVisible);
-      clearInterval(liveSyncInterval);
-    };
-  }, [user]);
+    loadSettingsData()
+    return () => { isMounted = false; }
+  }, [user])
 
   const [isPushSubscribing, setIsPushSubscribing] = useState(false)
   const [testPushStatus, setTestPushStatus] = useState('')
@@ -492,16 +433,11 @@ export default function SettingsView() {
                     {isPushSubscribing ? (
                       <span style={{ color: 'var(--accent-primary)' }}>Registering background push notification worker...</span>
                     ) : settings.notifications ? (
-                      (() => {
-                        const curLead = (settings.reminderLeadTime !== undefined && settings.reminderLeadTime !== null)
-                          ? Number(settings.reminderLeadTime)
-                          : ((settings.reminder_lead_time !== undefined && settings.reminder_lead_time !== null)
-                            ? Number(settings.reminder_lead_time)
-                            : 30);
-                        if (curLead === 0) return 'Notifies 10 min before due time';
-                        if (curLead === 60) return 'Notifies 1 hour before due time';
-                        return `Notifies ${curLead} min before due time`;
-                      })()
+                      settings.reminderLeadTime === 0
+                        ? 'Notifies 10 min before due time'
+                        : settings.reminderLeadTime === 60
+                          ? 'Notifies 1 hour before due time'
+                          : `Notifies ${settings.reminderLeadTime ?? 30} min before due time`
                     ) : (
                       'Notifications disabled'
                     )}

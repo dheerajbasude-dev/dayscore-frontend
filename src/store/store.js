@@ -1010,100 +1010,12 @@ export function getSettings() {
   }
 }
 
-const settingsListeners = new Set();
-
-export function onSettingsChange(listener) {
-  settingsListeners.add(listener);
-  return () => {
-    settingsListeners.delete(listener);
-  };
-}
-
-function notifySettingsChange(newSettings) {
-  settingsListeners.forEach(fn => {
-    try { fn(newSettings); } catch (e) {}
-  });
-}
-
-// Global broadcast channel & storage event for instant cross-tab & cross-window sync
-let settingsBroadcastChannel = null;
-try {
-  if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
-    settingsBroadcastChannel = new BroadcastChannel('dayscore_settings_channel');
-    settingsBroadcastChannel.onmessage = (event) => {
-      if (event.data && event.data.settings) {
-        notifySettingsChange(event.data.settings);
-      }
-    };
-  }
-} catch (e) {}
-
-if (typeof window !== 'undefined') {
-  window.addEventListener('storage', (event) => {
-    if (event.key && event.key.endsWith('_settings') && event.newValue) {
-      try {
-        const parsed = JSON.parse(event.newValue);
-        notifySettingsChange(parsed);
-      } catch (e) {}
-    }
-  });
-}
-
-export function cacheSettingsLocally(settings) {
-  const uid = getUserId();
-  const rawLead = settings.reminderLeadTime !== undefined ? settings.reminderLeadTime : settings.reminder_lead_time;
-  const leadTime = (rawLead !== undefined && rawLead !== null && !isNaN(Number(rawLead))) ? Number(rawLead) : 30;
-  const notifs = Boolean(settings.notifications === 1 || settings.notifications === true || settings.notifications === '1');
-
-  const normalized = {
-    ...settings,
-    notifications: notifs,
-    reminderLeadTime: leadTime,
-    reminder_lead_time: leadTime
-  };
-
-  const existingRaw = localStorage.getItem(`dayscore_${uid}_settings`);
-  let hasChanged = true;
-  if (existingRaw) {
-    try {
-      const existing = JSON.parse(existingRaw);
-      const exLead = existing.reminderLeadTime !== undefined ? existing.reminderLeadTime : existing.reminder_lead_time;
-      if (
-        exLead === leadTime &&
-        Boolean(existing.notifications) === notifs &&
-        existing.theme === normalized.theme
-      ) {
-        hasChanged = false;
-      }
-    } catch (e) {}
-  }
-
-  try {
-    localStorage.setItem(`dayscore_${uid}_settings`, JSON.stringify(normalized));
-  } catch (e) {}
-
-  if (hasChanged) {
-    notifySettingsChange(normalized);
-
-    if (settingsBroadcastChannel) {
-      try {
-        settingsBroadcastChannel.postMessage({ settings: normalized });
-      } catch (e) {}
-    }
-  }
-
-  return normalized;
-}
-
 export async function fetchSettingsApi() {
   const token = getToken();
   if (!token) return getSettings();
 
   try {
-    const res = await authFetch(`/api/settings?_t=${Date.now()}`, {
-      cache: 'no-store',
-      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
-    });
+    const res = await authFetch('/api/settings');
     if (res.ok) {
       const data = await safeJsonParse(res);
       const serverSettings = data.settings || {};
@@ -1119,18 +1031,31 @@ export async function fetchSettingsApi() {
         reminderLeadTime: leadTime,
         reminder_lead_time: leadTime
       };
-      cacheSettingsLocally(updated);
+      saveSettings(updated);
       return updated;
     }
   } catch (e) {
-    // Handled silently
+    console.warn('Fetch settings API error:', e);
   }
   const fallback = getSettings();
+  saveSettings(fallback);
   return fallback;
 }
 
 export function saveSettings(settings) {
-  const normalized = cacheSettingsLocally(settings);
+  const uid = getUserId();
+  const rawLead = settings.reminderLeadTime !== undefined ? settings.reminderLeadTime : settings.reminder_lead_time;
+  const leadTime = (rawLead !== undefined && rawLead !== null && !isNaN(Number(rawLead))) ? Number(rawLead) : 30;
+  const notifs = Boolean(settings.notifications === 1 || settings.notifications === true || settings.notifications === '1');
+
+  const normalized = {
+    ...settings,
+    notifications: notifs,
+    reminderLeadTime: leadTime,
+    reminder_lead_time: leadTime
+  };
+
+  localStorage.setItem(`dayscore_${uid}_settings`, JSON.stringify(normalized));
 
   const token = getToken();
   if (token) {
@@ -1138,16 +1063,13 @@ export function saveSettings(settings) {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        notifications: normalized.notifications ? 1 : 0,
-        reminderLeadTime: normalized.reminderLeadTime,
-        reminder_lead_time: normalized.reminder_lead_time,
-        theme: normalized.theme || 'dark'
+        notifications: notifs ? 1 : 0,
+        reminderLeadTime: leadTime,
+        reminder_lead_time: leadTime,
+        theme: settings.theme || 'dark'
       })
-    }).catch(err => {
-      // Handled silently
-    });
+    }).catch(err => console.error('Save settings API error:', err));
   }
-  return normalized;
 }
 
 export function exportAllData() {
