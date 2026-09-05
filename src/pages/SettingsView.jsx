@@ -534,7 +534,7 @@ export default function SettingsView() {
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', flexWrap: 'wrap', gap: '8px' }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    💡 Reminders are delivered even when DayScore is closed. Uncompleted tasks always trigger a Missed notification automatically.
+                    💡 Reminders are delivered even when DayScore is closed.
                   </div>
                   <button 
                     type="button" 
