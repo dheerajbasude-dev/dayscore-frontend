@@ -1,48 +1,51 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
-    <!-- Dark Glass Background Gradient -->
+    <!-- Deep Vibrant Glow Gradient -->
     <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0F172A" />
-      <stop offset="50%" stop-color="#1E1B4B" />
+      <stop offset="0%" stop-color="#1E1B4B" />
+      <stop offset="45%" stop-color="#0F172A" />
       <stop offset="100%" stop-color="#020617" />
     </linearGradient>
 
-    <!-- Vibrant Neon Ring Gradient -->
+    <!-- Vibrant Neon Score Ring Gradient -->
     <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#6366F1" />
-      <stop offset="45%" stop-color="#8B5CF6" />
-      <stop offset="80%" stop-color="#06B6D4" />
+      <stop offset="35%" stop-color="#8B5CF6" />
+      <stop offset="70%" stop-color="#06B6D4" />
       <stop offset="100%" stop-color="#10B981" />
     </linearGradient>
 
-    <!-- Lightning Flame Symbol Gradient -->
+    <!-- Electric Lightning Bolt Gradient -->
     <linearGradient id="symbolGrad" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#38BDF8" />
       <stop offset="50%" stop-color="#818CF8" />
       <stop offset="100%" stop-color="#C084FC" />
     </linearGradient>
 
-    <!-- Glow Filter -->
-    <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="10" result="blur" />
+    <!-- Intense Neon Glow Filter -->
+    <filter id="neonGlow" x="-25%" y="-25%" width="150%" height="150%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <filter id="boltGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="12" result="blur" />
       <feComposite in="SourceGraphic" in2="blur" operator="over" />
     </filter>
   </defs>
 
-  <!-- Background Canvas Container -->
-  <rect width="512" height="512" rx="128" fill="url(#bgGrad)" />
+  <!-- Edge-to-edge Circular Badge Canvas -->
+  <circle cx="256" cy="256" r="248" fill="url(#bgGrad)" />
+  <circle cx="256" cy="256" r="246" fill="none" stroke="rgba(255, 255, 255, 0.2)" stroke-width="4" />
 
-  <!-- Subtle Inner Border Shadow -->
-  <rect x="8" y="8" width="496" height="496" rx="120" fill="none" stroke="rgba(255, 255, 255, 0.15)" stroke-width="6" />
+  <!-- Background Ring Track (dimmed guide) -->
+  <circle cx="256" cy="256" r="218" fill="none" stroke="rgba(255, 255, 255, 0.12)" stroke-width="30" />
 
-  <!-- Background Ring Track -->
-  <circle cx="256" cy="256" r="185" fill="none" stroke="rgba(255, 255, 255, 0.08)" stroke-width="26" />
+  <!-- Outer Neon Score Progress Arc Ring (Massive & Vibrant) -->
+  <circle cx="256" cy="256" r="218" fill="none" stroke="url(#ringGrad)" stroke-width="30" stroke-linecap="round" stroke-dasharray="1370" stroke-dashoffset="260" transform="rotate(-90 256 256)" filter="url(#neonGlow)" />
 
-  <!-- Outer Neon Score Progress Arc Ring -->
-  <circle cx="256" cy="256" r="185" fill="none" stroke="url(#ringGrad)" stroke-width="26" stroke-linecap="round" stroke-dasharray="1162" stroke-dashoffset="240" transform="rotate(-90 256 256)" filter="url(#neonGlow)" />
-
-  <!-- Center Core Icon: High Performance Lightning Shield -->
-  <g transform="translate(256, 256) scale(1.1) translate(-256, -256)" filter="url(#neonGlow)">
+  <!-- Large Center Core: Electric Lightning Bolt (Scaled to fill badge) -->
+  <g transform="translate(256, 256) scale(1.32) translate(-256, -256)" filter="url(#boltGlow)">
     <!-- Electric Lightning Path -->
     <path d="M 285 105 
              L 185 260 
@@ -53,11 +56,11 @@
              Z" 
           fill="url(#symbolGrad)" 
           stroke="#FFFFFF" 
-          stroke-width="7" 
+          stroke-width="9" 
           stroke-linejoin="round" />
     
     <!-- Streak Flame Accent Star -->
-    <circle cx="345" cy="135" r="18" fill="#F59E0B" />
-    <circle cx="345" cy="135" r="9" fill="#FEF08A" />
+    <circle cx="345" cy="135" r="20" fill="#F59E0B" />
+    <circle cx="345" cy="135" r="10" fill="#FEF08A" />
   </g>
 </svg>

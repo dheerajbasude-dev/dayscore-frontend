@@ -1,5 +1,5 @@
-// DayScore Service Worker v2.2 (Build: 2026-09-02-B)
-const SW_VERSION = 'dayscore-sw-v2.2-2026-09-02-B';
+// DayScore Service Worker v2.3 (Build: 2026-09-05-HighResIcons)
+const SW_VERSION = 'dayscore-sw-v2.3-2026-09-05-HighResIcons';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -46,7 +46,7 @@ self.addEventListener('push', (event) => {
       console.warn('showNotification rich options failed, falling back to minimal notification:', err);
       return self.registration.showNotification(data.title, {
         body: data.body,
-        icon: '/favicon.svg'
+        icon: '/icons/icon-192.png'
       });
     })
   );
