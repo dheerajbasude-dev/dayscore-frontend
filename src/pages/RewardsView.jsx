@@ -237,7 +237,10 @@ export default function RewardsView() {
               ) : (
                 rewards.map((r, i) => (
                   <li key={i} className="rewards-list-item animate-slide-up" style={{ animationDelay: `${Math.min(i * 0.04, 0.3)}s` }}>
-                    <span>{r}</span>
+                    <div className="rewards-item-content">
+                      <span className="rewards-index-badge">#{i + 1}</span>
+                      <span className="rewards-item-text">{r}</span>
+                    </div>
                     <button 
                       onClick={() => handleDeleteReward(i)} 
                       className="btn-icon" 
@@ -298,7 +301,10 @@ export default function RewardsView() {
               ) : (
                 punishments.map((p, i) => (
                   <li key={i} className="rewards-list-item animate-slide-up" style={{ animationDelay: `${Math.min(i * 0.04, 0.3)}s` }}>
-                    <span>{p}</span>
+                    <div className="rewards-item-content">
+                      <span className="rewards-index-badge rewards-index-badge--penalty">#{i + 1}</span>
+                      <span className="rewards-item-text">{p}</span>
+                    </div>
                     <button 
                       onClick={() => handleDeletePunishment(i)} 
                       className="btn-icon" 
