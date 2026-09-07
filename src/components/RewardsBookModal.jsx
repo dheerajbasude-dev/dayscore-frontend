@@ -114,6 +114,12 @@ export default function RewardsBookModal({
     }
   };
 
+  const formatRatingDisplay = (val) => {
+    if (val == null || val === '' || isNaN(Number(val))) return '';
+    const num = Number(val);
+    return Number.isInteger(num) ? `${num}` : `${num.toFixed(1)}`;
+  };
+
   const getRatingBadgeClass = (r) => {
     if (r == null) return '';
     if (r >= 8) return 'rating-badge-high';
@@ -162,13 +168,23 @@ export default function RewardsBookModal({
     const flat = store.getAllTasksFlat() || [];
     const mergedList = [...flat];
     if (Array.isArray(activeTasks) && activeTasks.length > 0) {
-      const seen = new Set(flat.map(t => String(t.id || t._id)).filter(Boolean));
+      const seenIds = new Set();
+      const seenFps = new Set();
+      flat.forEach(t => {
+        if (t.id) seenIds.add(String(t.id));
+        if (t._id) seenIds.add(String(t._id));
+        const fp = `${(t.title || '').trim().toLowerCase()}_${(t.dueDateTime || t.due_date_time || '').substring(0, 16)}_${(t.completedAt || t.completed_at || '').substring(0, 16)}`;
+        seenFps.add(fp);
+      });
+
       activeTasks.forEach(at => {
         const tid = String(at.id || at._id || '');
-        if (tid && !seen.has(tid)) {
-          seen.add(tid);
-          mergedList.push(at);
-        }
+        const fp = `${(at.title || '').trim().toLowerCase()}_${(at.dueDateTime || at.due_date_time || '').substring(0, 16)}_${(at.completedAt || at.completed_at || '').substring(0, 16)}`;
+        if (tid && seenIds.has(tid)) return;
+        if (fp && seenFps.has(fp)) return;
+        if (tid) seenIds.add(tid);
+        if (fp) seenFps.add(fp);
+        mergedList.push(at);
       });
     }
 
@@ -205,13 +221,23 @@ export default function RewardsBookModal({
       const updatedFlat = store.getAllTasksFlat() || [];
       const updatedMerged = [...updatedFlat];
       if (Array.isArray(activeTasks) && activeTasks.length > 0) {
-        const seen = new Set(updatedFlat.map(t => String(t.id || t._id)).filter(Boolean));
+        const seenIds = new Set();
+        const seenFps = new Set();
+        updatedFlat.forEach(t => {
+          if (t.id) seenIds.add(String(t.id));
+          if (t._id) seenIds.add(String(t._id));
+          const fp = `${(t.title || '').trim().toLowerCase()}_${(t.dueDateTime || t.due_date_time || '').substring(0, 16)}_${(t.completedAt || t.completed_at || '').substring(0, 16)}`;
+          seenFps.add(fp);
+        });
+
         activeTasks.forEach(at => {
           const tid = String(at.id || at._id || '');
-          if (tid && !seen.has(tid)) {
-            seen.add(tid);
-            updatedMerged.push(at);
-          }
+          const fp = `${(at.title || '').trim().toLowerCase()}_${(at.dueDateTime || at.due_date_time || '').substring(0, 16)}_${(at.completedAt || at.completed_at || '').substring(0, 16)}`;
+          if (tid && seenIds.has(tid)) return;
+          if (fp && seenFps.has(fp)) return;
+          if (tid) seenIds.add(tid);
+          if (fp) seenFps.add(fp);
+          updatedMerged.push(at);
         });
       }
       setAllTasks(updatedMerged);
@@ -230,14 +256,18 @@ export default function RewardsBookModal({
     };
   }, [isOpen, activeTasks, refreshKey]);
 
-  // Build the complete ledger items list
+  // Build the complete ledger items list with strict deduplication
   const ledgerItems = useMemo(() => {
     const items = [];
-    const seenTaskKeys = new Set();
+    const seenRewardIds = new Set();
+    const seenRewardFps = new Set();
+    const seenPenaltyIds = new Set();
+    const seenPenaltyFps = new Set();
 
     // 1. Task-based Rewards & Penalties
     allTasks.forEach(task => {
-      const taskId = task.id || task._id;
+      const rawId = task.id || task._id;
+      const taskId = rawId ? String(rawId) : null;
       const cleanTaskDate = getLocalDateStr(task.date || task.taskDate || task.originalDate || task.dueDateTime || task.due_date_time) || format(new Date(), 'yyyy-MM-dd');
       const isDone = task.status === 'done' || task.completed === true;
       const isMissed = task.status === 'missed' || task.missed === true;
@@ -248,6 +278,10 @@ export default function RewardsBookModal({
       if (!isDone && !isMissed) {
         return;
       }
+
+      const taskTitleClean = (task.title || '').trim().toLowerCase();
+      const taskDue = (task.dueDateTime || task.due_date_time || '').substring(0, 16);
+      const taskComp = (task.completedAt || task.completed_at || '').substring(0, 16);
 
       // 1. Has reward?
       // A reward exists only if task is completed AND (rating > 4.0 or unrated) AND has a reward defined
@@ -265,12 +299,17 @@ export default function RewardsBookModal({
       const rewardText = (task.reward && task.reward.trim()) || (isHighRatingTask ? "Treat yourself for high score!" : null);
 
       if (isDone && hasHighRatingReward && rewardText) {
-        const key = `reward_${taskId}`;
-        if (!seenTaskKeys.has(key)) {
-          seenTaskKeys.add(key);
+        const rewardKey = taskId ? `reward_${taskId}` : null;
+        const rewardFp = `reward_fp_${taskTitleClean}_${(rewardText).toLowerCase()}_${taskDue}_${taskComp}`;
+
+        const isDuplicate = (rewardKey && seenRewardIds.has(rewardKey)) || seenRewardFps.has(rewardFp);
+        if (!isDuplicate) {
+          if (rewardKey) seenRewardIds.add(rewardKey);
+          seenRewardFps.add(rewardFp);
+
           items.push({
-            id: key,
-            rawId: taskId,
+            id: rewardKey || `reward_item_${items.length}_${Date.now()}`,
+            rawId: taskId || rewardFp,
             type: 'reward',
             text: rewardText,
             task,
@@ -299,12 +338,17 @@ export default function RewardsBookModal({
 
       if (isMissed || hasLowRatingPenalty) {
         const penaltyText = task.penalty && task.penalty.trim() ? task.penalty : "Complete 15-min focus reflection / workout";
-        const key = `penalty_${taskId}`;
-        if (!seenTaskKeys.has(key)) {
-          seenTaskKeys.add(key);
+        const penaltyKey = taskId ? `penalty_${taskId}` : null;
+        const penaltyFp = `penalty_fp_${taskTitleClean}_${(penaltyText).toLowerCase()}_${taskDue}_${taskComp}`;
+
+        const isDuplicate = (penaltyKey && seenPenaltyIds.has(penaltyKey)) || seenPenaltyFps.has(penaltyFp);
+        if (!isDuplicate) {
+          if (penaltyKey) seenPenaltyIds.add(penaltyKey);
+          seenPenaltyFps.add(penaltyFp);
+
           items.push({
-            id: key,
-            rawId: taskId,
+            id: penaltyKey || `penalty_item_${items.length}_${Date.now()}`,
+            rawId: taskId || penaltyFp,
             type: 'penalty',
             text: penaltyText,
             task,
@@ -729,27 +773,14 @@ export default function RewardsBookModal({
 
                       {/* Content Details */}
                       <div className="rewards-book-item-details">
-                        <div className="rewards-book-item-header">
-                          <span className={`item-type-badge ${isPenalty ? 'badge-danger' : (isMilestone ? 'badge-milestone' : 'badge-success')}`}>
-                            {isPenalty ? '⚠️ Penalty' : (isMilestone ? `🔥 ${item.days}-Day Milestone` : '🎁 Reward')}
+                        {/* Heading: Directly REWARD : <text> or PENALTY : <text> */}
+                        <div className="rewards-book-item-title-row">
+                          <span className={`item-type-prefix ${isPenalty ? 'prefix-penalty' : (isMilestone ? 'prefix-milestone' : 'prefix-reward')}`}>
+                            {isPenalty ? '⚠️ PENALTY :' : (isMilestone ? '🔥 MILESTONE :' : '🎁 REWARD :')}
                           </span>
-
-                          {item.rating != null && (
-                            <span className={`rating-badge ${getRatingBadgeClass(item.rating)}`} style={{ fontSize: '0.72rem', padding: '1px 6px' }}>
-                              <Star size={11} /> {Number(item.rating).toFixed(1)}/10
-                            </span>
-                          )}
-
-                          {item.date && (
-                            <span className="item-date-text">
-                              <Calendar size={12} /> {formatHeaderDate(item.date)}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Reward / Penalty Text */}
-                        <div className="rewards-book-item-text">
-                          {item.text}
+                          <span className="rewards-book-item-title-text">
+                            {item.text}
+                          </span>
                         </div>
 
                         {/* Associated Task Information matching TaskCard UI */}
@@ -764,7 +795,7 @@ export default function RewardsBookModal({
                             <div 
                               className="rewards-book-task-pill rewards-book-task-pill--clickable"
                               onClick={() => handleTaskClick(item)}
-                              title={`Jump to date: ${item.taskDate || 'task date'}`}
+                              title={`Click to view task on ${item.taskDate || 'date'}`}
                             >
                               <div className="task-pill-info task-meta-row" style={{ margin: 0, padding: 0 }}>
                                 <span className="task-pill-label" style={{ fontWeight: 700, color: 'var(--text-muted)' }}>Task:</span>
@@ -796,7 +827,7 @@ export default function RewardsBookModal({
                                   <>
                                     <span className="meta-dot">·</span>
                                     <span className={`rating-badge ${getRatingBadgeClass(taskRating)}`}>
-                                      ★ {taskRating.toFixed(1)}/10
+                                      ★ {formatRatingDisplay(taskRating)}/10
                                     </span>
                                   </>
                                 )}
@@ -826,15 +857,19 @@ export default function RewardsBookModal({
                                     </span>
                                   </>
                                 )}
-
-                                <span className="task-pill-jump-link">
-                                  <Calendar size={11} />
-                                  <span>Go to Date →</span>
-                                </span>
                               </div>
                             </div>
                           );
                         })()}
+
+                        {/* Milestone info row if no task */}
+                        {!hasTask && item.date && (
+                          <div className="rewards-book-task-pill">
+                            <span className="item-date-text">
+                              <Calendar size={12} /> {formatHeaderDate(item.date)}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
 

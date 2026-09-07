@@ -460,16 +460,33 @@ export function getAllTasksFlat() {
   const archives = getArchivesFromTasks();
   const list = [];
   const seenIds = new Set();
+  const seenFp = new Set();
+
+  const getTaskFingerprint = (t) => {
+    if (!t) return '';
+    const title = (t.title || '').trim().toLowerCase();
+    const due = (t.dueDateTime || t.due_date_time || '').substring(0, 16);
+    const comp = (t.completedAt || t.completed_at || '').substring(0, 16);
+    const rew = (t.reward || '').trim().toLowerCase();
+    const pen = (t.penalty || '').trim().toLowerCase();
+    return `${title}_${due}_${comp}_${rew}_${pen}`;
+  };
+
   archives.forEach(arc => {
     if (Array.isArray(arc.tasks)) {
       arc.tasks.forEach(t => {
-        const id = t.id || t._id;
-        if (id && !seenIds.has(id)) {
-          seenIds.add(id);
-          list.push({ ...t, taskDate: arc.date });
-        } else if (!id) {
-          list.push({ ...t, taskDate: arc.date });
+        const strId = t.id ? String(t.id) : (t._id ? String(t._id) : null);
+        const fp = getTaskFingerprint(t);
+        if (strId && seenIds.has(strId)) return;
+        if (fp && seenFp.has(fp)) return;
+
+        if (strId) {
+          seenIds.add(strId);
+          if (t.id) seenIds.add(String(t.id));
+          if (t._id) seenIds.add(String(t._id));
         }
+        if (fp) seenFp.add(fp);
+        list.push({ ...t, taskDate: arc.date });
       });
     }
   });
@@ -480,11 +497,18 @@ export function getAllTasksFlat() {
     const todayTasks = getTasks(todayStr);
     if (Array.isArray(todayTasks)) {
       todayTasks.forEach(t => {
-        const id = t.id || t._id;
-        if (id && !seenIds.has(id)) {
-          seenIds.add(id);
-          list.push({ ...t, taskDate: todayStr });
+        const strId = t.id ? String(t.id) : (t._id ? String(t._id) : null);
+        const fp = getTaskFingerprint(t);
+        if (strId && seenIds.has(strId)) return;
+        if (fp && seenFp.has(fp)) return;
+
+        if (strId) {
+          seenIds.add(strId);
+          if (t.id) seenIds.add(String(t.id));
+          if (t._id) seenIds.add(String(t._id));
         }
+        if (fp) seenFp.add(fp);
+        list.push({ ...t, taskDate: todayStr });
       });
     }
   } catch (e) {}

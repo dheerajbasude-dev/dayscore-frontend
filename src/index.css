@@ -3959,6 +3959,46 @@ body {
   min-width: 0;
 }
 
+.rewards-book-item-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  line-height: 1.35;
+}
+
+.item-type-prefix {
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.item-type-prefix.prefix-reward {
+  color: #10b981;
+}
+
+.item-type-prefix.prefix-penalty {
+  color: #ef4444;
+}
+
+.item-type-prefix.prefix-milestone {
+  color: #a855f7;
+}
+
+.rewards-book-item-title-text {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.35;
+  word-break: break-word;
+}
+
 .rewards-book-item-header {
   display: flex;
   align-items: center;
@@ -4346,11 +4386,40 @@ body {
   .rewards-book-item {
     flex-direction: column;
     align-items: stretch;
+    padding: 10px 12px;
+    gap: 10px;
+  }
+
+  .rewards-book-item-left {
+    gap: 8px;
+    width: 100%;
+  }
+
+  .rewards-book-item-title-row {
+    gap: 5px;
+  }
+
+  .item-type-prefix {
+    font-size: 0.74rem;
+  }
+
+  .rewards-book-item-title-text {
+    font-size: 0.88rem;
+  }
+
+  .rewards-book-task-pill {
+    padding: 4px 8px;
+    font-size: 0.72rem;
+  }
+
+  .task-pill-title {
+    max-width: 140px;
   }
 
   .rewards-book-item-actions {
     justify-content: flex-end;
-    margin-top: 4px;
+    width: 100%;
+    margin-top: 2px;
   }
 
   .rewards-book-cta-card {

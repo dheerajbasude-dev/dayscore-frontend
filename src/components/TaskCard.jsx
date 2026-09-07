@@ -766,7 +766,7 @@ function TaskCard({
                           alignItems: 'center',
                           gap: '3px'
                         }}>
-                          ★ {ratingVal.toFixed(1)}
+                          ★ {Number.isInteger(ratingVal) ? ratingVal : ratingVal.toFixed(1)}
                         </span>
                       )}
 
@@ -885,7 +885,7 @@ function TaskCard({
                         background: currentTheme.bg,
                         border: `1px solid ${currentTheme.border}`
                       }}>
-                        ★ {dailyRating.toFixed(1)}
+                        ★ {Number.isInteger(dailyRating) ? dailyRating : dailyRating.toFixed(1)}
                       </span>
                     </div>
 
