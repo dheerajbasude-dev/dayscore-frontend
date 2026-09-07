@@ -608,7 +608,7 @@ export default function RewardsBookModal({
               <div className="progress-col-header">
                 <span className="progress-col-label">
                   <Gift size={15} style={{ color: '#c084fc' }} />
-                  <strong>Rewards Claimed</strong>
+                  <strong>Rewards</strong>
                 </span>
                 <span className="progress-col-val" style={{ color: '#c084fc' }}>
                   {stats.claimedRewards} / {stats.totalRewards} ({stats.rewardsProgress}%)
@@ -627,7 +627,7 @@ export default function RewardsBookModal({
               <div className="progress-col-header">
                 <span className="progress-col-label">
                   <AlertOctagon size={15} style={{ color: 'var(--accent-danger)' }} />
-                  <strong>Penalties Acknowledged</strong>
+                  <strong>Penalties</strong>
                 </span>
                 <span className="progress-col-val" style={{ color: 'var(--accent-danger)' }}>
                   {stats.acknowledgedPenalties} / {stats.totalPenalties} ({stats.penaltiesProgress}%)
