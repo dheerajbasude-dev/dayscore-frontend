@@ -30,7 +30,7 @@ export default function DeleteTaskModal({ isOpen = true, task, onClose, onConfir
   };
 
   return createPortal(
-    <div className="modal-overlay" onClick={onClose} style={{ zIndex: 999999 }}>
+    <div className="modal-overlay" onClick={() => { if (!isDeleting) onClose(); }} style={{ zIndex: 999999 }}>
       <div 
         className="modal-content animate-pop-in" 
         onClick={e => e.stopPropagation()} 
@@ -161,8 +161,8 @@ export default function DeleteTaskModal({ isOpen = true, task, onClose, onConfir
                 background: isConfirmEnabled 
                   ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' 
                   : 'var(--bg-glass-light)',
-                cursor: (isConfirmEnabled && !isDeleting) ? 'pointer' : 'not-allowed',
-                opacity: (isConfirmEnabled && !isDeleting) ? 1 : 0.45,
+                cursor: isDeleting ? 'wait' : (isConfirmEnabled ? 'pointer' : 'not-allowed'),
+                opacity: isDeleting ? 0.95 : (isConfirmEnabled ? 1 : 0.45),
                 boxShadow: isConfirmEnabled ? '0 4px 16px rgba(239, 68, 68, 0.4)' : 'none',
                 display: 'inline-flex',
                 alignItems: 'center',

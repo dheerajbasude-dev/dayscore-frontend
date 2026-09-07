@@ -1436,48 +1436,52 @@ export default function TodayView() {
     const taskId = task.id || task._id;
     const taskDate = task.date || task.dateLabel || currentDateStr;
 
+    // 1. Immediately show loading spinner on the Delete button inside the modal and disable it
     setIsDeletingTask(true);
 
-    // Add exit animation
-    setDeletingTaskIds(prev => new Set([...prev, taskId]));
-
-    // Save previous state for rollback on error
-    const prevTasks = [...tasks];
-    const prevArchives = [...archives];
-
-    // Optimistically remove from local state immediately
-    setTasks(prev => prev.filter(t => (t.id || t._id) !== taskId));
-    setArchives(prev => prev.map(arc => ({
-      ...arc,
-      tasks: Array.isArray(arc.tasks) ? arc.tasks.filter(t => (t.id || t._id) !== taskId) : arc.tasks
-    })).filter(arc => !Array.isArray(arc.tasks) || arc.tasks.length > 0));
-
-    // Close the delete modal immediately
-    setTaskToDelete(null);
-
-    // Small delay for exit animation to play
-    await new Promise(r => setTimeout(r, 300));
-
     try {
-      await store.deleteTask(taskDate, taskId);
-      // Clear memory cache and re-sync with server
+      // 2. Perform delete API request on server while modal stays open with loading state
+      const deletePromise = store.deleteTask(taskDate, taskId);
+      const minTimerPromise = new Promise(r => setTimeout(r, 450));
+      await Promise.all([deletePromise, minTimerPromise]);
+
+      // 3. Clear memory cache and re-sync backend
       store.clearTaskMemoryCache();
-      await store.fetchAllTasksApi();
+      await store.fetchAllTasksApi().catch(() => {});
+
+      // 4. Server confirmed deletion — close the confirmation modal
+      setTaskToDelete(null);
+
+      // 5. Trigger smooth exit animation on the task card in the list
+      const idsToRemove = new Set([taskId, task.id, task._id].filter(Boolean));
+      setDeletingTaskIds(prev => new Set([...prev, ...idsToRemove]));
+
+      // 6. Allow the smooth removal animation (fade-out + slide/collapse) to complete (400ms)
+      await new Promise(r => setTimeout(r, 400));
+
+      // 7. Remove task from DOM / React state after animation finishes
+      setTasks(prev => prev.filter(t => !idsToRemove.has(t.id) && !idsToRemove.has(t._id)));
+      setArchives(prev => prev.map(arc => ({
+        ...arc,
+        tasks: Array.isArray(arc.tasks) ? arc.tasks.filter(t => !idsToRemove.has(t.id) && !idsToRemove.has(t._id)) : arc.tasks
+      })).filter(arc => !Array.isArray(arc.tasks) || arc.tasks.length > 0));
+
+      // 8. Re-sync state from store
       setTasks(store.getTasks(currentDateStr));
       setArchives(store.getAllArchives());
     } catch (err) {
       console.error('Delete task error:', err);
-      // Rollback optimistic removal on failure
-      setTasks(prevTasks);
-      setArchives(prevArchives);
+      // Restore button state appropriately on failure; modal stays open
       showToast("Couldn't delete task — check your connection and try again", 'error');
     } finally {
+      setIsDeletingTask(false);
       setDeletingTaskIds(prev => {
         const next = new Set(prev);
         next.delete(taskId);
+        if (task.id) next.delete(task.id);
+        if (task._id) next.delete(task._id);
         return next;
       });
-      setIsDeletingTask(false);
     }
   };
 
@@ -1566,7 +1570,8 @@ export default function TodayView() {
         if (isObject && taskOrId._id) localStorage.setItem(`dayscore_reward_ack_${taskOrId._id}`, '1');
       } catch (e) {}
 
-      await store.updateTask(targetDate, targetId, {
+      // Keep button in loading state during API update with min 350ms for smooth visual feedback
+      const updatePromise = store.updateTask(targetDate, targetId, {
         rewardClaimed: true,
         reward_claimed: 1,
         rewardAcknowledged: true,
@@ -1575,15 +1580,19 @@ export default function TodayView() {
         penalty_accepted: 0,
         rewardClaimedAt: new Date().toISOString()
       });
-      await store.fetchAllTasksApi();
+      const timerPromise = new Promise(r => setTimeout(r, 350));
+      await Promise.all([updatePromise, timerPromise]);
+
+      await store.fetchAllTasksApi().catch(() => {});
       setTasks(store.getTasks(currentDateStr));
       setArchives(store.getAllArchives());
       setTodaysReward(null);
     } catch (err) {
       console.error('Claim reward error:', err);
       showToast("Couldn't claim reward — check your connection and try again", 'error');
+      throw err;
     }
-  }
+  };
 
   const handleAcceptTaskPenalty = async (taskOrId) => {
     const isObject = typeof taskOrId === 'object' && taskOrId !== null;
@@ -1597,7 +1606,8 @@ export default function TodayView() {
         if (isObject && taskOrId._id) localStorage.setItem(`dayscore_penalty_ack_${taskOrId._id}`, '1');
       } catch (e) {}
 
-      await store.updateTask(targetDate, targetId, {
+      // Keep button in loading state during API update with min 350ms for smooth visual feedback
+      const updatePromise = store.updateTask(targetDate, targetId, {
         penaltyAccepted: true,
         penalty_accepted: 1,
         penaltyAcknowledged: true,
@@ -1606,7 +1616,10 @@ export default function TodayView() {
         reward_claimed: 0,
         penaltyAcceptedAt: new Date().toISOString()
       });
-      await store.fetchAllTasksApi();
+      const timerPromise = new Promise(r => setTimeout(r, 350));
+      await Promise.all([updatePromise, timerPromise]);
+
+      await store.fetchAllTasksApi().catch(() => {});
       setTasks(store.getTasks(currentDateStr));
       setArchives(store.getAllArchives());
 
@@ -1615,8 +1628,9 @@ export default function TodayView() {
     } catch (err) {
       console.error('Accept penalty error:', err);
       showToast("Couldn't accept penalty — check your connection and try again", 'error');
+      throw err;
     }
-  }
+  };
 
   const sortTasksByDefaultHierarchy = (a, b) => {
     // Status Group Tier Hierarchy (Top to Bottom):
@@ -2308,7 +2322,7 @@ export default function TodayView() {
                     task={task}
                     isToday={viewMode === 'all' ? ((task.date ? String(task.date).split('T')[0] : todayStr) === todayStr) : (currentDateStr === todayStr)}
                     animDelay={Math.min(idx * 0.04, 0.3)}
-                    isDeleting={deletingTaskIds.has(task.id || task._id)}
+                    isDeleting={deletingTaskIds.has(task.id || task._id) || (task.id && deletingTaskIds.has(task.id)) || (task._id && deletingTaskIds.has(task._id))}
                     onStatusChange={(taskId, newStatus) => handleStatusChange(taskId, newStatus)}
                     onDelete={(taskId) => handleDeleteTask(taskId)}
                     onRequestComplete={handleRequestComplete}
@@ -2643,7 +2657,7 @@ export default function TodayView() {
         <DeleteTaskModal
           isOpen={Boolean(taskToDelete)}
           task={taskToDelete}
-          onClose={() => setTaskToDelete(null)}
+          onClose={() => { if (!isDeletingTask) setTaskToDelete(null); }}
           onConfirmDelete={handleConfirmDeleteTask}
           isDeleting={isDeletingTask}
         />

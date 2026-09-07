@@ -1000,19 +1000,25 @@ body {
 }
 
 @keyframes taskSlideOut {
-  from {
+  0% {
     opacity: 1;
     transform: translateX(0) scale(1);
-    max-height: 200px;
+    max-height: 350px;
   }
-  to {
+  40% {
+    opacity: 0.4;
+    transform: translateX(20px) scale(0.97);
+  }
+  100% {
     opacity: 0;
-    transform: translateX(60px) scale(0.92);
+    transform: translateX(50px) scale(0.92);
     max-height: 0;
     padding-top: 0;
     padding-bottom: 0;
+    margin-top: 0;
     margin-bottom: 0;
     border-width: 0;
+    overflow: hidden;
   }
 }
 
@@ -1027,8 +1033,9 @@ body {
 }
 
 .task-exit {
-  animation: taskSlideOut 0.4s cubic-bezier(0.55, 0, 1, 0.45) forwards;
+  animation: taskSlideOut 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
   pointer-events: none;
+  overflow: hidden !important;
 }
 
 /* Task Group List - Responsive Multi-Column Grid on Large Screens */

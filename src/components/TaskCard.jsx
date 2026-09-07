@@ -353,6 +353,8 @@ function TaskCard({
     setClaiming(true);
     try {
       await onClaimReward(task);
+    } catch (err) {
+      console.error('Claim reward error:', err);
     } finally {
       setClaiming(false);
     }
@@ -363,6 +365,8 @@ function TaskCard({
     setAccepting(true);
     try {
       await onAcceptPenalty(task);
+    } catch (err) {
+      console.error('Accept penalty error:', err);
     } finally {
       setAccepting(false);
     }
@@ -641,11 +645,20 @@ function TaskCard({
               </button>
             ) : (
               <button 
+                type="button"
                 className="btn btn-sm btn-success" 
                 onClick={handleClaimReward}
                 disabled={claiming}
+                style={{ minWidth: '85px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}
               >
-                {claiming ? <Loader2 size={13} className="btn-spinner" /> : 'Claim'}
+                {claiming ? (
+                  <>
+                    <Loader2 size={13} className="btn-spinner" />
+                    <span>Claiming...</span>
+                  </>
+                ) : (
+                  'Claim'
+                )}
               </button>
             )}
           </div>
@@ -660,11 +673,20 @@ function TaskCard({
               </button>
             ) : (
               <button 
+                type="button"
                 className="btn btn-sm btn-secondary" 
                 onClick={handleAcceptPenalty}
                 disabled={accepting}
+                style={{ minWidth: '115px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}
               >
-                {accepting ? <Loader2 size={13} className="btn-spinner" /> : 'Acknowledge'}
+                {accepting ? (
+                  <>
+                    <Loader2 size={13} className="btn-spinner" />
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  'Acknowledge'
+                )}
               </button>
             )}
           </div>
