@@ -2671,6 +2671,7 @@ export default function TodayView() {
         isOpen={isBookOpen}
         onClose={() => setIsBookOpen(false)}
         initialTab={bookInitialTab}
+        activeTasks={tasks}
         onTaskUpdated={async () => {
           await store.fetchAllTasksApi();
           setTasks(store.getTasks(currentDateStr));

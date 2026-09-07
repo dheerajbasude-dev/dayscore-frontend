@@ -472,7 +472,23 @@ export function getAllTasksFlat() {
         }
       });
     }
-  }); 
+  });
+
+  // Also include today's tasks from getTasks to guarantee newly added tasks appear immediately
+  try {
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    const todayTasks = getTasks(todayStr);
+    if (Array.isArray(todayTasks)) {
+      todayTasks.forEach(t => {
+        const id = t.id || t._id;
+        if (id && !seenIds.has(id)) {
+          seenIds.add(id);
+          list.push({ ...t, taskDate: todayStr });
+        }
+      });
+    }
+  } catch (e) {}
+
   return list;
 }
 
