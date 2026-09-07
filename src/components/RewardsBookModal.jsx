@@ -25,12 +25,14 @@ import { format, parseISO } from 'date-fns';
 import * as store from '../store/store';
 import * as scoring from '../store/scoring';
 import { useToast } from '../context/ToastContext';
+import { getLocalDateStr } from '../utils/taskUtils';
 import ConfettiCelebration from './ConfettiCelebration';
 
 export default function RewardsBookModal({
   isOpen,
   onClose,
   onTaskUpdated,
+  onNavigateToTask,
   initialTab = 'all'
 }) {
   const { showToast } = useToast();
@@ -44,6 +46,45 @@ export default function RewardsBookModal({
   const [acceptingId, setAcceptingId] = useState(null);
   const [completingId, setCompletingId] = useState(null);
   const [showConfetti, setShowConfetti] = useState(false);
+
+  const formatDateSafe = (isoStr) => {
+    if (!isoStr) return null;
+    try {
+      const d = typeof isoStr === 'string' ? parseISO(isoStr) : new Date(isoStr);
+      if (isNaN(d.getTime())) return null;
+      return format(d, 'MMM dd, h:mm a');
+    } catch (e) {
+      return null;
+    }
+  };
+
+  const formatHeaderDate = (dateVal) => {
+    if (!dateVal) return '';
+    if (typeof dateVal === 'string' && dateVal.startsWith('Streak')) return dateVal;
+    try {
+      const d = typeof dateVal === 'string' ? parseISO(dateVal) : new Date(dateVal);
+      if (isNaN(d.getTime())) return String(dateVal);
+      return format(d, 'MMM dd, yyyy · h:mm a');
+    } catch (e) {
+      return String(dateVal);
+    }
+  };
+
+  const getRatingBadgeClass = (r) => {
+    if (r == null) return '';
+    if (r >= 8) return 'rating-badge-high';
+    if (r >= 5) return 'rating-badge-mid';
+    return 'rating-badge-low';
+  };
+
+  const handleTaskClick = (item) => {
+    if (!item.task) return;
+    const taskDate = getLocalDateStr(item.taskDate || item.task.date || item.task.completedAt || item.task.dueDateTime) || format(new Date(), 'yyyy-MM-dd');
+    if (onNavigateToTask) {
+      onNavigateToTask(item.task, taskDate);
+    }
+    onClose();
+  };
 
   // Local state for tasks and milestones
   const [allTasks, setAllTasks] = useState([]);
@@ -127,7 +168,7 @@ export default function RewardsBookModal({
     // 1. Task-based Rewards & Penalties
     allTasks.forEach(task => {
       const taskId = task.id || task._id;
-      const taskDate = task.date || task.taskDate || task.originalDate || format(new Date(), 'yyyy-MM-dd');
+      const cleanTaskDate = getLocalDateStr(task.date || task.taskDate || task.originalDate || task.dueDateTime || task.due_date_time) || format(new Date(), 'yyyy-MM-dd');
       const isDone = task.status === 'done' || task.completed === true;
       const isMissed = task.status === 'missed' || task.missed === true;
       const ratingNum = task.rating != null && !isNaN(Number(task.rating)) ? Number(task.rating) : null;
@@ -150,11 +191,11 @@ export default function RewardsBookModal({
             type: 'reward',
             text: task.reward,
             task,
-            taskDate,
+            taskDate: cleanTaskDate,
             isCompleted: isDone,
             isClaimed: isRewardClaimed,
             status: isRewardClaimed ? 'claimed' : 'pending',
-            date: task.completedAt || task.completed_at || taskDate,
+            date: task.completedAt || task.completed_at || cleanTaskDate,
             rating: ratingNum
           });
         }
@@ -179,11 +220,11 @@ export default function RewardsBookModal({
             type: 'penalty',
             text: penaltyText,
             task,
-            taskDate,
+            taskDate: cleanTaskDate,
             isCompleted: isDone,
             isClaimed: isPenaltyAccepted,
             status: isPenaltyAccepted ? 'acknowledged' : 'pending',
-            date: task.dueDateTime || task.due_date_time || taskDate,
+            date: task.dueDateTime || task.due_date_time || cleanTaskDate,
             rating: ratingNum
           });
         }
@@ -618,14 +659,14 @@ export default function RewardsBookModal({
                           </span>
 
                           {item.rating != null && (
-                            <span className="item-rating-badge">
+                            <span className={`rating-badge ${getRatingBadgeClass(item.rating)}`} style={{ fontSize: '0.72rem', padding: '1px 6px' }}>
                               <Star size={11} /> {Number(item.rating).toFixed(1)}/10
                             </span>
                           )}
 
                           {item.date && (
                             <span className="item-date-text">
-                              <Calendar size={12} /> {item.date}
+                              <Calendar size={12} /> {formatHeaderDate(item.date)}
                             </span>
                           )}
                         </div>
@@ -635,45 +676,118 @@ export default function RewardsBookModal({
                           {item.text}
                         </div>
 
-                        {/* Associated Task Information */}
-                        {hasTask && (
-                          <div className="rewards-book-task-pill">
-                            <div className="task-pill-info">
-                              <span className="task-pill-label">Task:</span>
-                              <strong className="task-pill-title">{item.task.title}</strong>
-                              {item.task.category && (
-                                <span className="task-category-pill">{item.task.category}</span>
-                              )}
-                            </div>
+                        {/* Associated Task Information matching TaskCard UI */}
+                        {hasTask && (() => {
+                          const createdFormatted = formatDateSafe(item.task.createdAt || item.task.created_at || item.task.originalDate || item.task.original_date);
+                          const dueFormatted = formatDateSafe(item.task.dueDateTime || item.task.due_date_time);
+                          const completedFormatted = formatDateSafe(item.task.completedAt || item.task.completed_at);
+                          const taskRating = item.rating != null ? Number(item.rating) : (item.task.rating != null ? Number(item.task.rating) : null);
+                          const isTaskMissed = item.task.status === 'missed' || item.task.missed === true;
 
-                            {/* Direct In-List Task Completion Action */}
-                            {!isTaskDone ? (
-                              <button
-                                type="button"
-                                className="btn btn-sm btn-secondary task-pill-complete-btn"
-                                onClick={() => handleCompleteTask(item)}
-                                disabled={completingId === item.id}
-                                title="Complete this task now to verify and unlock claim"
-                              >
-                                {completingId === item.id ? (
+                          return (
+                            <div 
+                              className="rewards-book-task-pill rewards-book-task-pill--clickable"
+                              onClick={() => handleTaskClick(item)}
+                              title={`Jump to date: ${item.taskDate || 'task date'}`}
+                            >
+                              <div className="task-pill-info task-meta-row" style={{ margin: 0, padding: 0 }}>
+                                <span className="task-pill-label" style={{ fontWeight: 700, color: 'var(--text-muted)' }}>Task:</span>
+                                {Boolean(item.task.carriedOver || item.task.carried_over || item.task.wasCarried || item.task.isCarried) && (
+                                  <span className="carried-over-blinking-badge" title="Carried over task" style={{ width: '16px', height: '16px', margin: '0 2px' }}>
+                                    <RotateCcw size={10} className="carried-icon-spin-subtle" />
+                                  </span>
+                                )}
+                                <strong className="task-pill-title" style={{ color: 'var(--text-primary)' }}>
+                                  {item.task.title}
+                                </strong>
+                                
+                                {item.task.category && (
+                                  <span className={`badge badge-${item.task.category.toLowerCase()}`}>
+                                    {item.task.category}
+                                  </span>
+                                )}
+
+                                {item.task.priority && (
                                   <>
-                                    <Loader2 size={13} className="btn-spinner" />
-                                    <span>Completing...</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <Circle size={13} />
-                                    <span>Mark Task Done</span>
+                                    <span className="meta-dot">·</span>
+                                    <span className={`priority-text priority-${item.task.priority.toLowerCase()}`}>
+                                      {item.task.priority}
+                                    </span>
                                   </>
                                 )}
-                              </button>
-                            ) : (
-                              <span className="task-pill-status task-pill-status--done">
-                                <CheckCheck size={13} /> Completed
-                              </span>
-                            )}
-                          </div>
-                        )}
+
+                                {taskRating != null && (
+                                  <>
+                                    <span className="meta-dot">·</span>
+                                    <span className={`rating-badge ${getRatingBadgeClass(taskRating)}`}>
+                                      ★ {taskRating.toFixed(1)}/10
+                                    </span>
+                                  </>
+                                )}
+
+                                {(createdFormatted || dueFormatted) && (
+                                  <>
+                                    <span className="meta-dot">·</span>
+                                    <span className="task-dates-inline">
+                                      {createdFormatted ? <span>{createdFormatted}</span> : <span>{item.taskDate || 'Today'}</span>}
+                                      {dueFormatted && (
+                                        <>
+                                          <span className="dates-arrow">→</span>
+                                          <span className={isTaskMissed ? 'task-date-missed' : 'task-date-due'}>
+                                            {dueFormatted}
+                                          </span>
+                                        </>
+                                      )}
+                                    </span>
+                                  </>
+                                )}
+
+                                {completedFormatted && (
+                                  <>
+                                    <span className="meta-dot">·</span>
+                                    <span className="task-date-completed">
+                                      ✓ {completedFormatted}
+                                    </span>
+                                  </>
+                                )}
+
+                                <span className="task-pill-jump-link">
+                                  <Calendar size={11} />
+                                  <span>Go to Date →</span>
+                                </span>
+                              </div>
+
+                              {/* Direct In-List Task Completion Action */}
+                              <div onClick={(e) => e.stopPropagation()} style={{ flexShrink: 0 }}>
+                                {!isTaskDone ? (
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm btn-secondary task-pill-complete-btn"
+                                    onClick={() => handleCompleteTask(item)}
+                                    disabled={completingId === item.id}
+                                    title="Complete this task now to verify and unlock claim"
+                                  >
+                                    {completingId === item.id ? (
+                                      <>
+                                        <Loader2 size={13} className="btn-spinner" />
+                                        <span>Completing...</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Circle size={13} />
+                                        <span>Mark Done</span>
+                                      </>
+                                    )}
+                                  </button>
+                                ) : (
+                                  <span className="task-pill-status task-pill-status--done">
+                                    <CheckCheck size={13} /> Completed
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
 

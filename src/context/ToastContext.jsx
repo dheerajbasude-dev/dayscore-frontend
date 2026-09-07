@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { AlertCircle, CheckCircle2, AlertTriangle, X } from 'lucide-react';
+import { AlertCircle, CheckCircle2, AlertTriangle, X, RotateCcw } from 'lucide-react';
 
 const ToastContext = createContext(null);
 
@@ -26,6 +26,8 @@ export function ToastProvider({ children }) {
         return <CheckCircle2 size={18} color="#34d399" />;
       case 'warning':
         return <AlertTriangle size={18} color="#fbbf24" />;
+      case 'info':
+        return <RotateCcw size={18} color="#0AFFFF" className="carried-icon-spin-subtle" />;
       case 'error':
       default:
         return <AlertCircle size={18} color="#f87171" />;
@@ -38,6 +40,8 @@ export function ToastProvider({ children }) {
         return 'rgba(52, 211, 153, 0.45)';
       case 'warning':
         return 'rgba(245, 158, 11, 0.45)';
+      case 'info':
+        return 'rgba(10, 255, 255, 0.45)';
       case 'error':
       default:
         return 'rgba(239, 68, 68, 0.55)';
@@ -50,6 +54,8 @@ export function ToastProvider({ children }) {
         return 'rgba(52, 211, 153, 0.15)';
       case 'warning':
         return 'rgba(245, 158, 11, 0.18)';
+      case 'info':
+        return 'rgba(10, 255, 255, 0.15)';
       case 'error':
       default:
         return 'rgba(239, 68, 68, 0.18)';
@@ -66,7 +72,9 @@ export function ToastProvider({ children }) {
             borderColor: getBorderColor(toast.type),
             boxShadow: toast.type === 'error' 
               ? '0 16px 40px rgba(0, 0, 0, 0.8), 0 0 25px rgba(239, 68, 68, 0.25)'
-              : '0 16px 40px rgba(0, 0, 0, 0.75), 0 0 25px rgba(245, 158, 11, 0.25)'
+              : toast.type === 'info'
+                ? '0 16px 40px rgba(0, 0, 0, 0.75), 0 0 25px rgba(10, 255, 255, 0.25)'
+                : '0 16px 40px rgba(0, 0, 0, 0.75), 0 0 25px rgba(245, 158, 11, 0.25)'
           }}
           role="alert"
         >

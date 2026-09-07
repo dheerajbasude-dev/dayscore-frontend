@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Plus, Trash2, Edit2, Check, Gift, AlertOctagon, Info, History, Trophy, Sparkles, Loader2, BookOpen } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import * as store from '../store/store'
@@ -8,6 +9,7 @@ import RewardsBookModal from '../components/RewardsBookModal'
 
 export default function RewardsView() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [rewards, setRewards] = useState(() => store.getRewards())
   const [punishments, setPunishments] = useState(() => store.getPunishments())
   const [milestones, setMilestones] = useState(() => store.getStreakMilestoneRewards() || {})
@@ -516,6 +518,11 @@ export default function RewardsView() {
         onClose={() => setIsBookOpen(false)}
         initialTab={bookInitialTab}
         onTaskUpdated={loadRewardsData}
+        onNavigateToTask={(task, targetDate) => {
+          setIsBookOpen(false);
+          const taskId = task.id || task._id;
+          navigate(`/?date=${targetDate}&taskId=${taskId}`);
+        }}
       />
     </div>
   )
