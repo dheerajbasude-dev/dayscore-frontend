@@ -4209,7 +4209,7 @@ body {
   filter: brightness(1.1);
 }
 .rewards-action-pill.btn-secondary.acknowledged:disabled,
-.rewards-action-pill.btn-secondary:disabled {
+.rewards-action-pill.btn-secondary:disabled:not(.is-loading) {
   background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
   color: #ffffff !important;
   border: 1px solid rgba(248, 113, 113, 0.3) !important;
@@ -4217,6 +4217,13 @@ body {
   cursor: default !important;
   box-shadow: none !important;
   transform: none !important;
+}
+
+.rewards-action-pill.btn-secondary.is-loading,
+.rewards-action-pill.btn-success.is-loading {
+  opacity: 1 !important;
+  cursor: wait !important;
+  pointer-events: none;
 }
 
 /* Reward Action Pill */
@@ -4233,7 +4240,7 @@ body {
   filter: brightness(1.1);
 }
 .rewards-action-pill.btn-success.claimed:disabled,
-.rewards-action-pill.btn-success:disabled {
+.rewards-action-pill.btn-success:disabled:not(.is-loading) {
   background: linear-gradient(135deg, #a855f7 0%, #7e22ce 100%) !important;
   color: #ffffff !important;
   border: 1px solid rgba(192, 132, 252, 0.3) !important;
@@ -6225,9 +6232,9 @@ body {
   color: #ffffff !important;
   border: 1px solid rgba(248, 113, 113, 0.4) !important;
   box-shadow: 0 1px 6px rgba(239, 68, 68, 0.3) !important;
-  padding: 1px 8px !important;
-  height: 18px !important;
-  min-height: 18px !important;
+  padding: 2px 9px !important;
+  height: 20px !important;
+  min-height: 20px !important;
   border-radius: 8px !important;
   font-size: 0.65rem !important;
   font-weight: 700 !important;
@@ -6236,7 +6243,7 @@ body {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 3px !important;
+  gap: 4px !important;
   line-height: 1 !important;
   transition: all 0.2s ease-in-out !important;
 }
@@ -6248,18 +6255,25 @@ body {
   filter: brightness(1.1);
 }
 
+.action-banner.banner-penalty .btn:disabled:not(.is-loading),
+.action-banner.banner-penalty button:disabled:not(.is-loading) {
+  opacity: 0.55;
+  cursor: default !important;
+}
+
+.action-banner.banner-penalty .btn.is-loading,
+.action-banner.banner-penalty button.is-loading {
+  opacity: 1 !important;
+  cursor: wait !important;
+  pointer-events: none;
+}
+
 /* Reward Banner (Unboxed Purple Text + Pill Button) */
 .action-banner.banner-reward {
   background: transparent !important;
   border: none !important;
   color: #c084fc !important;
 }
-
-.action-banner.banner-penalty .btn:disabled{
-  opacity: 0.5;
-  cursor: default !important;
-}
-
 
 .action-banner.banner-reward .banner-text {
   color: #c084fc !important;
@@ -6271,9 +6285,9 @@ body {
   color: #ffffff !important;
   border: 1px solid rgba(192, 132, 252, 0.4) !important;
   box-shadow: 0 1px 6px rgba(168, 85, 247, 0.3) !important;
-  padding: 1px 10px !important;
-  height: 18px !important;
-  min-height: 18px !important;
+  padding: 2px 9px !important;
+  height: 20px !important;
+  min-height: 20px !important;
   border-radius: 8px !important;
   font-size: 0.65rem !important;
   font-weight: 700 !important;
@@ -6282,7 +6296,7 @@ body {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 3px !important;
+  gap: 4px !important;
   line-height: 1 !important;
   transition: all 0.2s ease-in-out !important;
 }
@@ -6294,9 +6308,25 @@ body {
   filter: brightness(1.1);
 }
 
-.action-banner.banner-reward .btn:disabled{
-  opacity: 0.5;
+.action-banner.banner-reward .btn:disabled:not(.is-loading),
+.action-banner.banner-reward button:disabled:not(.is-loading) {
+  opacity: 0.55;
   cursor: default !important;
+}
+
+.action-banner.banner-reward .btn.is-loading,
+.action-banner.banner-reward button.is-loading {
+  opacity: 1 !important;
+  cursor: wait !important;
+  pointer-events: none;
+}
+
+.action-banner .btn .btn-spinner,
+.action-banner button .btn-spinner {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  animation: ultraSpinnerRotate 0.85s linear infinite !important;
+  flex-shrink: 0 !important;
 }
 
 @media (max-width: 640px) {

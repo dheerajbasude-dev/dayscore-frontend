@@ -415,19 +415,22 @@ export default function RewardsBookModal({
       } else if (item.task) {
         const targetId = item.task.id || item.task._id;
         const targetDate = item.taskDate || format(new Date(), 'yyyy-MM-dd');
-        try {
-          localStorage.setItem(`dayscore_reward_ack_${targetId}`, '1');
-          if (item.task.id) localStorage.setItem(`dayscore_reward_ack_${item.task.id}`, '1');
-          if (item.task._id) localStorage.setItem(`dayscore_reward_ack_${item.task._id}`, '1');
-        } catch (e) {}
 
-        await store.updateTask(targetDate, targetId, {
+        const updatePromise = store.updateTask(targetDate, targetId, {
           rewardClaimed: true,
           reward_claimed: 1,
           rewardAcknowledged: true,
           reward_acknowledged: 1,
           rewardClaimedAt: new Date().toISOString()
         });
+        const timerPromise = new Promise(r => setTimeout(r, 450));
+        await Promise.all([updatePromise, timerPromise]);
+
+        try {
+          if (targetId) localStorage.setItem(`dayscore_reward_ack_${targetId}`, '1');
+          if (item.task.id) localStorage.setItem(`dayscore_reward_ack_${item.task.id}`, '1');
+          if (item.task._id) localStorage.setItem(`dayscore_reward_ack_${item.task._id}`, '1');
+        } catch (e) {}
 
         // Immediately update local allTasks state
         setAllTasks(prev => prev.map(t => {
@@ -467,19 +470,22 @@ export default function RewardsBookModal({
       if (item.task) {
         const targetId = item.task.id || item.task._id;
         const targetDate = item.taskDate || format(new Date(), 'yyyy-MM-dd');
-        try {
-          localStorage.setItem(`dayscore_penalty_ack_${targetId}`, '1');
-          if (item.task.id) localStorage.setItem(`dayscore_penalty_ack_${item.task.id}`, '1');
-          if (item.task._id) localStorage.setItem(`dayscore_penalty_ack_${item.task._id}`, '1');
-        } catch (e) {}
 
-        await store.updateTask(targetDate, targetId, {
+        const updatePromise = store.updateTask(targetDate, targetId, {
           penaltyAccepted: true,
           penalty_accepted: 1,
           penaltyAcknowledged: true,
           penalty_acknowledged: 1,
           penaltyAcceptedAt: new Date().toISOString()
         });
+        const timerPromise = new Promise(r => setTimeout(r, 450));
+        await Promise.all([updatePromise, timerPromise]);
+
+        try {
+          if (targetId) localStorage.setItem(`dayscore_penalty_ack_${targetId}`, '1');
+          if (item.task.id) localStorage.setItem(`dayscore_penalty_ack_${item.task.id}`, '1');
+          if (item.task._id) localStorage.setItem(`dayscore_penalty_ack_${item.task._id}`, '1');
+        } catch (e) {}
 
         // Immediately update local allTasks state
         setAllTasks(prev => prev.map(t => {
@@ -844,14 +850,14 @@ export default function RewardsBookModal({
                     {/* Right: Claim or Acknowledge Action Button */}
                     <div className="rewards-book-item-actions">
                       {isPenalty ? (
-                        isClaimed ? (
+                        isPenaltyAccepted && acceptingId !== item.id ? (
                           <button className="btn btn-sm btn-secondary acknowledged rewards-action-pill" disabled>
                             ✓ Acknowledged
                           </button>
                         ) : (
                           <button
                             type="button"
-                            className="btn btn-sm btn-secondary rewards-action-pill"
+                            className={`btn btn-sm btn-secondary rewards-action-pill ${acceptingId === item.id ? 'is-loading' : ''}`}
                             onClick={() => handleAcceptPenalty(item)}
                             disabled={acceptingId === item.id}
                           >
@@ -866,14 +872,14 @@ export default function RewardsBookModal({
                           </button>
                         )
                       ) : (
-                        isClaimed ? (
+                        isClaimed && claimingId !== item.id ? (
                           <button className="btn btn-sm btn-success claimed rewards-action-pill" disabled>
                             ✓ Claimed
                           </button>
                         ) : (
                           <button
                             type="button"
-                            className="btn btn-sm btn-success rewards-action-pill"
+                            className={`btn btn-sm btn-success rewards-action-pill ${claimingId === item.id ? 'is-loading' : ''}`}
                             onClick={() => handleClaimReward(item)}
                             disabled={claimingId === item.id}
                           >

@@ -48,11 +48,15 @@ function TaskCard({
   onAddDailyNote,
   onShowToast,
   isDeleting,
+  isClaiming = false,
+  isAccepting = false,
   animDelay = 0
 }) {
   const { timeLeft, urgencyClass, isOverdue } = useTimer(task?.dueDateTime || task?.due_date_time);
   const [claiming, setClaiming] = useState(false);
   const [accepting, setAccepting] = useState(false);
+  const isClaimingEffective = Boolean(claiming || isClaiming);
+  const isAcceptingEffective = Boolean(accepting || isAccepting);
   const [newNoteText, setNewNoteText] = useState('');
   const [dailyRating, setDailyRating] = useState(8.0);
   const [submittingNote, setSubmittingNote] = useState(false);
@@ -348,8 +352,12 @@ function TaskCard({
     }
   };
 
-  const handleClaimReward = async () => {
-    if (!onClaimReward || claiming || !task) return;
+  const handleClaimReward = async (e) => {
+    if (e) {
+      if (e.preventDefault) e.preventDefault();
+      if (e.stopPropagation) e.stopPropagation();
+    }
+    if (!onClaimReward || isClaimingEffective || !task) return;
     setClaiming(true);
     try {
       await onClaimReward(task);
@@ -360,8 +368,12 @@ function TaskCard({
     }
   };
 
-  const handleAcceptPenalty = async () => {
-    if (!onAcceptPenalty || accepting || !task) return;
+  const handleAcceptPenalty = async (e) => {
+    if (e) {
+      if (e.preventDefault) e.preventDefault();
+      if (e.stopPropagation) e.stopPropagation();
+    }
+    if (!onAcceptPenalty || isAcceptingEffective || !task) return;
     setAccepting(true);
     try {
       await onAcceptPenalty(task);
@@ -639,21 +651,21 @@ function TaskCard({
         {hasReward && (
           <div className="action-banner banner-reward">
             <span className="banner-text">🎁 Reward: {task.reward}</span>
-            {isRewardClaimed ? (
+            {isRewardClaimed && !isClaimingEffective ? (
               <button className="btn btn-sm btn-success claimed" disabled>
                 ✓ Claimed
               </button>
             ) : (
               <button 
                 type="button"
-                className="btn btn-sm btn-success" 
+                className={`btn btn-sm btn-success ${isClaimingEffective ? 'is-loading' : ''}`} 
                 onClick={handleClaimReward}
-                disabled={claiming}
-                style={{ minWidth: '85px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}
+                disabled={isClaimingEffective}
+                style={{ minWidth: isClaimingEffective ? '88px' : '58px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
               >
-                {claiming ? (
+                {isClaimingEffective ? (
                   <>
-                    <Loader2 size={13} className="btn-spinner" />
+                    <Loader2 size={12} className="btn-spinner" />
                     <span>Claiming...</span>
                   </>
                 ) : (
@@ -667,21 +679,21 @@ function TaskCard({
         {hasPenalty && (
           <div className="action-banner banner-penalty">
             <span className="banner-text">⚠️ Penalty: {task.penalty || "Complete 15-min focus reflection / workout"}</span>
-            {isPenaltyAccepted ? (
+            {isPenaltyAccepted && !isAcceptingEffective ? (
               <button className="btn btn-sm btn-secondary acknowledged" disabled>
                 ✓ Acknowledged
               </button>
             ) : (
               <button 
                 type="button"
-                className="btn btn-sm btn-secondary" 
+                className={`btn btn-sm btn-secondary ${isAcceptingEffective ? 'is-loading' : ''}`} 
                 onClick={handleAcceptPenalty}
-                disabled={accepting}
-                style={{ minWidth: '115px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}
+                disabled={isAcceptingEffective}
+                style={{ minWidth: isAcceptingEffective ? '82px' : '82px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
               >
-                {accepting ? (
+                {isAcceptingEffective ? (
                   <>
-                    <Loader2 size={13} className="btn-spinner" />
+                    <Loader2 size={12} className="btn-spinner" />
                     <span>Saving...</span>
                   </>
                 ) : (

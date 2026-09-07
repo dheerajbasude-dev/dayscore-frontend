@@ -143,6 +143,8 @@ export default function TodayView() {
   const [showReflectionModal, setShowReflectionModal] = useState(false)
   const [showConfetti, setShowConfetti] = useState(false)
   const [deletingTaskIds, setDeletingTaskIds] = useState(new Set())
+  const [claimingTaskIds, setClaimingTaskIds] = useState(new Set())
+  const [acceptingTaskIds, setAcceptingTaskIds] = useState(new Set())
 
   // Persistent Filter, Sort & Search States (persists across F5 reloads)
   const [searchQuery, setSearchQuery] = useState(() => {
@@ -1561,16 +1563,18 @@ export default function TodayView() {
   const handleClaimTaskReward = async (taskOrId) => {
     const isObject = typeof taskOrId === 'object' && taskOrId !== null;
     const targetId = isObject ? (taskOrId.id || taskOrId._id) : taskOrId;
-    const targetDate = isObject ? (taskOrId.date || taskOrId.dateLabel || currentDateStr) : currentDateStr;
+    const targetDate = isObject ? (getLocalDateStr(taskOrId.date) || taskOrId.dateLabel || currentDateStr) : currentDateStr;
+    const altId = isObject ? (taskOrId._id || taskOrId.id) : null;
+
+    setClaimingTaskIds(prev => {
+      const next = new Set(prev);
+      if (targetId) next.add(String(targetId));
+      if (altId) next.add(String(altId));
+      return next;
+    });
 
     try {
-      try {
-        localStorage.setItem(`dayscore_reward_ack_${targetId}`, '1');
-        if (isObject && taskOrId.id) localStorage.setItem(`dayscore_reward_ack_${taskOrId.id}`, '1');
-        if (isObject && taskOrId._id) localStorage.setItem(`dayscore_reward_ack_${taskOrId._id}`, '1');
-      } catch (e) {}
-
-      // Keep button in loading state during API update with min 350ms for smooth visual feedback
+      // Keep button in loading state during API update with min 450ms for smooth visual feedback
       const updatePromise = store.updateTask(targetDate, targetId, {
         rewardClaimed: true,
         reward_claimed: 1,
@@ -1580,8 +1584,13 @@ export default function TodayView() {
         penalty_accepted: 0,
         rewardClaimedAt: new Date().toISOString()
       });
-      const timerPromise = new Promise(r => setTimeout(r, 350));
+      const timerPromise = new Promise(r => setTimeout(r, 450));
       await Promise.all([updatePromise, timerPromise]);
+
+      try {
+        if (targetId) localStorage.setItem(`dayscore_reward_ack_${targetId}`, '1');
+        if (altId) localStorage.setItem(`dayscore_reward_ack_${altId}`, '1');
+      } catch (e) {}
 
       await store.fetchAllTasksApi().catch(() => {});
       setTasks(store.getTasks(currentDateStr));
@@ -1591,22 +1600,31 @@ export default function TodayView() {
       console.error('Claim reward error:', err);
       showToast("Couldn't claim reward — check your connection and try again", 'error');
       throw err;
+    } finally {
+      setClaimingTaskIds(prev => {
+        const next = new Set(prev);
+        if (targetId) next.delete(String(targetId));
+        if (altId) next.delete(String(altId));
+        return next;
+      });
     }
   };
 
   const handleAcceptTaskPenalty = async (taskOrId) => {
     const isObject = typeof taskOrId === 'object' && taskOrId !== null;
     const targetId = isObject ? (taskOrId.id || taskOrId._id) : taskOrId;
-    const targetDate = isObject ? (taskOrId.date || taskOrId.dateLabel || currentDateStr) : currentDateStr;
+    const targetDate = isObject ? (getLocalDateStr(taskOrId.date) || taskOrId.dateLabel || currentDateStr) : currentDateStr;
+    const altId = isObject ? (taskOrId._id || taskOrId.id) : null;
+
+    setAcceptingTaskIds(prev => {
+      const next = new Set(prev);
+      if (targetId) next.add(String(targetId));
+      if (altId) next.add(String(altId));
+      return next;
+    });
 
     try {
-      try {
-        localStorage.setItem(`dayscore_penalty_ack_${targetId}`, '1');
-        if (isObject && taskOrId.id) localStorage.setItem(`dayscore_penalty_ack_${taskOrId.id}`, '1');
-        if (isObject && taskOrId._id) localStorage.setItem(`dayscore_penalty_ack_${taskOrId._id}`, '1');
-      } catch (e) {}
-
-      // Keep button in loading state during API update with min 350ms for smooth visual feedback
+      // Keep button in loading state during API update with min 450ms for smooth visual feedback
       const updatePromise = store.updateTask(targetDate, targetId, {
         penaltyAccepted: true,
         penalty_accepted: 1,
@@ -1616,8 +1634,13 @@ export default function TodayView() {
         reward_claimed: 0,
         penaltyAcceptedAt: new Date().toISOString()
       });
-      const timerPromise = new Promise(r => setTimeout(r, 350));
+      const timerPromise = new Promise(r => setTimeout(r, 450));
       await Promise.all([updatePromise, timerPromise]);
+
+      try {
+        if (targetId) localStorage.setItem(`dayscore_penalty_ack_${targetId}`, '1');
+        if (altId) localStorage.setItem(`dayscore_penalty_ack_${altId}`, '1');
+      } catch (e) {}
 
       await store.fetchAllTasksApi().catch(() => {});
       setTasks(store.getTasks(currentDateStr));
@@ -1629,6 +1652,13 @@ export default function TodayView() {
       console.error('Accept penalty error:', err);
       showToast("Couldn't accept penalty — check your connection and try again", 'error');
       throw err;
+    } finally {
+      setAcceptingTaskIds(prev => {
+        const next = new Set(prev);
+        if (targetId) next.delete(String(targetId));
+        if (altId) next.delete(String(altId));
+        return next;
+      });
     }
   };
 
@@ -2323,6 +2353,8 @@ export default function TodayView() {
                     isToday={viewMode === 'all' ? ((task.date ? String(task.date).split('T')[0] : todayStr) === todayStr) : (currentDateStr === todayStr)}
                     animDelay={Math.min(idx * 0.04, 0.3)}
                     isDeleting={deletingTaskIds.has(task.id || task._id) || (task.id && deletingTaskIds.has(task.id)) || (task._id && deletingTaskIds.has(task._id))}
+                    isClaiming={claimingTaskIds.has(String(task.id)) || claimingTaskIds.has(String(task._id))}
+                    isAccepting={acceptingTaskIds.has(String(task.id)) || acceptingTaskIds.has(String(task._id))}
                     onStatusChange={(taskId, newStatus) => handleStatusChange(taskId, newStatus)}
                     onDelete={(taskId) => handleDeleteTask(taskId)}
                     onRequestComplete={handleRequestComplete}
