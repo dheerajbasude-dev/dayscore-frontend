@@ -1466,7 +1466,6 @@ export default function TodayView() {
       await store.fetchAllTasksApi().catch(() => {});
       setTasks(store.getTasks(currentDateStr));
       setArchives(store.getAllArchives());
-      showToast('Task deleted successfully', 'info');
     } catch (err) {
       console.error('Delete task error:', err);
       setTaskToDelete(null);
