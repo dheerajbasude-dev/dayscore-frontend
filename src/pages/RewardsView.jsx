@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Plus, Trash2, Edit2, Check, Gift, AlertOctagon, Info, History, Trophy, Sparkles } from 'lucide-react'
+import { Plus, Trash2, Edit2, Check, Gift, AlertOctagon, Info, History, Trophy, Sparkles, Loader2 } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import * as store from '../store/store'
 import * as scoring from '../store/scoring'
@@ -17,6 +17,14 @@ export default function RewardsView() {
   const [newPunishment, setNewPunishment] = useState('')
   const [editingMilestone, setEditingMilestone] = useState(null)
   const [milestoneText, setMilestoneText] = useState('')
+
+  // Loading states for async actions
+  const [isAddingReward, setIsAddingReward] = useState(false)
+  const [deletingRewardIndex, setDeletingRewardIndex] = useState(null)
+  const [isAddingPunishment, setIsAddingPunishment] = useState(false)
+  const [deletingPunishmentIndex, setDeletingPunishmentIndex] = useState(null)
+  const [savingMilestoneDays, setSavingMilestoneDays] = useState(null)
+  const [claimingMilestoneDays, setClaimingMilestoneDays] = useState(null)
 
   const todayStr = format(new Date(), 'yyyy-MM-dd')
   const archives = store.getAllArchives()
@@ -63,35 +71,65 @@ export default function RewardsView() {
   const handleAddReward = async (e) => {
     if (e && e.preventDefault) e.preventDefault()
     const text = newReward.trim()
-    if (!text) return
-    const updated = await store.addRewardApi(text)
-    setRewards(updated)
-    setNewReward('')
+    if (!text || isAddingReward) return
+    setIsAddingReward(true)
+    try {
+      const updated = await store.addRewardApi(text)
+      setRewards(updated)
+      setNewReward('')
+    } catch (err) {
+      console.error('Error adding reward:', err)
+    } finally {
+      setIsAddingReward(false)
+    }
   }
 
   const handleDeleteReward = async (index) => {
+    if (deletingRewardIndex !== null) return
     const currentList = Array.isArray(rewards) ? rewards : []
     const targetText = currentList[index]
     if (!targetText) return
-    const updated = await store.deleteRewardApi(targetText)
-    setRewards(updated)
+    setDeletingRewardIndex(index)
+    try {
+      const updated = await store.deleteRewardApi(targetText)
+      setRewards(updated)
+    } catch (err) {
+      console.error('Error deleting reward:', err)
+    } finally {
+      setDeletingRewardIndex(null)
+    }
   }
 
   const handleAddPunishment = async (e) => {
     if (e && e.preventDefault) e.preventDefault()
     const text = newPunishment.trim()
-    if (!text) return
-    const updated = await store.addPunishmentApi(text)
-    setPunishments(updated)
-    setNewPunishment('')
+    if (!text || isAddingPunishment) return
+    setIsAddingPunishment(true)
+    try {
+      const updated = await store.addPunishmentApi(text)
+      setPunishments(updated)
+      setNewPunishment('')
+    } catch (err) {
+      console.error('Error adding punishment:', err)
+    } finally {
+      setIsAddingPunishment(false)
+    }
   }
 
   const handleDeletePunishment = async (index) => {
+    if (deletingPunishmentIndex !== null) return
     const currentList = Array.isArray(punishments) ? punishments : []
     const targetText = currentList[index]
     if (!targetText) return
-    const updated = await store.deletePunishmentApi(targetText)
-    setPunishments(updated)
+    setDeletingPunishmentIndex(index)
+    try {
+      const updated = await store.deletePunishmentApi(targetText)
+      setPunishments(updated)
+    } catch (err) {
+      console.error('Error deleting punishment:', err)
+    } finally {
+      setDeletingPunishmentIndex(null)
+    }
   }
 
   const handleEditMilestone = (days) => {
@@ -100,15 +138,31 @@ export default function RewardsView() {
   }
 
   const handleSaveMilestone = async (days) => {
+    if (savingMilestoneDays !== null) return
+    setSavingMilestoneDays(days)
     const updated = { ...milestones, [days]: milestoneText.trim() }
-    setMilestones(updated)
-    setEditingMilestone(null)
-    await store.saveStreakMilestonesApi(updated)
+    try {
+      await store.saveStreakMilestonesApi(updated)
+      setMilestones(updated)
+      setEditingMilestone(null)
+    } catch (err) {
+      console.error('Error saving streak milestone:', err)
+    } finally {
+      setSavingMilestoneDays(null)
+    }
   }
 
   const handleClaimMilestone = async (days) => {
-    const updatedClaimed = await store.claimStreakMilestoneApi(days)
-    setClaimedMilestones({ ...updatedClaimed })
+    if (claimingMilestoneDays !== null) return
+    setClaimingMilestoneDays(days)
+    try {
+      const updatedClaimed = await store.claimStreakMilestoneApi(days)
+      setClaimedMilestones({ ...updatedClaimed })
+    } catch (err) {
+      console.error('Error claiming streak milestone:', err)
+    } finally {
+      setClaimingMilestoneDays(null)
+    }
   }
 
   const milestoneDays = [7, 14, 30, 100]
@@ -155,9 +209,25 @@ export default function RewardsView() {
                 placeholder="e.g., Buy a coffee, 1hr gaming, guilt-free nap..." 
                 value={newReward}
                 onChange={(e) => setNewReward(e.target.value)}
+                disabled={isAddingReward}
               />
-              <button type="button" onClick={handleAddReward} className="btn btn-primary" style={{ flexShrink: 0 }}>
-                <Plus size={16} /> Add
+              <button 
+                type="submit" 
+                className="btn btn-primary" 
+                disabled={isAddingReward || !newReward.trim()} 
+                style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '6px', minWidth: '84px', justifyContent: 'center' }}
+              >
+                {isAddingReward ? (
+                  <>
+                    <Loader2 size={16} className="btn-spinner" />
+                    <span>Adding...</span>
+                  </>
+                ) : (
+                  <>
+                    <Plus size={16} />
+                    <span>Add</span>
+                  </>
+                )}
               </button>
             </form>
 
@@ -168,8 +238,18 @@ export default function RewardsView() {
                 rewards.map((r, i) => (
                   <li key={i} className="rewards-list-item animate-slide-up" style={{ animationDelay: `${Math.min(i * 0.04, 0.3)}s` }}>
                     <span>{r}</span>
-                    <button onClick={() => handleDeleteReward(i)} className="btn-icon" style={{ color: 'var(--accent-danger)' }}>
-                      <Trash2 size={18} />
+                    <button 
+                      onClick={() => handleDeleteReward(i)} 
+                      className="btn-icon" 
+                      style={{ color: 'var(--accent-danger)' }}
+                      disabled={deletingRewardIndex === i}
+                      title="Delete reward"
+                    >
+                      {deletingRewardIndex === i ? (
+                        <Loader2 size={16} className="btn-spinner" />
+                      ) : (
+                        <Trash2 size={18} />
+                      )}
                     </button>
                   </li>
                 ))
@@ -190,9 +270,25 @@ export default function RewardsView() {
                 placeholder="e.g., No social media, 50 pushups, cold shower..." 
                 value={newPunishment}
                 onChange={(e) => setNewPunishment(e.target.value)}
+                disabled={isAddingPunishment}
               />
-              <button type="button" onClick={handleAddPunishment} className="btn btn-danger" style={{ flexShrink: 0 }}>
-                <Plus size={16} /> Add
+              <button 
+                type="submit" 
+                className="btn btn-danger" 
+                disabled={isAddingPunishment || !newPunishment.trim()} 
+                style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '6px', minWidth: '84px', justifyContent: 'center' }}
+              >
+                {isAddingPunishment ? (
+                  <>
+                    <Loader2 size={16} className="btn-spinner" />
+                    <span>Adding...</span>
+                  </>
+                ) : (
+                  <>
+                    <Plus size={16} />
+                    <span>Add</span>
+                  </>
+                )}
               </button>
             </form>
 
@@ -203,8 +299,18 @@ export default function RewardsView() {
                 punishments.map((p, i) => (
                   <li key={i} className="rewards-list-item animate-slide-up" style={{ animationDelay: `${Math.min(i * 0.04, 0.3)}s` }}>
                     <span>{p}</span>
-                    <button onClick={() => handleDeletePunishment(i)} className="btn-icon" style={{ color: 'var(--accent-danger)' }}>
-                      <Trash2 size={18} />
+                    <button 
+                      onClick={() => handleDeletePunishment(i)} 
+                      className="btn-icon" 
+                      style={{ color: 'var(--accent-danger)' }}
+                      disabled={deletingPunishmentIndex === i}
+                      title="Delete penalty"
+                    >
+                      {deletingPunishmentIndex === i ? (
+                        <Loader2 size={16} className="btn-spinner" />
+                      ) : (
+                        <Trash2 size={18} />
+                      )}
                     </button>
                   </li>
                 ))
@@ -220,6 +326,7 @@ export default function RewardsView() {
                 const hasReward = Boolean(milestones[days])
                 const isUnlocked = effectiveStreak >= days
                 const isClaimed = Boolean(claimedMilestones[days])
+                const isSavingThis = savingMilestoneDays === days
 
                 return (
                   <div key={days} className={`card-glass milestone-card animate-slide-up ${isUnlocked && hasReward ? 'milestone-unlocked' : ''}`} style={{ animationDelay: `${idx * 0.05}s` }}>
@@ -228,19 +335,64 @@ export default function RewardsView() {
                       {editingMilestone !== days ? (
                         <button onClick={() => handleEditMilestone(days)} className="btn-icon" title="Edit reward"><Edit2 size={16} /></button>
                       ) : (
-                        <button onClick={() => handleSaveMilestone(days)} className="btn-icon" style={{ color: 'var(--accent-success)' }} title="Save reward"><Check size={18} /></button>
+                        <button 
+                          onClick={() => handleSaveMilestone(days)} 
+                          className="btn-icon" 
+                          style={{ color: 'var(--accent-success)' }} 
+                          disabled={isSavingThis}
+                          title="Save reward"
+                        >
+                          {isSavingThis ? (
+                            <Loader2 size={16} className="btn-spinner" />
+                          ) : (
+                            <Check size={18} />
+                          )}
+                        </button>
                       )}
                     </div>
                     
                     {editingMilestone === days ? (
-                      <textarea 
-                        className="input"
-                        value={milestoneText}
-                        onChange={(e) => setMilestoneText(e.target.value)}
-                        placeholder="What is your reward for this streak?"
-                        autoFocus
-                        style={{ resize: 'vertical', minHeight: '60px', marginTop: '6px' }}
-                      />
+                      <div style={{ marginTop: '6px' }}>
+                        <textarea 
+                          className="input"
+                          value={milestoneText}
+                          onChange={(e) => setMilestoneText(e.target.value)}
+                          placeholder="What is your reward for this streak?"
+                          autoFocus
+                          disabled={isSavingThis}
+                          style={{ resize: 'vertical', minHeight: '60px', width: '100%' }}
+                        />
+                        <div style={{ display: 'flex', gap: '8px', marginTop: '8px', justifyContent: 'flex-end' }}>
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            onClick={() => setEditingMilestone(null)}
+                            disabled={isSavingThis}
+                            style={{ padding: '4px 10px', fontSize: '0.78rem' }}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-primary btn-sm"
+                            onClick={() => handleSaveMilestone(days)}
+                            disabled={isSavingThis}
+                            style={{ padding: '4px 12px', fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                          >
+                            {isSavingThis ? (
+                              <>
+                                <Loader2 size={13} className="btn-spinner" />
+                                <span>Saving...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Check size={14} />
+                                <span>Save</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
                     ) : (
                       <>
                         <div className={milestones[days] ? 'milestone-text milestone-text--filled' : 'milestone-text milestone-text--empty'}>
@@ -257,8 +409,20 @@ export default function RewardsView() {
                               <button 
                                 onClick={() => handleClaimMilestone(days)}
                                 className="btn btn-primary milestone-claim-btn"
+                                disabled={claimingMilestoneDays === days}
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                               >
-                                <Sparkles size={14} /> Claim Reward 🎉
+                                {claimingMilestoneDays === days ? (
+                                  <>
+                                    <Loader2 size={14} className="btn-spinner" />
+                                    <span>Claiming...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Sparkles size={14} />
+                                    <span>Claim Reward 🎉</span>
+                                  </>
+                                )}
                               </button>
                             )}
                           </div>
