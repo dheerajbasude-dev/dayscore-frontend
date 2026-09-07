@@ -579,7 +579,7 @@ export default function RewardsBookModal({
         <div className="rewards-book-header">
           <div className="rewards-book-title-group">
             <div className="rewards-book-icon-badge">
-              <BookOpen size={24} />
+              <BookOpen size={18} />
             </div>
             <div>
               <h2 className="rewards-book-title">
@@ -596,7 +596,7 @@ export default function RewardsBookModal({
             onClick={onClose}
             aria-label="Close Rewards Book"
           >
-            <X size={20} />
+            <X size={16} />
           </button>
         </div>
 
@@ -608,11 +608,11 @@ export default function RewardsBookModal({
             <div className="rewards-progress-col">
               <div className="progress-col-header">
                 <span className="progress-col-label">
-                  <Gift size={15} style={{ color: '#c084fc' }} />
+                  <Gift size={13} style={{ color: '#c084fc' }} />
                   <strong>Rewards</strong>
                 </span>
                 <span className="progress-col-val" style={{ color: '#c084fc' }}>
-                  {stats.claimedRewards} / {stats.totalRewards} ({stats.rewardsProgress}%)
+                  {stats.claimedRewards}/{stats.totalRewards} ({stats.rewardsProgress}%)
                 </span>
               </div>
               <div className="progress-bar-track">
@@ -627,11 +627,11 @@ export default function RewardsBookModal({
             <div className="rewards-progress-col">
               <div className="progress-col-header">
                 <span className="progress-col-label">
-                  <AlertOctagon size={15} style={{ color: 'var(--accent-danger)' }} />
+                  <AlertOctagon size={13} style={{ color: 'var(--accent-danger)' }} />
                   <strong>Penalties</strong>
                 </span>
                 <span className="progress-col-val" style={{ color: 'var(--accent-danger)' }}>
-                  {stats.acknowledgedPenalties} / {stats.totalPenalties} ({stats.penaltiesProgress}%)
+                  {stats.acknowledgedPenalties}/{stats.totalPenalties} ({stats.penaltiesProgress}%)
                 </span>
               </div>
               <div className="progress-bar-track">
@@ -645,10 +645,10 @@ export default function RewardsBookModal({
             {/* Overall Discipline Score */}
             <div className="rewards-discipline-badge">
               <div className="discipline-val">
-                <Trophy size={16} />
+                <Trophy size={13} />
                 <span>{stats.disciplineScore}%</span>
               </div>
-              <span className="discipline-label">Resolution Rate</span>
+              <span className="discipline-label">Resolution</span>
             </div>
 
           </div>
@@ -681,10 +681,10 @@ export default function RewardsBookModal({
           </div>
 
           <div className="rewards-book-search-box">
-            <Search size={15} className="search-icon" />
+            <Search size={13} className="search-icon" />
             <input
               type="text"
-              placeholder="Search rewards, penalties, tasks..."
+              placeholder="Search ledger..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="rewards-book-search-input"
