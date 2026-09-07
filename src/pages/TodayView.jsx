@@ -1438,17 +1438,45 @@ export default function TodayView() {
 
     setIsDeletingTask(true);
 
+    // Add exit animation
+    setDeletingTaskIds(prev => new Set([...prev, taskId]));
+
+    // Save previous state for rollback on error
+    const prevTasks = [...tasks];
+    const prevArchives = [...archives];
+
+    // Optimistically remove from local state immediately
+    setTasks(prev => prev.filter(t => (t.id || t._id) !== taskId));
+    setArchives(prev => prev.map(arc => ({
+      ...arc,
+      tasks: Array.isArray(arc.tasks) ? arc.tasks.filter(t => (t.id || t._id) !== taskId) : arc.tasks
+    })).filter(arc => !Array.isArray(arc.tasks) || arc.tasks.length > 0));
+
+    // Close the delete modal immediately
+    setTaskToDelete(null);
+
+    // Small delay for exit animation to play
+    await new Promise(r => setTimeout(r, 300));
+
     try {
       await store.deleteTask(taskDate, taskId);
+      // Clear memory cache and re-sync with server
+      store.clearTaskMemoryCache();
       await store.fetchAllTasksApi();
       setTasks(store.getTasks(currentDateStr));
       setArchives(store.getAllArchives());
-      setTaskToDelete(null);
     } catch (err) {
       console.error('Delete task error:', err);
+      // Rollback optimistic removal on failure
+      setTasks(prevTasks);
+      setArchives(prevArchives);
       showToast("Couldn't delete task — check your connection and try again", 'error');
-      throw err;
     } finally {
+      setDeletingTaskIds(prev => {
+        const next = new Set(prev);
+        next.delete(taskId);
+        return next;
+      });
       setIsDeletingTask(false);
     }
   };

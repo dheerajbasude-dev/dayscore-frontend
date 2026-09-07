@@ -226,7 +226,8 @@ export async function fetchAllTasksApi() {
         tasksByDate.get(d).push(t);
       });
 
-      // Clear local task cache for this user to remove stale/guest/un-synced items
+      // Clear memory cache AND local storage to remove stale/guest/un-synced items
+      taskMemoryCache.clear();
       const uid = getUserId();
       const prefix = `dayscore_${uid}_tasks_`;
       const keysToRemove = [];

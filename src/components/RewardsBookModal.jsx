@@ -571,17 +571,6 @@ export default function RewardsBookModal({
             </button>
 
 
-
-            <button
-              type="button"
-              className={`rewards-book-tab ${activeTab === 'history' ? 'active' : ''}`}
-              onClick={() => setActiveTab('history')}
-            >
-              <span>📜 History</span>
-              {stats.historyCount > 0 && (
-                <span className="tab-count-badge">{stats.historyCount}</span>
-              )}
-            </button>
           </div>
 
           <div className="rewards-book-search-box">
