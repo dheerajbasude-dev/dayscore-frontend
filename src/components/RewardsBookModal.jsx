@@ -585,11 +585,6 @@ export default function RewardsBookModal({
             <div>
               <h2 className="rewards-book-title">
                 Rewards & Penalties Book
-                {stats.pendingTotal > 0 && (
-                  <span className="rewards-book-counter-pill">
-                    {stats.pendingTotal} Pending
-                  </span>
-                )}
               </h2>
               <p className="rewards-book-subtitle">
                 Acknowledge, claim, and check off pending rewards and penalties ledger
