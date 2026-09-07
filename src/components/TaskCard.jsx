@@ -2,9 +2,9 @@ import React, { useState, useMemo } from 'react';
 import { X, Loader2, Check, AlertTriangle, Clock, FileText, Plus, Star, RotateCcw } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useTimer } from '../hooks/useTimer';
-import { getLocalDateStr } from '../utils/taskUtils';
+import { getLocalDateStr, formatTaskMetaDates } from '../utils/taskUtils';
 
-export { getLocalDateStr };
+export { getLocalDateStr, formatTaskMetaDates };
 
 export const getRatingTheme = (val) => {
   const num = Number(val);
@@ -292,9 +292,19 @@ function TaskCard({
     }
   };
 
-  const createdFormatted = formatDateSafe(getStartDateISO());
-  const completedFormatted = formatDateSafe(task?.completedAt || task?.completed_at);
-  const dueFormatted = formatDateSafe(task?.dueDateTime || task?.due_date_time);
+  const { createdFormatted, dueFormatted, completedFormatted } = useMemo(() => {
+    return formatTaskMetaDates(task);
+  }, [
+    task?.createdAt,
+    task?.created_at,
+    task?.originalDate,
+    task?.original_date,
+    task?.date,
+    task?.dueDateTime,
+    task?.due_date_time,
+    task?.completedAt,
+    task?.completed_at
+  ]);
 
   const isRewardClaimed = Boolean(
     task?.rewardClaimed === true || task?.rewardClaimed === 1 || task?.rewardClaimed === '1' ||

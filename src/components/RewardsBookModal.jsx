@@ -25,7 +25,7 @@ import { format, parseISO } from 'date-fns';
 import * as store from '../store/store';
 import * as scoring from '../store/scoring';
 import { useToast } from '../context/ToastContext';
-import { getLocalDateStr } from '../utils/taskUtils';
+import { getLocalDateStr, formatTaskMetaDates } from '../utils/taskUtils';
 import ConfettiCelebration from './ConfettiCelebration';
 
 export default function RewardsBookModal({
@@ -127,54 +127,6 @@ export default function RewardsBookModal({
     return 'rating-badge-low';
   };
 
-  const formatTaskMetaDates = (task) => {
-    if (!task) return { datesRange: null, completedText: null };
-
-    const parseDateSafe = (iso) => {
-      if (!iso) return null;
-      try {
-        const d = typeof iso === 'string' ? parseISO(iso) : new Date(iso);
-        return isNaN(d.getTime()) ? null : d;
-      } catch (e) {
-        return null;
-      }
-    };
-
-    const createdIso = task.createdAt || task.created_at || task.originalDate || task.original_date;
-    const dueIso = task.dueDateTime || task.due_date_time;
-    const completedIso = task.completedAt || task.completed_at;
-
-    const createdDate = parseDateSafe(createdIso);
-    const dueDate = parseDateSafe(dueIso);
-    const completedDate = parseDateSafe(completedIso);
-
-    let datesRange = null;
-    if (createdDate && dueDate) {
-      const sameDay = format(createdDate, 'yyyy-MM-dd') === format(dueDate, 'yyyy-MM-dd');
-      if (sameDay) {
-        datesRange = `${format(createdDate, 'MMM dd, h:mm a')} → ${format(dueDate, 'h:mm a')}`;
-      } else {
-        datesRange = `${format(createdDate, 'MMM dd, h:mm a')} → ${format(dueDate, 'MMM dd, h:mm a')}`;
-      }
-    } else if (dueDate) {
-      datesRange = `Due ${format(dueDate, 'MMM dd, h:mm a')}`;
-    } else if (createdDate) {
-      datesRange = format(createdDate, 'MMM dd, h:mm a');
-    }
-
-    let completedText = null;
-    if (completedDate) {
-      const baseDay = dueDate ? format(dueDate, 'yyyy-MM-dd') : (createdDate ? format(createdDate, 'yyyy-MM-dd') : null);
-      const isSameDayAsBase = baseDay && format(completedDate, 'yyyy-MM-dd') === baseDay;
-      if (isSameDayAsBase) {
-        completedText = `✓ ${format(completedDate, 'h:mm a')}`;
-      } else {
-        completedText = `✓ ${format(completedDate, 'MMM dd, h:mm a')}`;
-      }
-    }
-
-    return { datesRange, completedText };
-  };
 
   const handleTaskClick = (item) => {
     if (!item.task) return;

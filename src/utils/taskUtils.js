@@ -115,3 +115,94 @@ export const calculateTaskAutoRating = (taskOrNotes, todayStrParam) => {
 
   return { hasRatedNote: true, avgRating, sumRating, totalCount };
 };
+
+/**
+ * Smart compact date/time range helper for tasks:
+ * Eliminates redundant date repeats when created, due, and completion dates share the same day.
+ * Instead of: Sep 07, 10:36 PM → Sep 07, 11:59 PM · ✓ Sep 07, 10:36 PM (wrapped to 2 lines)
+ * Yields:     Sep 07, 10:36 PM → 11:59 PM · ✓ 10:36 PM (fits cleanly on 1 line)
+ */
+export const formatTaskMetaDates = (task) => {
+  if (!task) {
+    return {
+      createdFormatted: null,
+      dueFormatted: null,
+      completedFormatted: null,
+      datesRange: null,
+      completedText: null
+    };
+  }
+
+  const parseDateSafe = (iso) => {
+    if (!iso) return null;
+    try {
+      const d = typeof iso === 'string' ? parseISO(iso) : new Date(iso);
+      return isNaN(d.getTime()) ? null : d;
+    } catch (e) {
+      return null;
+    }
+  };
+
+  const createdIso = task.createdAt || task.created_at || task.originalDate || task.original_date;
+  const dueIso = task.dueDateTime || task.due_date_time;
+  const completedIso = task.completedAt || task.completed_at;
+
+  const createdDate = parseDateSafe(createdIso);
+  const dueDate = parseDateSafe(dueIso);
+  const completedDate = parseDateSafe(completedIso);
+
+  const createdDay = createdDate 
+    ? format(createdDate, 'yyyy-MM-dd') 
+    : (task.date ? getLocalDateStr(task.date) : null);
+  const dueDay = dueDate ? format(dueDate, 'yyyy-MM-dd') : null;
+
+  let createdFormatted = null;
+  let dueFormatted = null;
+  let datesRange = null;
+
+  if (createdDate && dueDate) {
+    const sameDay = Boolean(createdDay && dueDay && createdDay === dueDay);
+    createdFormatted = format(createdDate, 'MMM dd, h:mm a');
+    if (sameDay) {
+      dueFormatted = format(dueDate, 'h:mm a');
+      datesRange = `${createdFormatted} → ${dueFormatted}`;
+    } else {
+      dueFormatted = format(dueDate, 'MMM dd, h:mm a');
+      datesRange = `${createdFormatted} → ${dueFormatted}`;
+    }
+  } else if (dueDate) {
+    const sameAsTaskDay = Boolean(createdDay && dueDay && createdDay === dueDay);
+    if (sameAsTaskDay) {
+      dueFormatted = format(dueDate, 'h:mm a');
+    } else {
+      dueFormatted = format(dueDate, 'MMM dd, h:mm a');
+    }
+    datesRange = `Due ${dueFormatted}`;
+  } else if (createdDate) {
+    createdFormatted = format(createdDate, 'MMM dd, h:mm a');
+    datesRange = createdFormatted;
+  }
+
+  let completedFormatted = null;
+  let completedText = null;
+
+  if (completedDate) {
+    const baseDay = dueDay || createdDay || null;
+    const isSameDayAsBase = Boolean(baseDay && format(completedDate, 'yyyy-MM-dd') === baseDay);
+    if (isSameDayAsBase) {
+      completedFormatted = format(completedDate, 'h:mm a');
+      completedText = `✓ ${completedFormatted}`;
+    } else {
+      completedFormatted = format(completedDate, 'MMM dd, h:mm a');
+      completedText = `✓ ${completedFormatted}`;
+    }
+  }
+
+  return {
+    createdFormatted,
+    dueFormatted,
+    completedFormatted,
+    datesRange,
+    completedText
+  };
+};

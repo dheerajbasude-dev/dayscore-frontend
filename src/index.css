@@ -1376,28 +1376,33 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  white-space: nowrap;
 }
 
 .dates-arrow {
   color: rgba(255, 255, 255, 0.35);
   font-weight: 400;
   font-size: 0.7rem;
+  flex-shrink: 0;
 }
 
 .task-date-due {
   color: #818cf8;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .task-date-missed {
   color: #f87171;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .task-date-completed {
   color: #34d399;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .strikethrough {
