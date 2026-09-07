@@ -60,7 +60,9 @@ export default function RewardsView() {
           (t.id && localStorage.getItem(`dayscore_reward_ack_${t.id}`) === '1') ||
           (t._id && localStorage.getItem(`dayscore_reward_ack_${t._id}`) === '1')
         );
-        if (isDone && (ratingNum == null || ratingNum > 4.0) && t.reward && !isRewardClaimed) count++;
+        const isHighRatingTask = isDone && ratingNum != null && ratingNum >= 9;
+        const hasTaskReward = Boolean((t.reward && String(t.reward).trim()) || isHighRatingTask);
+        if (isDone && (ratingNum == null || ratingNum > 4.0) && hasTaskReward && !isRewardClaimed) count++;
 
         const isPenaltyAccepted = Boolean(
           t.penaltyAccepted === true || t.penaltyAccepted === 1 || t.penaltyAccepted === '1' ||

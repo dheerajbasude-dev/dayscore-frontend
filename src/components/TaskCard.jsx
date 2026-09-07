@@ -316,10 +316,12 @@ function TaskCard({
   );
 
   const ratingNum = task?.rating != null && !isNaN(Number(task.rating)) ? Number(task.rating) : null;
+  const isHighRatingTask = isDone && ratingNum != null && ratingNum >= 9;
   const hasLowRatingPenalty = (isDone || isMissed) && (ratingNum == null || ratingNum <= 4.0);
   const hasHighRatingReward = isDone && (ratingNum == null || ratingNum > 4.0);
 
-  const hasReward = Boolean(task?.reward && hasHighRatingReward);
+  const displayRewardText = (task?.reward && String(task.reward).trim()) || (isHighRatingTask ? "Treat yourself for high score!" : null);
+  const hasReward = Boolean(displayRewardText && hasHighRatingReward);
   const hasPenalty = Boolean((task?.penalty || (isMissed && (ratingDisplay || !effectiveIsToday))) && (isMissed || hasLowRatingPenalty));
 
   const hasUnclaimedReward = Boolean(hasReward && !isRewardClaimed);
@@ -352,7 +354,7 @@ function TaskCard({
     }
   };
 
-  const handleClaimReward = async (e) => {
+  const handleClaimReward = async (e, customReward) => {
     if (e) {
       if (e.preventDefault) e.preventDefault();
       if (e.stopPropagation) e.stopPropagation();
@@ -360,7 +362,10 @@ function TaskCard({
     if (!onClaimReward || isClaimingEffective || !task) return;
     setClaiming(true);
     try {
-      await onClaimReward(task);
+      const taskToClaim = (task.reward && String(task.reward).trim())
+        ? task
+        : { ...task, reward: customReward || displayRewardText || "Treat yourself for high score!" };
+      await onClaimReward(taskToClaim);
     } catch (err) {
       console.error('Claim reward error:', err);
     } finally {
@@ -650,7 +655,7 @@ function TaskCard({
 
         {hasReward && (
           <div className="action-banner banner-reward">
-            <span className="banner-text">🎁 Reward: {task.reward}</span>
+            <span className="banner-text">🎁 Reward: {displayRewardText}</span>
             {isRewardClaimed && !isClaimingEffective ? (
               <button className="btn btn-sm btn-success claimed" disabled>
                 ✓ Claimed
@@ -659,7 +664,7 @@ function TaskCard({
               <button 
                 type="button"
                 className={`btn btn-sm btn-success ${isClaimingEffective ? 'is-loading' : ''}`} 
-                onClick={handleClaimReward}
+                onClick={(e) => handleClaimReward(e, displayRewardText)}
                 disabled={isClaimingEffective}
                 style={{ minWidth: isClaimingEffective ? '88px' : '58px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
               >

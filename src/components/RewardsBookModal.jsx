@@ -260,8 +260,10 @@ export default function RewardsBookModal({
         (task._id && localStorage.getItem(`dayscore_reward_ack_${task._id}`) === '1')
       );
       const hasHighRatingReward = isDone && (ratingNum == null || ratingNum > 4.0);
+      const isHighRatingTask = isDone && ratingNum != null && ratingNum >= 9;
+      const rewardText = (task.reward && task.reward.trim()) || (isHighRatingTask ? "Treat yourself for high score!" : null);
 
-      if (isDone && hasHighRatingReward && task.reward && task.reward.trim()) {
+      if (isDone && hasHighRatingReward && rewardText) {
         const key = `reward_${taskId}`;
         if (!seenTaskKeys.has(key)) {
           seenTaskKeys.add(key);
@@ -269,7 +271,7 @@ export default function RewardsBookModal({
             id: key,
             rawId: taskId,
             type: 'reward',
-            text: task.reward,
+            text: rewardText,
             task,
             taskDate: cleanTaskDate,
             isCompleted: true,
@@ -416,13 +418,18 @@ export default function RewardsBookModal({
         const targetId = item.task.id || item.task._id;
         const targetDate = item.taskDate || format(new Date(), 'yyyy-MM-dd');
 
-        const updatePromise = store.updateTask(targetDate, targetId, {
+        const updatePayload = {
           rewardClaimed: true,
           reward_claimed: 1,
           rewardAcknowledged: true,
           reward_acknowledged: 1,
           rewardClaimedAt: new Date().toISOString()
-        });
+        };
+        if (item.text) {
+          updatePayload.reward = item.text;
+        }
+
+        const updatePromise = store.updateTask(targetDate, targetId, updatePayload);
         const timerPromise = new Promise(r => setTimeout(r, 450));
         await Promise.all([updatePromise, timerPromise]);
 

@@ -651,7 +651,9 @@ export default function TodayView() {
         (t.id && localStorage.getItem(`dayscore_reward_ack_${t.id}`) === '1') ||
         (t._id && localStorage.getItem(`dayscore_reward_ack_${t._id}`) === '1')
       );
-      if (isDone && (ratingNum == null || ratingNum > 4.0) && t.reward && !isRewardClaimed) count++;
+      const isHighRatingTask = isDone && ratingNum != null && ratingNum >= 9;
+      const hasTaskReward = Boolean((t.reward && String(t.reward).trim()) || isHighRatingTask);
+      if (isDone && (ratingNum == null || ratingNum > 4.0) && hasTaskReward && !isRewardClaimed) count++;
 
       const isPenaltyAccepted = Boolean(
         t.penaltyAccepted === true || t.penaltyAccepted === 1 || t.penaltyAccepted === '1' ||
@@ -726,9 +728,34 @@ export default function TodayView() {
         return !isClaimed && !isAck;
       };
 
+      const backfillHighRatedRewards = (taskList) => {
+        if (!Array.isArray(taskList)) return false;
+        const rewardsList = store.getRewards();
+        const defaultReward = (rewardsList && rewardsList.length > 0) ? rewardsList[0] : "Treat yourself tonight!";
+        let changed = false;
+        taskList.forEach(t => {
+          const isDone = t.status === 'done' || t.completed === true;
+          const rNum = t.rating != null && !isNaN(Number(t.rating)) ? Number(t.rating) : null;
+          if (isDone && rNum != null && rNum >= 9 && (!t.reward || !String(t.reward).trim())) {
+            const assigned = (rewardsList && rewardsList.length > 0)
+              ? rewardsList[Math.floor(Math.random() * rewardsList.length)]
+              : defaultReward;
+            t.reward = assigned;
+            const tDate = getLocalDateStr(t.date) || currentDateStr;
+            const tid = t.id || t._id;
+            if (tid) {
+              store.updateTask(tDate, tid, { reward: assigned }).catch(() => {});
+            }
+            changed = true;
+          }
+        });
+        return changed;
+      };
+
       const cached = store.getTasks(currentDateStr);
       if (cached && cached.length > 0) {
-        setTasks(cached);
+        backfillHighRatedRewards(cached);
+        setTasks([...cached]);
         const cachedUnack = cached.find(isTaskRewardUnacknowledged);
         setTodaysReward(cachedUnack ? cachedUnack.reward : null);
         setLoading(false);
@@ -740,7 +767,8 @@ export default function TodayView() {
       if (!isMounted) return;
 
       const freshToday = store.getTasks(currentDateStr);
-      setTasks(freshToday);
+      backfillHighRatedRewards(freshToday);
+      setTasks([...freshToday]);
       setArchives(store.getAllArchives());
       setLoading(false);
 
@@ -1156,29 +1184,37 @@ export default function TodayView() {
         const isLowRating = avgRating <= 4;
         const isHighRating = avgRating >= 9;
 
-        let taskReward = null;
-        let taskPenalty = null;
+        let taskReward = (targetTask?.reward && String(targetTask.reward).trim()) ? targetTask.reward : null;
+        let taskPenalty = (targetTask?.penalty && String(targetTask.penalty).trim()) ? targetTask.penalty : null;
         let shouldTriggerPenalty = false;
         let shouldTriggerReward = false;
 
-        const triggeredPenalty = isLowRating || isOverdue;
-
-        if (triggeredPenalty) {
+        if (isHighRating) {
+          if (!taskReward) {
+            const rewards = store.getRewards();
+            taskReward = (rewards && rewards.length > 0)
+              ? rewards[Math.floor(Math.random() * rewards.length)]
+              : "Treat yourself tonight!";
+          }
+          shouldTriggerReward = true;
+          taskPenalty = null;
+          shouldTriggerPenalty = false;
+        } else if (isLowRating) {
+          if (!taskPenalty) {
+            const punishments = store.getPunishments();
+            taskPenalty = (punishments && punishments.length > 0)
+              ? punishments[Math.floor(Math.random() * punishments.length)]
+              : "Complete 15-min focus reflection";
+          }
+          shouldTriggerPenalty = true;
+          taskReward = null;
+          shouldTriggerReward = false;
+        } else if (isOverdue && !taskReward) {
           const punishments = store.getPunishments();
           if (punishments && punishments.length > 0) {
             taskPenalty = punishments[Math.floor(Math.random() * punishments.length)];
             shouldTriggerPenalty = true;
           }
-        }
-
-        const currentPunishment = store.getActivePunishment();
-        const isPenaltyCurrentlyActive = currentPunishment && !currentPunishment.acknowledged;
-        if (isHighRating && !isOverdue && !isPenaltyCurrentlyActive) {
-          const rewards = store.getRewards();
-          taskReward = (rewards && rewards.length > 0)
-            ? rewards[Math.floor(Math.random() * rewards.length)]
-            : "Treat yourself!";
-          shouldTriggerReward = true;
         }
 
         updates.status = 'done';
@@ -1326,34 +1362,46 @@ export default function TodayView() {
     const isLowRating = numRating <= 4;
     const isHighRating = numRating >= 9;
 
-    let taskReward = null;
-    let taskPenalty = null;
+    let taskReward = (targetTask?.reward && String(targetTask.reward).trim()) ? targetTask.reward : null;
+    let taskPenalty = (targetTask?.penalty && String(targetTask.penalty).trim()) ? targetTask.penalty : null;
 
     let shouldTriggerPenalty = false;
     let shouldTriggerReward = false;
 
-    const triggeredPenalty = isLowRating || isOverdue;
-
-    // Trigger Penalty if individual task rating is <= 4 OR if task was completed overdue
-    if (triggeredPenalty) {
-      const punishments = store.getPunishments();
-      if (punishments && punishments.length > 0) {
-        const randomPunishment = punishments[Math.floor(Math.random() * punishments.length)];
-        taskPenalty = randomPunishment;
-        shouldTriggerPenalty = true;
+    if (isHighRating) {
+      // Rating >= 9: ALWAYS grant reward, NEVER trigger penalty
+      if (!taskReward) {
+        const rewards = store.getRewards();
+        taskReward = (rewards && rewards.length > 0)
+          ? rewards[Math.floor(Math.random() * rewards.length)]
+          : "Treat yourself tonight!";
       }
-    }
-
-    const currentPunishment = store.getActivePunishment();
-    const isPenaltyCurrentlyActive = currentPunishment && !currentPunishment.acknowledged;
-    // Reward Trigger: ONLY if this specific task has a rating >= 9 and not overdue or penalty active
-    if (isHighRating && !isOverdue && !isPenaltyCurrentlyActive) {
-      const rewards = store.getRewards();
-      taskReward = (rewards && rewards.length > 0)
-        ? rewards[Math.floor(Math.random() * rewards.length)]
-        : "Treat yourself!";
-
       shouldTriggerReward = true;
+      taskPenalty = null;
+      shouldTriggerPenalty = false;
+    } else if (isLowRating) {
+      // Rating <= 4: trigger penalty
+      if (!taskPenalty) {
+        const punishments = store.getPunishments();
+        taskPenalty = (punishments && punishments.length > 0)
+          ? punishments[Math.floor(Math.random() * punishments.length)]
+          : "Complete 15-min focus reflection";
+      }
+      shouldTriggerPenalty = true;
+      taskReward = null;
+      shouldTriggerReward = false;
+    } else {
+      // Medium rating (4.5 - 8.5): preserve custom reward if present
+      if (taskReward) {
+        shouldTriggerReward = true;
+      }
+      if (isOverdue && !taskReward) {
+        const punishments = store.getPunishments();
+        if (punishments && punishments.length > 0) {
+          taskPenalty = punishments[Math.floor(Math.random() * punishments.length)];
+          shouldTriggerPenalty = true;
+        }
+      }
     }
 
     const origDate = targetTask?.originalDate || targetTask?.original_date || targetTask?.date || taskDate;
@@ -1565,6 +1613,7 @@ export default function TodayView() {
     const targetId = isObject ? (taskOrId.id || taskOrId._id) : taskOrId;
     const targetDate = isObject ? (getLocalDateStr(taskOrId.date) || taskOrId.dateLabel || currentDateStr) : currentDateStr;
     const altId = isObject ? (taskOrId._id || taskOrId.id) : null;
+    const rewardText = (isObject && taskOrId.reward && String(taskOrId.reward).trim()) ? taskOrId.reward : null;
 
     setClaimingTaskIds(prev => {
       const next = new Set(prev);
@@ -1575,7 +1624,7 @@ export default function TodayView() {
 
     try {
       // Keep button in loading state during API update with min 450ms for smooth visual feedback
-      const updatePromise = store.updateTask(targetDate, targetId, {
+      const updatePayload = {
         rewardClaimed: true,
         reward_claimed: 1,
         rewardAcknowledged: true,
@@ -1583,7 +1632,11 @@ export default function TodayView() {
         penaltyAccepted: false,
         penalty_accepted: 0,
         rewardClaimedAt: new Date().toISOString()
-      });
+      };
+      if (rewardText) {
+        updatePayload.reward = rewardText;
+      }
+      const updatePromise = store.updateTask(targetDate, targetId, updatePayload);
       const timerPromise = new Promise(r => setTimeout(r, 450));
       await Promise.all([updatePromise, timerPromise]);
 
@@ -1698,7 +1751,8 @@ export default function TodayView() {
       const hasLowRatingPenalty = ratingNum != null && ratingNum <= 4.0;
       const hasHighRatingReward = ratingNum != null && ratingNum > 4.0;
 
-      const hasUnclaimedReward = Boolean(t.reward && hasHighRatingReward && !isRewardClaimed);
+      const isHighRatingTask = ratingNum != null && ratingNum >= 9;
+      const hasUnclaimedReward = Boolean(((t.reward && String(t.reward).trim()) || isHighRatingTask) && hasHighRatingReward && !isRewardClaimed);
       const hasUnacknowledgedPenalty = Boolean(t.penalty && hasLowRatingPenalty && !isPenaltyAccepted);
 
       // Tier 5: Completed Tasks with pending claim / acknowledge
@@ -1803,12 +1857,14 @@ export default function TodayView() {
       } else if (filterStatus === 'carriedOver') {
         list = list.filter(t => isCarriedTask(t));
       } else if (filterStatus === 'reward') {
-        list = list.filter(t => Boolean(t.reward));
+        list = list.filter(t => Boolean((t.reward && String(t.reward).trim()) || ((t.status === 'done' || t.completed) && Number(t.rating) >= 9)));
       } else if (filterStatus === 'penalty') {
         list = list.filter(t => Boolean(t.penalty));
       } else if (filterStatus === 'unclaimedReward') {
         list = list.filter(t => {
-          if (!t.reward) return false;
+          const isHighRatingTask = (t.status === 'done' || t.completed) && Number(t.rating) >= 9;
+          const hasRewardAvailable = Boolean((t.reward && String(t.reward).trim()) || isHighRatingTask);
+          if (!hasRewardAvailable) return false;
           const isClaimed = t.rewardClaimed === true || t.rewardClaimed === 1 || t.reward_claimed === 1 || t.reward_claimed === '1';
           return !isClaimed;
         });
