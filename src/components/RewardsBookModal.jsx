@@ -33,11 +33,11 @@ export default function RewardsBookModal({
   onClose,
   onTaskUpdated,
   onNavigateToTask,
-  initialTab = 'all',
+  initialTab = 'rewards',
   activeTasks = []
 }) {
   const { showToast } = useToast();
-  const [activeTab, setActiveTab] = useState(initialTab && initialTab !== 'history' ? initialTab : 'all');
+  const [activeTab, setActiveTab] = useState(initialTab === 'penalties' ? 'penalties' : 'rewards');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Track whether initial data has loaded at least once
@@ -140,7 +140,7 @@ export default function RewardsBookModal({
   useEffect(() => {
     if (isOpen) {
       document.body.classList.add('modal-open');
-      const safeTab = (initialTab && initialTab !== 'history') ? initialTab : 'all';
+      const safeTab = initialTab === 'penalties' ? 'penalties' : 'rewards';
       setActiveTab(safeTab);
       setSearchQuery('');
     } else {
@@ -428,12 +428,10 @@ export default function RewardsBookModal({
   const filteredItems = useMemo(() => {
     let list = [];
 
-    if (activeTab === 'all') {
-      list = ledgerItems.filter(i => i.status === 'pending');
-    } else if (activeTab === 'rewards') {
-      list = ledgerItems.filter(i => (i.type === 'reward' || i.type === 'milestone') && i.status === 'pending');
-    } else if (activeTab === 'penalties') {
+    if (activeTab === 'penalties') {
       list = ledgerItems.filter(i => i.type === 'penalty' && i.status === 'pending');
+    } else {
+      list = ledgerItems.filter(i => (i.type === 'reward' || i.type === 'milestone') && i.status === 'pending');
     }
 
     const query = searchQuery.trim().toLowerCase();
@@ -609,10 +607,10 @@ export default function RewardsBookModal({
             <div className="rewards-progress-col">
               <div className="progress-col-header">
                 <span className="progress-col-label">
-                  <Gift size={15} style={{ color: 'var(--accent-success)' }} />
+                  <Gift size={15} style={{ color: '#c084fc' }} />
                   <strong>Rewards Claimed</strong>
                 </span>
-                <span className="progress-col-val" style={{ color: 'var(--accent-success)' }}>
+                <span className="progress-col-val" style={{ color: '#c084fc' }}>
                   {stats.claimedRewards} / {stats.totalRewards} ({stats.rewardsProgress}%)
                 </span>
               </div>
@@ -660,23 +658,12 @@ export default function RewardsBookModal({
           <div className="rewards-book-tabs">
             <button
               type="button"
-              className={`rewards-book-tab ${activeTab === 'all' ? 'active' : ''}`}
-              onClick={() => setActiveTab('all')}
-            >
-              <span>⚡ All Pending</span>
-              {stats.pendingTotal > 0 && (
-                <span className="tab-count-badge tab-count-badge--alert">{stats.pendingTotal}</span>
-              )}
-            </button>
-
-            <button
-              type="button"
               className={`rewards-book-tab ${activeTab === 'rewards' ? 'active' : ''}`}
               onClick={() => setActiveTab('rewards')}
             >
               <span>🎁 Rewards</span>
               {stats.pendingRewardsCount > 0 && (
-                <span className="tab-count-badge tab-count-badge--success">{stats.pendingRewardsCount}</span>
+                <span className="tab-count-badge tab-count-badge--reward">{stats.pendingRewardsCount}</span>
               )}
             </button>
 
@@ -724,23 +711,19 @@ export default function RewardsBookModal({
           ) : filteredItems.length === 0 ? (
             <div className="rewards-book-empty">
               <div className="empty-icon">
-                {activeTab === 'penalties' ? '🛡️' : '🎉'}
+                {activeTab === 'penalties' ? '🛡️' : '🎁'}
               </div>
               <h3 className="empty-title">
                 {searchQuery 
                   ? 'No matching ledger items found' 
                   : (activeTab === 'penalties' 
                       ? 'No pending penalties! You are in good standing' 
-                      : (activeTab === 'rewards' 
-                          ? 'No pending rewards right now' 
-                          : 'All caught up! No pending items to claim or acknowledge.'))}
+                      : 'No pending rewards right now')}
               </h3>
               <p className="empty-desc">
-                {activeTab === 'rewards' 
-                  ? 'Rate tasks 10/10 or reach streak milestones to earn new rewards.' 
-                  : (activeTab === 'penalties' 
-                      ? 'Great discipline! Keep completing tasks on time to avoid penalties.' 
-                      : 'Keep completing tasks with high ratings to unlock and track more rewards.')}
+                {activeTab === 'penalties' 
+                  ? 'Great discipline! Keep completing tasks on time to avoid penalties.' 
+                  : 'Rate tasks 10/10 or reach streak milestones to earn new rewards.'}
               </p>
             </div>
           ) : (
@@ -756,13 +739,13 @@ export default function RewardsBookModal({
                 return (
                   <li 
                     key={item.id} 
-                    className={`rewards-book-item animate-slide-up ${isClaimed ? 'is-claimed' : ''} ${isPenalty ? 'rewards-book-item--penalty' : ''}`}
+                    className={`rewards-book-item animate-slide-up ${isClaimed ? 'is-claimed' : ''} ${isPenalty ? 'rewards-book-item--penalty' : 'rewards-book-item--reward'}`}
                     style={{ animationDelay: `${Math.min(idx * 0.03, 0.3)}s` }}
                   >
                     {/* Left: Index Badge + Main Content */}
                     <div className="rewards-book-item-left">
                       {/* Index Badge */}
-                      <span className={`rewards-index-badge ${isPenalty ? 'rewards-index-badge--penalty' : (isMilestone ? 'rewards-index-badge--milestone' : '')}`}>
+                      <span className={`rewards-index-badge ${isPenalty ? 'rewards-index-badge--penalty' : (isMilestone ? 'rewards-index-badge--milestone' : 'rewards-index-badge--reward')}`}>
                         #{idx + 1}
                       </span>
 

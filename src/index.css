@@ -3463,12 +3463,18 @@ body {
   border-radius: 6px;
   font-size: 0.72rem;
   font-weight: 800;
-  color: var(--accent-success);
-  background: rgba(52, 211, 153, 0.12);
-  border: 1px solid rgba(52, 211, 153, 0.3);
+  color: #c084fc;
+  background: rgba(168, 85, 247, 0.15);
+  border: 1px solid rgba(168, 85, 247, 0.35);
   flex-shrink: 0;
   letter-spacing: 0.02em;
   user-select: none;
+}
+
+.rewards-index-badge--reward {
+  color: #c084fc !important;
+  background: rgba(168, 85, 247, 0.15) !important;
+  border-color: rgba(168, 85, 247, 0.35) !important;
 }
 
 .rewards-index-badge--penalty {
@@ -3746,7 +3752,7 @@ body {
 }
 
 .progress-bar-fill--reward {
-  background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+  background: linear-gradient(90deg, #c084fc 0%, #a855f7 100%);
 }
 
 .progress-bar-fill--penalty {
@@ -3837,6 +3843,11 @@ body {
   color: inherit;
 }
 
+.tab-count-badge--reward {
+  background: rgba(168, 85, 247, 0.2);
+  color: #c084fc;
+}
+
 .tab-count-badge--alert {
   background: rgba(239, 68, 68, 0.2);
   color: #ef4444;
@@ -3852,6 +3863,7 @@ body {
   color: #ef4444;
 }
 
+.rewards-book-tab.active .tab-count-badge--reward,
 .rewards-book-tab.active .tab-count-badge--alert,
 .rewards-book-tab.active .tab-count-badge--success,
 .rewards-book-tab.active .tab-count-badge--danger {
@@ -3908,7 +3920,11 @@ body {
   border-radius: var(--radius-md);
   gap: 12px;
   transition: all 0.2s ease;
-  border-left: 4px solid var(--accent-success);
+  border-left: 4px solid #a855f7;
+}
+
+.rewards-book-item--reward {
+  border-left-color: #a855f7 !important;
 }
 
 .rewards-book-item:hover {
@@ -3970,7 +3986,7 @@ body {
 }
 
 .item-type-prefix.prefix-reward {
-  color: #10b981;
+  color: #c084fc;
 }
 
 .item-type-prefix.prefix-penalty {
