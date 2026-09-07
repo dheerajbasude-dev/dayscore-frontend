@@ -472,7 +472,7 @@ export function getAllTasksFlat() {
         }
       });
     }
-  });
+  }); 
   return list;
 }
 
