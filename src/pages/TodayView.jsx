@@ -395,8 +395,8 @@ export default function TodayView() {
     if (initialCarriedCount <= 0) return false;
     try {
       const uid = store.getUserId();
-      const isDismissed = sessionStorage.getItem(`dayscore_${uid}_dismiss_carried_${todayStr}`);
-      return !isDismissed;
+      const alreadyShown = localStorage.getItem(`dayscore_${uid}_shown_carried_banner_${todayStr}`);
+      return !alreadyShown;
     } catch (e) {
       return false;
     }
@@ -405,38 +405,34 @@ export default function TodayView() {
   const [autoCarriedCount, setAutoCarriedCount] = useState(() => initialCarriedCount);
   const [showAutoCarriedBanner, setShowAutoCarriedBanner] = useState(() => shouldShowInitialToast);
   const autoCarryOverProcessedRef = useRef('');
-  const hasNotifiedCarriedToastRef = useRef(false);
 
-  // Auto-dismiss floating carried-over banner after 10 seconds without blocking user
+  // Auto-dismiss floating carried-over banner after 8 seconds and remember shown for today (once per day)
   useEffect(() => {
     if (showAutoCarriedBanner) {
+      try {
+        const uid = store.getUserId();
+        localStorage.setItem(`dayscore_${uid}_shown_carried_banner_${todayStr}`, 'true');
+      } catch (e) {}
+
       const timer = setTimeout(() => {
         setShowAutoCarriedBanner(false);
-      }, 10000);
+      }, 8000);
       return () => clearTimeout(timer);
     }
-  }, [showAutoCarriedBanner]);
+  }, [showAutoCarriedBanner, todayStr, user]);
 
-  // Synchronously update carried task toast for both Date View and All Tasks mode instantly
+  // Synchronously update carried task count & show banner once per day if carried tasks >= 1
   useEffect(() => {
     const uid = store.getUserId();
-    const isDismissed = sessionStorage.getItem(`dayscore_${uid}_dismiss_carried_${todayStr}`);
+    const alreadyShown = localStorage.getItem(`dayscore_${uid}_shown_carried_banner_${todayStr}`);
     const todayTasks = store.getTasks(todayStr);
     const count = todayTasks.filter(t => isCarriedTask(t)).length;
-    if (count > 0 && !isDismissed) {
-      setAutoCarriedCount(count);
+    setAutoCarriedCount(count);
+
+    if (count >= 1 && !alreadyShown) {
       setShowAutoCarriedBanner(true);
-      if (!hasNotifiedCarriedToastRef.current) {
-        hasNotifiedCarriedToastRef.current = true;
-        showToast(`🔄 ${count} unfinished task${count > 1 ? 's' : ''} carried over to Today!`, 'info');
-      }
-    } else {
-      setAutoCarriedCount(count);
-      if (count === 0 || isDismissed) {
-        setShowAutoCarriedBanner(false);
-      }
     }
-  }, [tasks, todayStr, isCarriedTask, user, showToast]);
+  }, [tasks, todayStr, isCarriedTask, user]);
 
   useEffect(() => {
     let isMounted = true;
@@ -531,10 +527,13 @@ export default function TodayView() {
         setTasks(store.getTasks(currentDateStr));
         setArchives(store.getArchivesFromTasks());
 
-        if (carriedCount > 0) {
+        if (carriedCount >= 1) {
           setAutoCarriedCount(carriedCount);
-          setShowAutoCarriedBanner(true);
-          showToast(`🔄 ${carriedCount} task${carriedCount > 1 ? 's' : ''} auto-carried over to Today!`, 'info');
+          const uid = store.getUserId();
+          const alreadyShown = localStorage.getItem(`dayscore_${uid}_shown_carried_banner_${todayStr}`);
+          if (!alreadyShown) {
+            setShowAutoCarriedBanner(true);
+          }
         }
       }
     };
@@ -719,19 +718,16 @@ export default function TodayView() {
       const unacknowledgedTask = freshToday.find(isTaskRewardUnacknowledged);
       setTodaysReward(unacknowledgedTask ? unacknowledgedTask.reward : null);
 
-      // Verify carried tasks on Today and notify via toast/banner if not yet dismissed
+      // Verify carried tasks on Today and notify via banner once per day if carried tasks >= 1
       const allTodayTasks = store.getTasks(todayStr);
       const carriedTasksOnToday = allTodayTasks.filter(t => isCarriedTask(t));
-      if (carriedTasksOnToday.length > 0) {
-        setAutoCarriedCount(carriedTasksOnToday.length);
+      const count = carriedTasksOnToday.length;
+      setAutoCarriedCount(count);
+      if (count >= 1) {
         const uid = store.getUserId();
-        const isDismissed = sessionStorage.getItem(`dayscore_${uid}_dismiss_carried_${todayStr}`);
-        if (!isDismissed) {
+        const alreadyShown = localStorage.getItem(`dayscore_${uid}_shown_carried_banner_${todayStr}`);
+        if (!alreadyShown) {
           setShowAutoCarriedBanner(true);
-          if (!hasNotifiedCarriedToastRef.current) {
-            hasNotifiedCarriedToastRef.current = true;
-            showToast(`🔄 ${carriedTasksOnToday.length} unfinished task${carriedTasksOnToday.length > 1 ? 's' : ''} carried over to Today!`, 'info');
-          }
         }
       }
 
@@ -2565,7 +2561,7 @@ export default function TodayView() {
               setShowAutoCarriedBanner(false);
               try {
                 const uid = store.getUserId();
-                sessionStorage.setItem(`dayscore_${uid}_dismiss_carried_${todayStr}`, 'true');
+                localStorage.setItem(`dayscore_${uid}_shown_carried_banner_${todayStr}`, 'true');
               } catch (e) {}
             }}
             title="Dismiss"
