@@ -2198,22 +2198,6 @@ export default function TodayView() {
                   />
                 </div>
 
-                {/* Rewards & Penalties Book Button */}
-                <button
-                  type="button"
-                  className={`btn btn-secondary btn-sm task-book-btn ${pendingBookCount > 0 ? 'has-pending' : ''}`}
-                  onClick={() => { setBookInitialTab('all'); setIsBookOpen(true); }}
-                  title="Open Rewards & Penalties Book"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '5px 10px', height: '32px' }}
-                >
-                  <BookOpen size={14} style={{ color: 'var(--accent-primary)' }} />
-                  <span>Book</span>
-                  {pendingBookCount > 0 && (
-                    <span className="badge badge-danger rewards-book-badge-pulse" style={{ fontSize: '0.65rem', padding: '1px 5px', borderRadius: '10px' }}>
-                      {pendingBookCount}
-                    </span>
-                  )}
-                </button>
 
                 <button
                   type="button"
