@@ -127,6 +127,55 @@ export default function RewardsBookModal({
     return 'rating-badge-low';
   };
 
+  const formatTaskMetaDates = (task) => {
+    if (!task) return { datesRange: null, completedText: null };
+
+    const parseDateSafe = (iso) => {
+      if (!iso) return null;
+      try {
+        const d = typeof iso === 'string' ? parseISO(iso) : new Date(iso);
+        return isNaN(d.getTime()) ? null : d;
+      } catch (e) {
+        return null;
+      }
+    };
+
+    const createdIso = task.createdAt || task.created_at || task.originalDate || task.original_date;
+    const dueIso = task.dueDateTime || task.due_date_time;
+    const completedIso = task.completedAt || task.completed_at;
+
+    const createdDate = parseDateSafe(createdIso);
+    const dueDate = parseDateSafe(dueIso);
+    const completedDate = parseDateSafe(completedIso);
+
+    let datesRange = null;
+    if (createdDate && dueDate) {
+      const sameDay = format(createdDate, 'yyyy-MM-dd') === format(dueDate, 'yyyy-MM-dd');
+      if (sameDay) {
+        datesRange = `${format(createdDate, 'MMM dd, h:mm a')} → ${format(dueDate, 'h:mm a')}`;
+      } else {
+        datesRange = `${format(createdDate, 'MMM dd, h:mm a')} → ${format(dueDate, 'MMM dd, h:mm a')}`;
+      }
+    } else if (dueDate) {
+      datesRange = `Due ${format(dueDate, 'MMM dd, h:mm a')}`;
+    } else if (createdDate) {
+      datesRange = format(createdDate, 'MMM dd, h:mm a');
+    }
+
+    let completedText = null;
+    if (completedDate) {
+      const baseDay = dueDate ? format(dueDate, 'yyyy-MM-dd') : (createdDate ? format(createdDate, 'yyyy-MM-dd') : null);
+      const isSameDayAsBase = baseDay && format(completedDate, 'yyyy-MM-dd') === baseDay;
+      if (isSameDayAsBase) {
+        completedText = `✓ ${format(completedDate, 'h:mm a')}`;
+      } else {
+        completedText = `✓ ${format(completedDate, 'MMM dd, h:mm a')}`;
+      }
+    }
+
+    return { datesRange, completedText };
+  };
+
   const handleTaskClick = (item) => {
     if (!item.task) return;
     const taskDate = getLocalDateStr(item.taskDate || item.task.date || item.task.completedAt || item.task.dueDateTime) || format(new Date(), 'yyyy-MM-dd');
@@ -761,11 +810,9 @@ export default function RewardsBookModal({
                           </span>
                         </div>
 
-                        {/* Associated Task Information matching TaskCard UI */}
+                        {/* Associated Task Information matching TaskCard UI - strictly one-liner for all devices */}
                         {hasTask && (() => {
-                          const createdFormatted = formatDateSafe(item.task.createdAt || item.task.created_at || item.task.originalDate || item.task.original_date);
-                          const dueFormatted = formatDateSafe(item.task.dueDateTime || item.task.due_date_time);
-                          const completedFormatted = formatDateSafe(item.task.completedAt || item.task.completed_at);
+                          const { datesRange, completedText } = formatTaskMetaDates(item.task);
                           const taskRating = item.rating != null ? Number(item.rating) : (item.task.rating != null ? Number(item.task.rating) : null);
                           const isTaskMissed = item.task.status === 'missed' || item.task.missed === true;
 
@@ -773,16 +820,16 @@ export default function RewardsBookModal({
                             <div 
                               className="rewards-book-task-pill rewards-book-task-pill--clickable"
                               onClick={() => handleTaskClick(item)}
-                              title={`Click to view task on ${item.taskDate || 'date'}`}
+                              title={`Task: ${item.task.title} (Click to jump to date)`}
                             >
-                              <div className="task-pill-info task-meta-row" style={{ margin: 0, padding: 0 }}>
-                                <span className="task-pill-label" style={{ fontWeight: 700, color: 'var(--text-muted)' }}>Task:</span>
+                              <div className="task-pill-info">
+                                <span className="task-pill-label">Task:</span>
                                 {Boolean(item.task.carriedOver || item.task.carried_over || item.task.wasCarried || item.task.isCarried) && (
-                                  <span className="carried-over-blinking-badge" title="Carried over task" style={{ width: '16px', height: '16px', margin: '0 2px' }}>
-                                    <RotateCcw size={10} className="carried-icon-spin-subtle" />
+                                  <span className="carried-over-blinking-badge" title="Carried over task" style={{ width: '13px', height: '13px', margin: '0 1px' }}>
+                                    <RotateCcw size={8} className="carried-icon-spin-subtle" />
                                   </span>
                                 )}
-                                <strong className="task-pill-title" style={{ color: 'var(--text-primary)' }}>
+                                <strong className="task-pill-title" title={item.task.title}>
                                   {item.task.title}
                                 </strong>
                                 
@@ -810,28 +857,20 @@ export default function RewardsBookModal({
                                   </>
                                 )}
 
-                                {(createdFormatted || dueFormatted) && (
+                                {datesRange && (
                                   <>
                                     <span className="meta-dot">·</span>
-                                    <span className="task-dates-inline">
-                                      {createdFormatted ? <span>{createdFormatted}</span> : <span>{item.taskDate || 'Today'}</span>}
-                                      {dueFormatted && (
-                                        <>
-                                          <span className="dates-arrow">→</span>
-                                          <span className={isTaskMissed ? 'task-date-missed' : 'task-date-due'}>
-                                            {dueFormatted}
-                                          </span>
-                                        </>
-                                      )}
+                                    <span className={`task-dates-inline ${isTaskMissed ? 'task-date-missed' : ''}`}>
+                                      {datesRange}
                                     </span>
                                   </>
                                 )}
 
-                                {completedFormatted && (
+                                {completedText && (
                                   <>
                                     <span className="meta-dot">·</span>
                                     <span className="task-date-completed">
-                                      ✓ {completedFormatted}
+                                      {completedText}
                                     </span>
                                   </>
                                 )}

@@ -4059,37 +4059,50 @@ body {
 .rewards-book-task-pill {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
   margin-top: 4px;
-  padding: 5px 10px;
+  padding: 4px 10px;
   background: var(--bg-glass-light);
   border: 1px solid var(--border-glass);
   border-radius: 6px;
-  font-size: 0.76rem;
-  flex-wrap: wrap;
+  font-size: 0.74rem;
+  white-space: nowrap !important;
+  flex-wrap: nowrap !important;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  max-width: 100%;
+}
+
+.rewards-book-task-pill::-webkit-scrollbar {
+  display: none;
 }
 
 .task-pill-info {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   min-width: 0;
-  flex-wrap: wrap;
+  white-space: nowrap !important;
+  flex-wrap: nowrap !important;
+  flex-shrink: 0;
 }
 
 .task-pill-label {
   color: var(--text-muted);
-  font-weight: 600;
+  font-weight: 700;
+  flex-shrink: 0;
 }
 
 .task-pill-title {
   color: var(--text-primary);
   font-weight: 600;
-  max-width: 220px;
+  max-width: 180px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 .task-category-pill {
@@ -4414,12 +4427,29 @@ body {
   }
 
   .rewards-book-task-pill {
-    padding: 4px 8px;
-    font-size: 0.72rem;
+    padding: 3px 8px;
+    font-size: 0.7rem;
+    gap: 4px;
+    white-space: nowrap !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .task-pill-info {
+    gap: 4px;
+    white-space: nowrap !important;
+    flex-wrap: nowrap !important;
   }
 
   .task-pill-title {
-    max-width: 140px;
+    max-width: 100px;
+  }
+
+  .task-dates-inline,
+  .task-date-completed {
+    font-size: 0.68rem;
+    white-space: nowrap;
   }
 
   .rewards-book-item-actions {
