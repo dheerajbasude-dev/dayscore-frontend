@@ -12,7 +12,8 @@ import ReflectionBox from '../components/ReflectionBox'
 import ConfettiCelebration from '../components/ConfettiCelebration'
 import PenaltyCelebration from '../components/PenaltyCelebration'
 import AuthModal from '../components/AuthModal'
-import { Plus, AlertTriangle, Gift, PenLine, ChevronLeft, ChevronRight, ChevronUp, Calendar, Layers, Search, SlidersHorizontal, Filter, RotateCcw, X, Clock, Zap, Check } from 'lucide-react'
+import RewardsBookModal from '../components/RewardsBookModal'
+import { Plus, AlertTriangle, Gift, PenLine, ChevronLeft, ChevronRight, ChevronUp, Calendar, Layers, Search, SlidersHorizontal, Filter, RotateCcw, X, Clock, Zap, Check, BookOpen } from 'lucide-react'
 import * as store from '../store/store'
 import * as scoring from '../store/scoring'
 import { useDayRollover } from '../hooks/useDayRollover'
@@ -279,6 +280,10 @@ export default function TodayView() {
   const [autoCarriedToastInfo, setAutoCarriedToastInfo] = useState(null)
   const [taskToDelete, setTaskToDelete] = useState(null)
   const [isDeletingTask, setIsDeletingTask] = useState(false)
+
+  // Rewards & Penalties Book state
+  const [isBookOpen, setIsBookOpen] = useState(false)
+  const [bookInitialTab, setBookInitialTab] = useState('all')
 
   const isCarriedTask = useCallback((t) => {
     if (!t) return false;
@@ -577,6 +582,22 @@ export default function TodayView() {
     });
     return list;
   }, [archives, tasks, currentDateStr]);
+
+  const pendingBookCount = useMemo(() => {
+    let count = 0;
+    const allTasksList = Array.isArray(allTasksAcrossDates) && allTasksAcrossDates.length > 0 
+      ? allTasksAcrossDates 
+      : tasks;
+    allTasksList.forEach(t => {
+      const isRewardClaimed = Boolean(t.rewardClaimed || t.reward_claimed);
+      if (t.reward && !isRewardClaimed) count++;
+
+      const isPenaltyAccepted = Boolean(t.penaltyAccepted || t.penalty_accepted);
+      const hasPenalty = Boolean(t.penalty || t.status === 'missed');
+      if (hasPenalty && !isPenaltyAccepted) count++;
+    });
+    return count;
+  }, [allTasksAcrossDates, tasks]);
 
   // Initialize data per user & date
   useEffect(() => {
@@ -1953,6 +1974,39 @@ export default function TodayView() {
             />
           </div>
 
+          {/* Pending Rewards & Penalties Book Alert */}
+          {pendingBookCount > 0 && (
+            <div className="card-glass rewards-book-pending-alert animate-fade-in" style={{
+              marginBottom: '14px',
+              padding: '10px 14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '12px',
+              background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(245, 158, 11, 0.1) 100%)',
+              border: '1px solid rgba(99, 102, 241, 0.35)',
+              borderRadius: 'var(--radius-md)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.84rem' }}>
+                <BookOpen size={17} style={{ color: 'var(--accent-primary)', flexShrink: 0 }} />
+                <span>
+                  📖 You have <strong>{pendingBookCount} pending item{pendingBookCount > 1 ? 's' : ''}</strong> in your Rewards & Penalties Book.
+                </span>
+              </div>
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={() => { setBookInitialTab('all'); setIsBookOpen(true); }}
+                style={{ fontSize: '0.78rem', padding: '4px 12px', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+              >
+                <span>Open Book</span>
+                <span className="badge badge-danger" style={{ fontSize: '0.65rem', padding: '1px 5px', borderRadius: '8px' }}>
+                  {pendingBookCount}
+                </span>
+              </button>
+            </div>
+          )}
+
           {/* Filter, Sort & Search Control Bar */}
           <div className="card-glass task-controls-card" style={{ marginBottom: '16px' }}>
             <div className="compact-task-toolbar">
@@ -2021,6 +2075,23 @@ export default function TodayView() {
                     ]}
                   />
                 </div>
+
+                {/* Rewards & Penalties Book Button */}
+                <button
+                  type="button"
+                  className={`btn btn-secondary btn-sm task-book-btn ${pendingBookCount > 0 ? 'has-pending' : ''}`}
+                  onClick={() => { setBookInitialTab('all'); setIsBookOpen(true); }}
+                  title="Open Rewards & Penalties Book"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '5px 10px', height: '32px' }}
+                >
+                  <BookOpen size={14} style={{ color: 'var(--accent-primary)' }} />
+                  <span>Book</span>
+                  {pendingBookCount > 0 && (
+                    <span className="badge badge-danger rewards-book-badge-pulse" style={{ fontSize: '0.65rem', padding: '1px 5px', borderRadius: '10px' }}>
+                      {pendingBookCount}
+                    </span>
+                  )}
+                </button>
 
                 <button
                   type="button"
@@ -2473,6 +2544,17 @@ export default function TodayView() {
       )}
 
       <ConfettiCelebration trigger={showConfetti} />
+
+      <RewardsBookModal
+        isOpen={isBookOpen}
+        onClose={() => setIsBookOpen(false)}
+        initialTab={bookInitialTab}
+        onTaskUpdated={async () => {
+          await store.fetchAllTasksApi();
+          setTasks(store.getTasks(currentDateStr));
+          setArchives(store.getAllArchives());
+        }}
+      />
     </div>
   )
 }

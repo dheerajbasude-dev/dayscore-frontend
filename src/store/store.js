@@ -455,6 +455,26 @@ export function getAllArchives() {
   return getArchivesFromTasks();
 }
 
+export function getAllTasksFlat() {
+  const archives = getArchivesFromTasks();
+  const list = [];
+  const seenIds = new Set();
+  archives.forEach(arc => {
+    if (Array.isArray(arc.tasks)) {
+      arc.tasks.forEach(t => {
+        const id = t.id || t._id;
+        if (id && !seenIds.has(id)) {
+          seenIds.add(id);
+          list.push({ ...t, taskDate: arc.date });
+        } else if (!id) {
+          list.push({ ...t, taskDate: arc.date });
+        }
+      });
+    }
+  });
+  return list;
+}
+
 export function getDayArchive(dateStr) {
   const archives = getArchivesFromTasks();
   return archives.find(a => a.date === dateStr) || null;

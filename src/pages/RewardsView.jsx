@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react'
-import { Plus, Trash2, Edit2, Check, Gift, AlertOctagon, Info, History, Trophy, Sparkles, Loader2 } from 'lucide-react'
+import React, { useState, useEffect, useCallback } from 'react'
+import { Plus, Trash2, Edit2, Check, Gift, AlertOctagon, Info, History, Trophy, Sparkles, Loader2, BookOpen } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import * as store from '../store/store'
 import * as scoring from '../store/scoring'
 import { useAuth } from '../context/AuthContext'
+import RewardsBookModal from '../components/RewardsBookModal'
 
 export default function RewardsView() {
   const { user } = useAuth()
@@ -17,6 +18,11 @@ export default function RewardsView() {
   const [newPunishment, setNewPunishment] = useState('')
   const [editingMilestone, setEditingMilestone] = useState(null)
   const [milestoneText, setMilestoneText] = useState('')
+
+  // Rewards & Penalties Book state
+  const [isBookOpen, setIsBookOpen] = useState(false)
+  const [bookInitialTab, setBookInitialTab] = useState('all')
+  const [bookPendingCount, setBookPendingCount] = useState(0)
 
   // Loading states for async actions
   const [isAddingReward, setIsAddingReward] = useState(false)
@@ -33,40 +39,58 @@ export default function RewardsView() {
   const bestStreak = scoring.getBestStreak(archives, todayTasks)
   const effectiveStreak = Math.max(currentStreakObj.current || 0, bestStreak || 0)
 
-  useEffect(() => {
-    let isMounted = true;
-    const loadRewardsData = async () => {
-      const cachedR = store.getRewards()
-      const cachedP = store.getPunishments()
-      if (cachedR && cachedR.length > 0) setRewards(cachedR)
-      if (cachedP && cachedP.length > 0) setPunishments(cachedP)
-      setMilestones(store.getStreakMilestoneRewards() || {})
-      setClaimedMilestones(store.getClaimedStreakMilestones() || {})
+  const updateBookCounts = useCallback(() => {
+    try {
+      const allFlat = store.getAllTasksFlat() || [];
+      const pendingRewards = allFlat.filter(t => {
+        const isClaimed = Boolean(t.rewardClaimed || t.reward_claimed);
+        return Boolean(t.reward && !isClaimed);
+      });
+      const pendingPenalties = allFlat.filter(t => {
+        const isAccepted = Boolean(t.penaltyAccepted || t.penalty_accepted);
+        const hasPenalty = Boolean(t.penalty || t.status === 'missed');
+        return Boolean(hasPenalty && !isAccepted);
+      });
+      setBookPendingCount(pendingRewards.length + pendingPenalties.length);
+    } catch (e) {
+      console.warn('Error calculating book counts:', e);
+    }
+  }, []);
 
-      if (store.isRewardsCached()) {
-        setLoading(false)
-      } else {
-        setLoading(true)
-      }
+  const loadRewardsData = useCallback(async () => {
+    const cachedR = store.getRewards()
+    const cachedP = store.getPunishments()
+    if (cachedR && cachedR.length > 0) setRewards(cachedR)
+    if (cachedP && cachedP.length > 0) setPunishments(cachedP)
+    setMilestones(store.getStreakMilestoneRewards() || {})
+    setClaimedMilestones(store.getClaimedStreakMilestones() || {})
+    updateBookCounts()
 
-      const loadedRewards = await store.fetchRewardsApi()
-      const loadedPunishments = await store.fetchPunishmentsApi()
-      const milestoneData = await store.fetchStreakMilestonesApi()
-
-      if (!isMounted) return;
-
-      if (Array.isArray(loadedRewards)) setRewards(loadedRewards)
-      if (Array.isArray(loadedPunishments)) setPunishments(loadedPunishments)
-      if (milestoneData) {
-        setMilestones(milestoneData.milestones || {})
-        setClaimedMilestones(milestoneData.claimed || {})
-      }
+    if (store.isRewardsCached()) {
       setLoading(false)
+    } else {
+      setLoading(true)
     }
 
-    loadRewardsData()
+    const loadedRewards = await store.fetchRewardsApi()
+    const loadedPunishments = await store.fetchPunishmentsApi()
+    const milestoneData = await store.fetchStreakMilestonesApi()
+
+    if (Array.isArray(loadedRewards)) setRewards(loadedRewards)
+    if (Array.isArray(loadedPunishments)) setPunishments(loadedPunishments)
+    if (milestoneData) {
+      setMilestones(milestoneData.milestones || {})
+      setClaimedMilestones(milestoneData.claimed || {})
+    }
+    updateBookCounts()
+    setLoading(false)
+  }, [updateBookCounts]);
+
+  useEffect(() => {
+    let isMounted = true;
+    loadRewardsData();
     return () => { isMounted = false; }
-  }, [user])
+  }, [user, loadRewardsData])
 
   const handleAddReward = async (e) => {
     if (e && e.preventDefault) e.preventDefault()
@@ -169,7 +193,21 @@ export default function RewardsView() {
 
   return (
     <div className="rewards-view animate-slide-up">
-      <h1 className="rewards-title">🎁 Rewards & Penalties</h1>
+      <div className="rewards-header-row">
+        <h1 className="rewards-title" style={{ margin: 0 }}>🎁 Rewards & Penalties</h1>
+        <button 
+          type="button" 
+          className="btn btn-primary rewards-book-btn"
+          onClick={() => { setBookInitialTab('all'); setIsBookOpen(true); }}
+          title="Open Rewards & Penalties Book"
+        >
+          <BookOpen size={17} />
+          <span>Rewards & Penalties Book</span>
+          {bookPendingCount > 0 && (
+            <span className="rewards-book-badge-pulse">{bookPendingCount}</span>
+          )}
+        </button>
+      </div>
 
       {loading ? (
         <div className="rewards-loading-skeleton" style={{ padding: '8px 0' }}>
@@ -189,6 +227,32 @@ export default function RewardsView() {
         </div>
       ) : (
         <>
+          {/* Rewards & Penalties Ledger Book Quick CTA Card */}
+          <div className="card-glass rewards-book-cta-card">
+            <div className="rewards-book-cta-left">
+              <div className="rewards-book-cta-icon">
+                <BookOpen size={24} />
+              </div>
+              <div className="rewards-book-cta-info">
+                <strong>Rewards & Penalties Ledger Book</strong>
+                <p>Check list-wise progress, acknowledge penalties, complete tasks, and claim your earned rewards.</p>
+              </div>
+            </div>
+            <div className="rewards-book-cta-actions">
+              <button
+                type="button"
+                className="btn btn-primary rewards-book-cta-btn"
+                onClick={() => { setBookInitialTab('all'); setIsBookOpen(true); }}
+              >
+                <BookOpen size={16} />
+                <span>Open Ledger Book</span>
+                {bookPendingCount > 0 && (
+                  <span className="badge badge-danger" style={{ marginLeft: '4px' }}>{bookPendingCount} Pending</span>
+                )}
+              </button>
+            </div>
+          </div>
+
           <div className="card-glass rewards-info-card">
             <Info size={24} color="var(--accent-primary)" style={{ flexShrink: 0 }} />
             <div className="rewards-info-text">
@@ -446,6 +510,13 @@ export default function RewardsView() {
           </section>
         </>
       )}
+
+      <RewardsBookModal
+        isOpen={isBookOpen}
+        onClose={() => setIsBookOpen(false)}
+        initialTab={bookInitialTab}
+        onTaskUpdated={loadRewardsData}
+      />
     </div>
   )
 }
