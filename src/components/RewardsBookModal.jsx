@@ -37,7 +37,7 @@ export default function RewardsBookModal({
   activeTasks = []
 }) {
   const { showToast } = useToast();
-  const [activeTab, setActiveTab] = useState(initialTab);
+  const [activeTab, setActiveTab] = useState(initialTab && initialTab !== 'history' ? initialTab : 'all');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Track whether initial data has loaded at least once
@@ -134,7 +134,8 @@ export default function RewardsBookModal({
   useEffect(() => {
     if (isOpen) {
       document.body.classList.add('modal-open');
-      setActiveTab(initialTab || 'all');
+      const safeTab = (initialTab && initialTab !== 'history') ? initialTab : 'all';
+      setActiveTab(safeTab);
       setSearchQuery('');
     } else {
       document.body.classList.remove('modal-open');
@@ -389,8 +390,6 @@ export default function RewardsBookModal({
       list = ledgerItems.filter(i => (i.type === 'reward' || i.type === 'milestone') && i.status === 'pending');
     } else if (activeTab === 'penalties') {
       list = ledgerItems.filter(i => i.type === 'penalty' && i.status === 'pending');
-    } else if (activeTab === 'history') {
-      list = ledgerItems.filter(i => i.status === 'claimed' || i.status === 'acknowledged');
     }
 
     const query = searchQuery.trim().toLowerCase();
@@ -652,19 +651,6 @@ export default function RewardsBookModal({
                 <span className="tab-count-badge tab-count-badge--danger">{stats.pendingPenaltiesCount}</span>
               )}
             </button>
-
-
-
-            <button
-              type="button"
-              className={`rewards-book-tab ${activeTab === 'history' ? 'active' : ''}`}
-              onClick={() => setActiveTab('history')}
-            >
-              <span>📜 History</span>
-              {stats.historyCount > 0 && (
-                <span className="tab-count-badge">{stats.historyCount}</span>
-              )}
-            </button>
           </div>
 
           <div className="rewards-book-search-box">
@@ -699,18 +685,16 @@ export default function RewardsBookModal({
           ) : filteredItems.length === 0 ? (
             <div className="rewards-book-empty">
               <div className="empty-icon">
-                {activeTab === 'history' ? '📜' : (activeTab === 'penalties' ? '🛡️' : '🎉')}
+                {activeTab === 'penalties' ? '🛡️' : '🎉'}
               </div>
               <h3 className="empty-title">
                 {searchQuery 
                   ? 'No matching ledger items found' 
-                  : (activeTab === 'history' 
-                      ? 'No claimed history yet' 
-                      : (activeTab === 'penalties' 
-                          ? 'No pending penalties! You are in good standing' 
-                          : (activeTab === 'rewards' 
-                              ? 'No pending rewards right now' 
-                              : 'All caught up! No pending items to claim or acknowledge.')))}
+                  : (activeTab === 'penalties' 
+                      ? 'No pending penalties! You are in good standing' 
+                      : (activeTab === 'rewards' 
+                          ? 'No pending rewards right now' 
+                          : 'All caught up! No pending items to claim or acknowledge.'))}
               </h3>
               <p className="empty-desc">
                 {activeTab === 'rewards' 
