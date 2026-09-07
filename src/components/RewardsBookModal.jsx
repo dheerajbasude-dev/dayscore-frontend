@@ -857,7 +857,7 @@ export default function RewardsBookModal({
                     {/* Right: Claim or Acknowledge Action Button */}
                     <div className="rewards-book-item-actions">
                       {isPenalty ? (
-                        isPenaltyAccepted && acceptingId !== item.id ? (
+                        (isClaimed || item.status === 'acknowledged') && acceptingId !== item.id ? (
                           <button className="btn btn-sm btn-secondary acknowledged rewards-action-pill" disabled>
                             ✓ Acknowledged
                           </button>
