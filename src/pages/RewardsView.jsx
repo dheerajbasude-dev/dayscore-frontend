@@ -218,18 +218,6 @@ export default function RewardsView() {
     <div className="rewards-view animate-slide-up">
       <div className="rewards-header-row">
         <h1 className="rewards-title" style={{ margin: 0 }}>🎁 Rewards & Penalties</h1>
-        <button 
-          type="button" 
-          className="btn btn-primary rewards-book-btn"
-          onClick={() => { setBookInitialTab('all'); setIsBookOpen(true); }}
-          title="Open Rewards & Penalties Book"
-        >
-          <BookOpen size={17} />
-          <span>Rewards & Penalties Book</span>
-          {bookPendingCount > 0 && (
-            <span className="rewards-book-badge-pulse">{bookPendingCount}</span>
-          )}
-        </button>
       </div>
 
       {loading ? (

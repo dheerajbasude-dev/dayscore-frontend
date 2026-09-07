@@ -1438,38 +1438,27 @@ export default function TodayView() {
 
     setIsDeletingTask(true);
 
-    // Add exit animation
-    setDeletingTaskIds(prev => new Set([...prev, taskId]));
-
-    // Save previous state for rollback on error
-    const prevTasks = [...tasks];
-    const prevArchives = [...archives];
-
-    // Optimistically remove from local state immediately
-    setTasks(prev => prev.filter(t => (t.id || t._id) !== taskId));
-    setArchives(prev => prev.map(arc => ({
-      ...arc,
-      tasks: Array.isArray(arc.tasks) ? arc.tasks.filter(t => (t.id || t._id) !== taskId) : arc.tasks
-    })).filter(arc => !Array.isArray(arc.tasks) || arc.tasks.length > 0));
-
-    // Close the delete modal immediately
-    setTaskToDelete(null);
-
-    // Small delay for exit animation to play
-    await new Promise(r => setTimeout(r, 300));
-
     try {
+      // Step 1: Delete on server (modal stays open with "Deleting..." loading state on button)
       await store.deleteTask(taskDate, taskId);
-      // Clear memory cache and re-sync with server
+
+      // Step 2: Server confirmed — close the delete confirmation modal
+      setTaskToDelete(null);
+
+      // Step 3: Play exit animation on the task card
+      setDeletingTaskIds(prev => new Set([...prev, taskId]));
+
+      // Step 4: Wait for exit animation to finish
+      await new Promise(r => setTimeout(r, 350));
+
+      // Step 5: Remove from local state
       store.clearTaskMemoryCache();
       await store.fetchAllTasksApi();
       setTasks(store.getTasks(currentDateStr));
       setArchives(store.getAllArchives());
     } catch (err) {
       console.error('Delete task error:', err);
-      // Rollback optimistic removal on failure
-      setTasks(prevTasks);
-      setArchives(prevArchives);
+      setTaskToDelete(null);
       showToast("Couldn't delete task — check your connection and try again", 'error');
     } finally {
       setDeletingTaskIds(prev => {
