@@ -393,34 +393,28 @@ export async function updateTask(dateStr, taskId, updates) {
 }
 
 export async function deleteTask(dateStr, taskId) {
-  const cleanDate = getLocalDateStr(dateStr) || format(new Date(), 'yyyy-MM-dd');
-  
-  // Immediately update local storage to prevent any stale cache or flicker
-  const localTasks = getTasks(cleanDate);
-  const updatedTasks = localTasks.filter(t => t.id !== taskId && t._id !== taskId);
-  saveTasks(cleanDate, updatedTasks);
-
   const token = getToken();
   if (token) {
     try {
-      const res = await authFetch(`/api/tasks/${taskId}?date=${cleanDate}`, {
+      const res = await authFetch(`/api/tasks/${taskId}?date=${dateStr}`, {
         method: 'DELETE'
       });
       if (res.ok) {
         await fetchAllTasksApi();
-        return getTasks(cleanDate);
+        return getTasks(dateStr);
       }
       const errData = await safeJsonParse(res).catch(() => ({}));
       throw new Error(errData.error || errData.message || `Failed to delete task on server (${res.status})`);
     } catch (err) {
       console.error('Delete task server error:', err);
-      // Roll back local save if failed
-      saveTasks(cleanDate, localTasks);
       throw err;
     }
   }
 
-  return updatedTasks;
+  const tasks = getTasks(dateStr);
+  const newTasks = tasks.filter(t => t.id !== taskId && t._id !== taskId);
+  saveTasks(dateStr, newTasks);
+  return newTasks;
 }
 
 // ==========================================
@@ -466,7 +460,6 @@ export function getAllTasksFlat() {
   const archives = getArchivesFromTasks();
   const list = [];
   const seenIds = new Set();
-
   archives.forEach(arc => {
     if (Array.isArray(arc.tasks)) {
       arc.tasks.forEach(t => {
@@ -480,22 +473,6 @@ export function getAllTasksFlat() {
       });
     }
   });
-
-  // Also include today's tasks from getTasks to guarantee newly added tasks appear immediately
-  try {
-    const todayStr = format(new Date(), 'yyyy-MM-dd');
-    const todayTasks = getTasks(todayStr);
-    if (Array.isArray(todayTasks)) {
-      todayTasks.forEach(t => {
-        const id = t.id || t._id;
-        if (id && !seenIds.has(id)) {
-          seenIds.add(id);
-          list.push({ ...t, taskDate: todayStr });
-        }
-      });
-    }
-  } catch (e) {}
-
   return list;
 }
 

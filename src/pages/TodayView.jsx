@@ -1434,47 +1434,46 @@ export default function TodayView() {
   const handleConfirmDeleteTask = async (task) => {
     if (!task || isDeletingTask) return;
     const taskId = task.id || task._id;
-    const taskDate = getLocalDateStr(task.date || task.taskDate || task.originalDate || task.dueDateTime) || currentDateStr;
+    const taskDate = task.date || task.dateLabel || currentDateStr;
 
     setIsDeletingTask(true);
 
+    // Add exit animation
+    setDeletingTaskIds(prev => new Set([...prev, taskId]));
+
+    // Save previous state for rollback on error
+    const prevTasks = [...tasks];
+    const prevArchives = [...archives];
+
+    // Optimistically remove from local state immediately
+    setTasks(prev => prev.filter(t => (t.id || t._id) !== taskId));
+    setArchives(prev => prev.map(arc => ({
+      ...arc,
+      tasks: Array.isArray(arc.tasks) ? arc.tasks.filter(t => (t.id || t._id) !== taskId) : arc.tasks
+    })).filter(arc => !Array.isArray(arc.tasks) || arc.tasks.length > 0));
+
+    // Close the delete modal immediately
+    setTaskToDelete(null);
+
+    // Small delay for exit animation to play
+    await new Promise(r => setTimeout(r, 300));
+
     try {
-      // Step 1: Delete on server while modal displays "Deleting..." button spinner (minimum 450ms for clear visual feedback)
-      const deletePromise = store.deleteTask(taskDate, taskId);
-      const minTimerPromise = new Promise(r => setTimeout(r, 450));
-      await Promise.all([deletePromise, minTimerPromise]);
-
-      // Step 2: Server confirmed — close the delete confirmation modal
-      setTaskToDelete(null);
-
-      // Step 3: Trigger exit animation on the task card for all ID variations
-      const idsToRemove = new Set([taskId, task.id, task._id].filter(Boolean));
-      setDeletingTaskIds(prev => new Set([...prev, ...idsToRemove]));
-
-      // Step 4: Wait for smooth exit animation (400ms)
-      await new Promise(r => setTimeout(r, 400));
-
-      // Step 5: Remove from local state immediately
-      setTasks(prev => prev.filter(t => !idsToRemove.has(t.id) && !idsToRemove.has(t._id)));
-      setArchives(prev => prev.map(arc => ({
-        ...arc,
-        tasks: Array.isArray(arc.tasks) ? arc.tasks.filter(t => !idsToRemove.has(t.id) && !idsToRemove.has(t._id)) : arc.tasks
-      })).filter(arc => !Array.isArray(arc.tasks) || arc.tasks.length > 0));
-
-      // Step 6: Resync with store and server
+      await store.deleteTask(taskDate, taskId);
+      // Clear memory cache and re-sync with server
       store.clearTaskMemoryCache();
-      await store.fetchAllTasksApi().catch(() => {});
+      await store.fetchAllTasksApi();
       setTasks(store.getTasks(currentDateStr));
       setArchives(store.getAllArchives());
     } catch (err) {
       console.error('Delete task error:', err);
-      setTaskToDelete(null);
+      // Rollback optimistic removal on failure
+      setTasks(prevTasks);
+      setArchives(prevArchives);
       showToast("Couldn't delete task — check your connection and try again", 'error');
     } finally {
       setDeletingTaskIds(prev => {
         const next = new Set(prev);
-        if (task.id) next.delete(task.id);
-        if (task._id) next.delete(task._id);
         next.delete(taskId);
         return next;
       });
@@ -2672,7 +2671,6 @@ export default function TodayView() {
         isOpen={isBookOpen}
         onClose={() => setIsBookOpen(false)}
         initialTab={bookInitialTab}
-        activeTasks={tasks}
         onTaskUpdated={async () => {
           await store.fetchAllTasksApi();
           setTasks(store.getTasks(currentDateStr));

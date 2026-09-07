@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   X, 
@@ -33,57 +33,12 @@ export default function RewardsBookModal({
   onClose,
   onTaskUpdated,
   onNavigateToTask,
-  initialTab = 'all',
-  activeTasks = []
+  initialTab = 'all'
 }) {
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState(initialTab);
   const [searchQuery, setSearchQuery] = useState('');
-  
-  // Track whether initial data has loaded at least once
-  const hasInitialLoadedRef = useRef(false);
-
-  // Lazy initialize all data from local storage/cache so modal displays instantly with 0ms delay
-  const [allTasks, setAllTasks] = useState(() => {
-    try {
-      return store.getAllTasksFlat() || [];
-    } catch (e) {
-      return [];
-    }
-  });
-  const [milestones, setMilestones] = useState(() => {
-    try {
-      return store.getStreakMilestoneRewards() || {};
-    } catch (e) {
-      return {};
-    }
-  });
-  const [claimedMilestones, setClaimedMilestones] = useState(() => {
-    try {
-      return store.getClaimedStreakMilestones() || {};
-    } catch (e) {
-      return {};
-    }
-  });
-  const [effectiveStreak, setEffectiveStreak] = useState(0);
-  const [activePunishment, setActivePunishment] = useState(() => {
-    try {
-      return store.getActivePunishment() || null;
-    } catch (e) {
-      return null;
-    }
-  });
-
-  // Only show blocking loader on the very first mount if local storage has 0 tasks
-  const [loading, setLoading] = useState(() => {
-    try {
-      const initial = store.getAllTasksFlat();
-      return !initial || initial.length === 0;
-    } catch (e) {
-      return false;
-    }
-  });
-
+  const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
 
   // Operation loading state trackers
@@ -130,6 +85,13 @@ export default function RewardsBookModal({
     onClose();
   };
 
+  // Local state for tasks and milestones
+  const [allTasks, setAllTasks] = useState([]);
+  const [milestones, setMilestones] = useState({});
+  const [claimedMilestones, setClaimedMilestones] = useState({});
+  const [effectiveStreak, setEffectiveStreak] = useState(0);
+  const [activePunishment, setActivePunishment] = useState(null);
+
   // Manage body scroll lock
   useEffect(() => {
     if (isOpen) {
@@ -153,68 +115,49 @@ export default function RewardsBookModal({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  // Instant data hydration & background revalidation (never flash loading screen on re-opening)
-  useEffect(() => {
-    if (!isOpen) return;
-
-    // 1. Immediately populate from local cache so newly added items show up instantly with 0ms delay
-    const flat = store.getAllTasksFlat() || [];
-    const mergedList = [...flat];
-    if (Array.isArray(activeTasks) && activeTasks.length > 0) {
-      const seen = new Set(flat.map(t => String(t.id || t._id)).filter(Boolean));
-      activeTasks.forEach(at => {
-        const tid = String(at.id || at._id || '');
-        if (tid && !seen.has(tid)) {
-          seen.add(tid);
-          mergedList.push(at);
-        }
-      });
-    }
-
-    setAllTasks(mergedList);
-    setMilestones(store.getStreakMilestoneRewards() || {});
-    setClaimedMilestones(store.getClaimedStreakMilestones() || {});
-    setActivePunishment(store.getActivePunishment());
-
+  // Load fresh data
+  const loadData = useCallback(async () => {
+    setLoading(true);
     try {
+      // First load from local storage
+      const flat = store.getAllTasksFlat();
+      setAllTasks(flat);
+      setMilestones(store.getStreakMilestoneRewards() || {});
+      setClaimedMilestones(store.getClaimedStreakMilestones() || {});
+      setActivePunishment(store.getActivePunishment());
+
       const archives = store.getAllArchives();
       const todayStr = format(new Date(), 'yyyy-MM-dd');
       const todayTasks = store.getTasks(todayStr);
       const currentStreakObj = scoring.getStreak(archives, todayTasks);
       const bestStreak = scoring.getBestStreak(archives, todayTasks);
       setEffectiveStreak(Math.max(currentStreakObj.current || 0, bestStreak || 0));
-    } catch (e) {}
 
-    // If we have cached data or have loaded before, DO NOT show full loading spinner!
-    if (hasInitialLoadedRef.current || mergedList.length > 0) {
-      setLoading(false);
-    } else {
-      setLoading(true);
-    }
+      // Fetch fresh from backend
+      await Promise.all([
+        store.fetchAllTasksApi().catch(() => {}),
+        store.fetchStreakMilestonesApi().catch(() => {})
+      ]);
 
-    // 2. Silent background sync (stale-while-revalidate): update with server data seamlessly
-    let isCancelled = false;
-    Promise.all([
-      store.fetchAllTasksApi().catch(() => {}),
-      store.fetchStreakMilestonesApi().catch(() => {})
-    ]).then(() => {
-      if (isCancelled) return;
-      hasInitialLoadedRef.current = true;
-      setLoading(false);
-      const updatedFlat = store.getAllTasksFlat() || [];
+      const updatedFlat = store.getAllTasksFlat();
       setAllTasks(updatedFlat);
-      setMilestones(store.getStreakMilestoneRewards() || {});
-      setClaimedMilestones(store.getClaimedStreakMilestones() || {});
+      const mData = store.getStreakMilestoneRewards();
+      const cData = store.getClaimedStreakMilestones();
+      setMilestones(mData || {});
+      setClaimedMilestones(cData || {});
       setActivePunishment(store.getActivePunishment());
-    }).catch(() => {
-      if (isCancelled) return;
+    } catch (err) {
+      console.error('Error loading rewards book data:', err);
+    } finally {
       setLoading(false);
-    });
+    }
+  }, []);
 
-    return () => {
-      isCancelled = true;
-    };
-  }, [isOpen, activeTasks, refreshKey]);
+  useEffect(() => {
+    if (isOpen) {
+      loadData();
+    }
+  }, [isOpen, loadData, refreshKey]);
 
   // Build the complete ledger items list
   const ledgerItems = useMemo(() => {
@@ -626,6 +569,8 @@ export default function RewardsBookModal({
                 <span className="tab-count-badge tab-count-badge--danger">{stats.pendingPenaltiesCount}</span>
               )}
             </button>
+
+
           </div>
 
           <div className="rewards-book-search-box">
@@ -694,7 +639,7 @@ export default function RewardsBookModal({
                 return (
                   <li 
                     key={item.id} 
-                    className={`rewards-book-item animate-slide-up ${isClaimed ? 'is-claimed' : ''} ${isPenalty ? 'rewards-book-item--penalty' : (isMilestone ? 'rewards-book-item--milestone' : '')}`}
+                    className={`rewards-book-item animate-slide-up ${isClaimed ? 'is-claimed' : ''} ${isPenalty ? 'rewards-book-item--penalty' : ''}`}
                     style={{ animationDelay: `${Math.min(idx * 0.03, 0.3)}s` }}
                   >
                     {/* Left: Index Badge + Main Content */}
@@ -803,12 +748,12 @@ export default function RewardsBookModal({
                                     </span>
                                   </>
                                 )}
-                              </div>
 
-                              <span className="task-pill-jump-link">
-                                <Calendar size={11} />
-                                <span>Go to Date →</span>
-                              </span>
+                                <span className="task-pill-jump-link">
+                                  <Calendar size={11} />
+                                  <span>Go to Date →</span>
+                                </span>
+                              </div>
                             </div>
                           );
                         })()}
