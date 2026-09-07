@@ -71,22 +71,28 @@ export default function TodayView() {
 
   const highlightAndScrollToTask = useCallback((taskId) => {
     if (!taskId) return;
+    const strId = String(taskId).trim();
     let attempts = 0;
-    const maxAttempts = 25;
+    const maxAttempts = 35;
     const interval = setInterval(() => {
       attempts++;
-      const el = document.getElementById(`task-card-${taskId}`);
+      const el = document.getElementById(`task-card-${strId}`) ||
+                 document.querySelector(`[data-task-id="${strId}"]`) ||
+                 document.querySelector(`[data-task-id-alt="${strId}"]`) ||
+                 document.querySelector(`[id*="${strId}"]`);
       if (el) {
         clearInterval(interval);
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.remove('task-card-highlight-pulse');
+        void el.offsetWidth;
         el.classList.add('task-card-highlight-pulse');
         setTimeout(() => {
           el.classList.remove('task-card-highlight-pulse');
-        }, 2500);
+        }, 3800);
       } else if (attempts >= maxAttempts) {
         clearInterval(interval);
       }
-    }, 150);
+    }, 120);
   }, []);
 
   useEffect(() => {
@@ -629,11 +635,32 @@ export default function TodayView() {
       ? allTasksAcrossDates 
       : tasks;
     allTasksList.forEach(t => {
-      const isRewardClaimed = Boolean(t.rewardClaimed || t.reward_claimed);
-      if (t.reward && !isRewardClaimed) count++;
+      const isDone = t.status === 'done' || t.completed === true;
+      const isMissed = t.status === 'missed' || t.missed === true;
+      if (!isDone && !isMissed) return;
 
-      const isPenaltyAccepted = Boolean(t.penaltyAccepted || t.penalty_accepted);
-      const hasPenalty = Boolean(t.penalty || t.status === 'missed');
+      const ratingNum = t.rating != null && !isNaN(Number(t.rating)) ? Number(t.rating) : null;
+      const isRewardClaimed = Boolean(
+        t.rewardClaimed === true || t.rewardClaimed === 1 || t.rewardClaimed === '1' ||
+        t.reward_claimed === true || t.reward_claimed === 1 || t.reward_claimed === '1' ||
+        t.rewardAcknowledged === true || t.rewardAcknowledged === 1 || t.rewardAcknowledged === '1' ||
+        t.reward_acknowledged === true || t.reward_acknowledged === 1 || t.reward_acknowledged === '1' ||
+        Boolean(t.rewardClaimedAt || t.reward_claimed_at) ||
+        (t.id && localStorage.getItem(`dayscore_reward_ack_${t.id}`) === '1') ||
+        (t._id && localStorage.getItem(`dayscore_reward_ack_${t._id}`) === '1')
+      );
+      if (isDone && (ratingNum == null || ratingNum > 4.0) && t.reward && !isRewardClaimed) count++;
+
+      const isPenaltyAccepted = Boolean(
+        t.penaltyAccepted === true || t.penaltyAccepted === 1 || t.penaltyAccepted === '1' ||
+        t.penalty_accepted === true || t.penalty_accepted === 1 || t.penalty_accepted === '1' ||
+        t.penaltyAcknowledged === true || t.penaltyAcknowledged === 1 || t.penaltyAcknowledged === '1' ||
+        t.penalty_acknowledged === true || t.penalty_acknowledged === 1 || t.penalty_acknowledged === '1' ||
+        Boolean(t.penaltyAcceptedAt || t.penalty_accepted_at) ||
+        (t.id && localStorage.getItem(`dayscore_penalty_ack_${t.id}`) === '1') ||
+        (t._id && localStorage.getItem(`dayscore_penalty_ack_${t._id}`) === '1')
+      );
+      const hasPenalty = isMissed || (isDone && ratingNum != null && ratingNum <= 4.0);
       if (hasPenalty && !isPenaltyAccepted) count++;
     });
     return count;
@@ -1505,6 +1532,12 @@ export default function TodayView() {
     const targetDate = isObject ? (taskOrId.date || taskOrId.dateLabel || currentDateStr) : currentDateStr;
 
     try {
+      try {
+        localStorage.setItem(`dayscore_reward_ack_${targetId}`, '1');
+        if (isObject && taskOrId.id) localStorage.setItem(`dayscore_reward_ack_${taskOrId.id}`, '1');
+        if (isObject && taskOrId._id) localStorage.setItem(`dayscore_reward_ack_${taskOrId._id}`, '1');
+      } catch (e) {}
+
       await store.updateTask(targetDate, targetId, {
         rewardClaimed: true,
         reward_claimed: 1,
@@ -1530,9 +1563,17 @@ export default function TodayView() {
     const targetDate = isObject ? (taskOrId.date || taskOrId.dateLabel || currentDateStr) : currentDateStr;
 
     try {
+      try {
+        localStorage.setItem(`dayscore_penalty_ack_${targetId}`, '1');
+        if (isObject && taskOrId.id) localStorage.setItem(`dayscore_penalty_ack_${taskOrId.id}`, '1');
+        if (isObject && taskOrId._id) localStorage.setItem(`dayscore_penalty_ack_${taskOrId._id}`, '1');
+      } catch (e) {}
+
       await store.updateTask(targetDate, targetId, {
         penaltyAccepted: true,
         penalty_accepted: 1,
+        penaltyAcknowledged: true,
+        penalty_acknowledged: 1,
         rewardClaimed: false,
         reward_claimed: 0,
         penaltyAcceptedAt: new Date().toISOString()
@@ -2609,6 +2650,7 @@ export default function TodayView() {
         }}
         onNavigateToTask={(task, targetDate) => {
           setIsBookOpen(false);
+          resetAllFilters();
           if (targetDate) {
             setViewMode('date');
             setCurrentDateStr(targetDate);

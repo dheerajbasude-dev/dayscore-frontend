@@ -4165,31 +4165,44 @@ body {
 
 @keyframes taskHighlightPulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.85);
-    border-color: #6366f1;
-    transform: scale(1.02);
+    outline-color: #6366f1;
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.9), 0 0 35px rgba(99, 102, 241, 0.85);
+    transform: scale(1);
+  }
+  15% {
+    outline-color: #a855f7;
+    box-shadow: 0 0 0 6px rgba(168, 85, 247, 0.95), 0 0 50px rgba(168, 85, 247, 0.9);
+    transform: scale(1.025);
   }
   30% {
-    box-shadow: 0 0 24px 6px rgba(99, 102, 241, 0.75);
-    border-color: #818cf8;
-    transform: scale(1.02);
+    outline-color: #818cf8;
+    box-shadow: 0 0 0 7px rgba(99, 102, 241, 0.9), 0 0 45px rgba(99, 102, 241, 0.8);
+    transform: scale(1.025);
   }
-  60% {
-    box-shadow: 0 0 16px 4px rgba(168, 85, 247, 0.5);
-    border-color: #a855f7;
-    transform: scale(1.01);
+  55% {
+    outline-color: #c084fc;
+    box-shadow: 0 0 0 5px rgba(168, 85, 247, 0.7), 0 0 35px rgba(168, 85, 247, 0.65);
+    transform: scale(1.015);
+  }
+  80% {
+    outline-color: rgba(99, 102, 241, 0.6);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.4), 0 0 20px rgba(99, 102, 241, 0.4);
+    transform: scale(1.005);
   }
   100% {
+    outline-color: transparent;
     box-shadow: none;
-    border-color: var(--border-glass);
     transform: scale(1);
   }
 }
 
 .task-card-highlight-pulse {
-  animation: taskHighlightPulse 2.5s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
-  z-index: 20;
-  position: relative;
+  animation: taskHighlightPulse 3.8s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+  z-index: 50 !important;
+  position: relative !important;
+  opacity: 1 !important;
+  outline: 3px solid #818cf8 !important;
+  outline-offset: 3px !important;
 }
 
 .rewards-book-item-actions {
@@ -4199,28 +4212,70 @@ body {
   gap: 8px;
 }
 
-.rewards-claim-action-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 6px 13px;
-  font-weight: 600;
-  border-radius: 8px;
-  white-space: nowrap;
-  font-size: 0.8rem;
+/* Unified Action Pills for Rewards Book & Task Cards */
+.rewards-action-pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important;
+  height: 24px !important;
+  min-height: 24px !important;
+  padding: 2px 12px !important;
+  border-radius: 8px !important;
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  line-height: 1 !important;
+  transition: all 0.2s ease-in-out !important;
 }
 
-.rewards-claimed-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--accent-success);
-  padding: 4px 9px;
-  background: rgba(16, 185, 129, 0.1);
-  border: 1px solid rgba(16, 185, 129, 0.25);
-  border-radius: 8px;
+/* Penalty Action Pill */
+.rewards-action-pill.btn-secondary {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(248, 113, 113, 0.4) !important;
+  box-shadow: 0 1px 6px rgba(239, 68, 68, 0.3) !important;
+  cursor: pointer;
+}
+.rewards-action-pill.btn-secondary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(239, 68, 68, 0.45) !important;
+  filter: brightness(1.1);
+}
+.rewards-action-pill.btn-secondary.acknowledged:disabled,
+.rewards-action-pill.btn-secondary:disabled {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(248, 113, 113, 0.3) !important;
+  opacity: 0.5 !important;
+  cursor: default !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+/* Reward Action Pill */
+.rewards-action-pill.btn-success {
+  background: linear-gradient(135deg, #a855f7 0%, #7e22ce 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(192, 132, 252, 0.4) !important;
+  box-shadow: 0 1px 6px rgba(168, 85, 247, 0.3) !important;
+  cursor: pointer;
+}
+.rewards-action-pill.btn-success:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(168, 85, 247, 0.45) !important;
+  filter: brightness(1.1);
+}
+.rewards-action-pill.btn-success.claimed:disabled,
+.rewards-action-pill.btn-success:disabled {
+  background: linear-gradient(135deg, #a855f7 0%, #7e22ce 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(192, 132, 252, 0.3) !important;
+  opacity: 0.5 !important;
+  cursor: default !important;
+  box-shadow: none !important;
+  transform: none !important;
 }
 
 .rewards-book-footer {

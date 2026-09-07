@@ -44,7 +44,6 @@ export default function RewardsBookModal({
   // Operation loading state trackers
   const [claimingId, setClaimingId] = useState(null);
   const [acceptingId, setAcceptingId] = useState(null);
-  const [completingId, setCompletingId] = useState(null);
   const [showConfetti, setShowConfetti] = useState(false);
 
   const formatDateSafe = (isoStr) => {
@@ -173,15 +172,26 @@ export default function RewardsBookModal({
       const isMissed = task.status === 'missed' || task.missed === true;
       const ratingNum = task.rating != null && !isNaN(Number(task.rating)) ? Number(task.rating) : null;
 
-      // Has reward?
+      // Only completed or missed tasks have settled rewards or penalties!
+      // Incomplete/in-progress tasks are excluded from the book ledger.
+      if (!isDone && !isMissed) {
+        return;
+      }
+
+      // 1. Has reward?
+      // A reward exists only if task is completed AND (rating > 4.0 or unrated) AND has a reward defined
       const isRewardClaimed = Boolean(
         task.rewardClaimed === true || task.rewardClaimed === 1 || task.rewardClaimed === '1' ||
-        task.reward_claimed === true || task.reward_claimed === 1 || task.reward_claimed === '1'
+        task.reward_claimed === true || task.reward_claimed === 1 || task.reward_claimed === '1' ||
+        task.rewardAcknowledged === true || task.rewardAcknowledged === 1 || task.rewardAcknowledged === '1' ||
+        task.reward_acknowledged === true || task.reward_acknowledged === 1 || task.reward_acknowledged === '1' ||
+        Boolean(task.rewardClaimedAt || task.reward_claimed_at) ||
+        (task.id && localStorage.getItem(`dayscore_reward_ack_${task.id}`) === '1') ||
+        (task._id && localStorage.getItem(`dayscore_reward_ack_${task._id}`) === '1')
       );
       const hasHighRatingReward = isDone && (ratingNum == null || ratingNum > 4.0);
-      const hasExplicitReward = Boolean(task.reward && task.reward.trim());
 
-      if (hasExplicitReward || (isDone && hasHighRatingReward && task.reward)) {
+      if (isDone && hasHighRatingReward && task.reward && task.reward.trim()) {
         const key = `reward_${taskId}`;
         if (!seenTaskKeys.has(key)) {
           seenTaskKeys.add(key);
@@ -192,7 +202,7 @@ export default function RewardsBookModal({
             text: task.reward,
             task,
             taskDate: cleanTaskDate,
-            isCompleted: isDone,
+            isCompleted: true,
             isClaimed: isRewardClaimed,
             status: isRewardClaimed ? 'claimed' : 'pending',
             date: task.completedAt || task.completed_at || cleanTaskDate,
@@ -201,16 +211,21 @@ export default function RewardsBookModal({
         }
       }
 
-      // Has penalty?
+      // 2. Has penalty?
+      // A penalty exists if task is missed, OR if completed with low rating (<= 4.0)
       const isPenaltyAccepted = Boolean(
         task.penaltyAccepted === true || task.penaltyAccepted === 1 || task.penaltyAccepted === '1' ||
-        task.penalty_accepted === true || task.penalty_accepted === 1 || task.penalty_accepted === '1'
+        task.penalty_accepted === true || task.penalty_accepted === 1 || task.penalty_accepted === '1' ||
+        task.penaltyAcknowledged === true || task.penaltyAcknowledged === 1 || task.penaltyAcknowledged === '1' ||
+        task.penalty_acknowledged === true || task.penalty_acknowledged === 1 || task.penalty_acknowledged === '1' ||
+        Boolean(task.penaltyAcceptedAt || task.penalty_accepted_at) ||
+        (task.id && localStorage.getItem(`dayscore_penalty_ack_${task.id}`) === '1') ||
+        (task._id && localStorage.getItem(`dayscore_penalty_ack_${task._id}`) === '1')
       );
-      const hasLowRatingPenalty = (isDone || isMissed) && (ratingNum != null && ratingNum <= 4.0);
-      const hasExplicitPenalty = Boolean(task.penalty && task.penalty.trim());
+      const hasLowRatingPenalty = isDone && ratingNum != null && ratingNum <= 4.0;
 
-      if (hasExplicitPenalty || hasLowRatingPenalty || isMissed) {
-        const penaltyText = task.penalty || "15-min focus reflection / penalty workout";
+      if (isMissed || hasLowRatingPenalty) {
+        const penaltyText = task.penalty && task.penalty.trim() ? task.penalty : "Complete 15-min focus reflection / workout";
         const key = `penalty_${taskId}`;
         if (!seenTaskKeys.has(key)) {
           seenTaskKeys.add(key);
@@ -268,9 +283,6 @@ export default function RewardsBookModal({
     const acknowledgedPenalties = penalties.filter(i => i.isClaimed).length;
     const pendingPenalties = penalties.filter(i => !i.isClaimed);
 
-    // Tasks that are linked to pending actions and not yet completed
-    const pendingTasks = ledgerItems.filter(i => i.task && !i.isCompleted && !i.isClaimed);
-
     const rewardsProgress = totalRewards > 0 ? Math.round((claimedRewards / totalRewards) * 100) : 100;
     const penaltiesProgress = totalPenalties > 0 ? Math.round((acknowledgedPenalties / totalPenalties) * 100) : 100;
 
@@ -291,7 +303,6 @@ export default function RewardsBookModal({
       penaltiesProgress,
       disciplineScore,
       pendingTotal,
-      pendingTasksCount: pendingTasks.length,
       historyCount: clearedActions
     };
   }, [ledgerItems]);
@@ -306,8 +317,6 @@ export default function RewardsBookModal({
       list = ledgerItems.filter(i => (i.type === 'reward' || i.type === 'milestone') && i.status === 'pending');
     } else if (activeTab === 'penalties') {
       list = ledgerItems.filter(i => i.type === 'penalty' && i.status === 'pending');
-    } else if (activeTab === 'tasks') {
-      list = ledgerItems.filter(i => i.task && !i.isCompleted);
     } else if (activeTab === 'history') {
       list = ledgerItems.filter(i => i.status === 'claimed' || i.status === 'acknowledged');
     }
@@ -336,6 +345,12 @@ export default function RewardsBookModal({
       } else if (item.task) {
         const targetId = item.task.id || item.task._id;
         const targetDate = item.taskDate || format(new Date(), 'yyyy-MM-dd');
+        try {
+          localStorage.setItem(`dayscore_reward_ack_${targetId}`, '1');
+          if (item.task.id) localStorage.setItem(`dayscore_reward_ack_${item.task.id}`, '1');
+          if (item.task._id) localStorage.setItem(`dayscore_reward_ack_${item.task._id}`, '1');
+        } catch (e) {}
+
         await store.updateTask(targetDate, targetId, {
           rewardClaimed: true,
           reward_claimed: 1,
@@ -343,6 +358,22 @@ export default function RewardsBookModal({
           reward_acknowledged: 1,
           rewardClaimedAt: new Date().toISOString()
         });
+
+        // Immediately update local allTasks state
+        setAllTasks(prev => prev.map(t => {
+          const tid = t.id || t._id;
+          if (String(tid) === String(targetId)) {
+            return {
+              ...t,
+              rewardClaimed: true,
+              reward_claimed: 1,
+              rewardAcknowledged: true,
+              reward_acknowledged: 1,
+              rewardClaimedAt: new Date().toISOString()
+            };
+          }
+          return t;
+        }));
       }
 
       setShowConfetti(true);
@@ -366,11 +397,35 @@ export default function RewardsBookModal({
       if (item.task) {
         const targetId = item.task.id || item.task._id;
         const targetDate = item.taskDate || format(new Date(), 'yyyy-MM-dd');
+        try {
+          localStorage.setItem(`dayscore_penalty_ack_${targetId}`, '1');
+          if (item.task.id) localStorage.setItem(`dayscore_penalty_ack_${item.task.id}`, '1');
+          if (item.task._id) localStorage.setItem(`dayscore_penalty_ack_${item.task._id}`, '1');
+        } catch (e) {}
+
         await store.updateTask(targetDate, targetId, {
           penaltyAccepted: true,
           penalty_accepted: 1,
+          penaltyAcknowledged: true,
+          penalty_acknowledged: 1,
           penaltyAcceptedAt: new Date().toISOString()
         });
+
+        // Immediately update local allTasks state
+        setAllTasks(prev => prev.map(t => {
+          const tid = t.id || t._id;
+          if (String(tid) === String(targetId)) {
+            return {
+              ...t,
+              penaltyAccepted: true,
+              penalty_accepted: 1,
+              penaltyAcknowledged: true,
+              penalty_acknowledged: 1,
+              penaltyAcceptedAt: new Date().toISOString()
+            };
+          }
+          return t;
+        }));
       }
 
       store.acknowledgePunishment();
@@ -382,43 +437,6 @@ export default function RewardsBookModal({
       showToast("Couldn't acknowledge penalty. Please try again.", 'error');
     } finally {
       setAcceptingId(null);
-    }
-  };
-
-  // Complete a Task directly from inside the Book list
-  const handleCompleteTask = async (item) => {
-    if (completingId || !item.task) return;
-    const targetId = item.task.id || item.task._id;
-    const targetDate = item.taskDate || format(new Date(), 'yyyy-MM-dd');
-    setCompletingId(item.id);
-    try {
-      const nowIso = new Date().toISOString();
-      const updates = {
-        status: 'done',
-        completed: true,
-        completedAt: nowIso,
-        completed_at: nowIso
-      };
-
-      // If completing task without a reward, randomly pick one from rewards pool
-      if (!item.task.reward) {
-        const rewardsPool = store.getRewards();
-        if (rewardsPool && rewardsPool.length > 0) {
-          updates.reward = rewardsPool[Math.floor(Math.random() * rewardsPool.length)];
-        }
-      }
-
-      await store.updateTask(targetDate, targetId, updates);
-      setShowConfetti(true);
-      setTimeout(() => setShowConfetti(false), 3000);
-      showToast(`Task "${item.task.title || 'Task'}" completed!`, 'success');
-      setRefreshKey(k => k + 1);
-      onTaskUpdated?.();
-    } catch (err) {
-      console.error('Error completing task in book:', err);
-      showToast("Couldn't complete task. Please try again.", 'error');
-    } finally {
-      setCompletingId(null);
     }
   };
 
@@ -552,16 +570,7 @@ export default function RewardsBookModal({
               )}
             </button>
 
-            <button
-              type="button"
-              className={`rewards-book-tab ${activeTab === 'tasks' ? 'active' : ''}`}
-              onClick={() => setActiveTab('tasks')}
-            >
-              <span>⏳ Tasks</span>
-              {stats.pendingTasksCount > 0 && (
-                <span className="tab-count-badge">{stats.pendingTasksCount}</span>
-              )}
-            </button>
+
 
             <button
               type="button"
@@ -756,35 +765,6 @@ export default function RewardsBookModal({
                                   <span>Go to Date →</span>
                                 </span>
                               </div>
-
-                              {/* Direct In-List Task Completion Action */}
-                              <div onClick={(e) => e.stopPropagation()} style={{ flexShrink: 0 }}>
-                                {!isTaskDone ? (
-                                  <button
-                                    type="button"
-                                    className="btn btn-sm btn-secondary task-pill-complete-btn"
-                                    onClick={() => handleCompleteTask(item)}
-                                    disabled={completingId === item.id}
-                                    title="Complete this task now to verify and unlock claim"
-                                  >
-                                    {completingId === item.id ? (
-                                      <>
-                                        <Loader2 size={13} className="btn-spinner" />
-                                        <span>Completing...</span>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Circle size={13} />
-                                        <span>Mark Done</span>
-                                      </>
-                                    )}
-                                  </button>
-                                ) : (
-                                  <span className="task-pill-status task-pill-status--done">
-                                    <CheckCheck size={13} /> Completed
-                                  </span>
-                                )}
-                              </div>
                             </div>
                           );
                         })()}
@@ -793,49 +773,50 @@ export default function RewardsBookModal({
 
                     {/* Right: Claim or Acknowledge Action Button */}
                     <div className="rewards-book-item-actions">
-                      {isClaimed ? (
-                        <div className="rewards-claimed-status">
-                          <CheckCircle2 size={16} />
-                          <span>{isPenalty ? 'Acknowledged' : 'Claimed'}</span>
-                        </div>
-                      ) : isReward || isMilestone ? (
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-success rewards-claim-action-btn"
-                          onClick={() => handleClaimReward(item)}
-                          disabled={claimingId === item.id}
-                        >
-                          {claimingId === item.id ? (
-                            <>
-                              <Loader2 size={14} className="btn-spinner" />
-                              <span>Claiming...</span>
-                            </>
-                          ) : (
-                            <>
-                              <Sparkles size={14} />
-                              <span>Claim Reward 🎉</span>
-                            </>
-                          )}
-                        </button>
+                      {isPenalty ? (
+                        isClaimed ? (
+                          <button className="btn btn-sm btn-secondary acknowledged rewards-action-pill" disabled>
+                            ✓ Acknowledged
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-secondary rewards-action-pill"
+                            onClick={() => handleAcceptPenalty(item)}
+                            disabled={acceptingId === item.id}
+                          >
+                            {acceptingId === item.id ? (
+                              <>
+                                <Loader2 size={13} className="btn-spinner" />
+                                <span>Saving...</span>
+                              </>
+                            ) : (
+                              'Acknowledge'
+                            )}
+                          </button>
+                        )
                       ) : (
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-danger rewards-claim-action-btn"
-                          onClick={() => handleAcceptPenalty(item)}
-                          disabled={acceptingId === item.id}
-                        >
-                          {acceptingId === item.id ? (
-                            <>
-                              <Loader2 size={14} className="btn-spinner" />
-                              <span>Saving...</span>
-                            </>
-                          ) : (
-                            <>
-                              <Check size={14} />
-                              <span>Acknowledge ✓</span>
-                            </>
-                          )}
-                        </button>
+                        isClaimed ? (
+                          <button className="btn btn-sm btn-success claimed rewards-action-pill" disabled>
+                            ✓ Claimed
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-success rewards-action-pill"
+                            onClick={() => handleClaimReward(item)}
+                            disabled={claimingId === item.id}
+                          >
+                            {claimingId === item.id ? (
+                              <>
+                                <Loader2 size={13} className="btn-spinner" />
+                                <span>Claiming...</span>
+                              </>
+                            ) : (
+                              'Claim'
+                            )}
+                          </button>
+                        )
                       )}
                     </div>
                   </li>

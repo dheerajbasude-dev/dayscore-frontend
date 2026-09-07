@@ -292,10 +292,24 @@ function TaskCard({
   const completedFormatted = formatDateSafe(task?.completedAt || task?.completed_at);
   const dueFormatted = formatDateSafe(task?.dueDateTime || task?.due_date_time);
 
-  const isRewardClaimed = Boolean(task?.rewardClaimed === true || task?.rewardClaimed === 1 || task?.rewardClaimed === '1' ||
-                    task?.reward_claimed === true || task?.reward_claimed === 1 || task?.reward_claimed === '1');
-  const isPenaltyAccepted = Boolean(task?.penaltyAccepted === true || task?.penaltyAccepted === 1 || task?.penaltyAccepted === '1' ||
-                     task?.penalty_accepted === true || task?.penalty_accepted === 1 || task?.penalty_accepted === '1');
+  const isRewardClaimed = Boolean(
+    task?.rewardClaimed === true || task?.rewardClaimed === 1 || task?.rewardClaimed === '1' ||
+    task?.reward_claimed === true || task?.reward_claimed === 1 || task?.reward_claimed === '1' ||
+    task?.rewardAcknowledged === true || task?.rewardAcknowledged === 1 || task?.rewardAcknowledged === '1' ||
+    task?.reward_acknowledged === true || task?.reward_acknowledged === 1 || task?.reward_acknowledged === '1' ||
+    task?.rewardClaimedAt || task?.reward_claimed_at ||
+    (task?.id && localStorage.getItem(`dayscore_reward_ack_${task.id}`) === '1') ||
+    (task?._id && localStorage.getItem(`dayscore_reward_ack_${task._id}`) === '1')
+  );
+  const isPenaltyAccepted = Boolean(
+    task?.penaltyAccepted === true || task?.penaltyAccepted === 1 || task?.penaltyAccepted === '1' ||
+    task?.penalty_accepted === true || task?.penalty_accepted === 1 || task?.penalty_accepted === '1' ||
+    task?.penaltyAcknowledged === true || task?.penaltyAcknowledged === 1 || task?.penaltyAcknowledged === '1' ||
+    task?.penalty_acknowledged === true || task?.penalty_acknowledged === 1 || task?.penalty_acknowledged === '1' ||
+    task?.penaltyAcceptedAt || task?.penalty_accepted_at ||
+    (task?.id && localStorage.getItem(`dayscore_penalty_ack_${task.id}`) === '1') ||
+    (task?._id && localStorage.getItem(`dayscore_penalty_ack_${task._id}`) === '1')
+  );
 
   const ratingNum = task?.rating != null && !isNaN(Number(task.rating)) ? Number(task.rating) : null;
   const hasLowRatingPenalty = (isDone || isMissed) && (ratingNum == null || ratingNum <= 4.0);
@@ -488,6 +502,8 @@ function TaskCard({
   return (
     <div 
       id={`task-card-${task.id || task._id}`}
+      data-task-id={String(task.id || task._id || '')}
+      data-task-id-alt={String(task._id || task.id || '')}
       className={`task-card ${effectiveCardStatus} ${isTransitioningState ? 'transitioning-card' : ''} ${isJustCompleted ? 'just-completed-highlight' : ''} ${(hasUnclaimedReward || hasUnacknowledgedPenalty) ? 'has-pending-action' : ''} ${isDeleting ? 'task-exit' : 'task-enter'}`}
       style={{ animationDelay: isDeleting ? '0s' : `${animDelay}s` }}
     >

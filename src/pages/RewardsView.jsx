@@ -44,16 +44,37 @@ export default function RewardsView() {
   const updateBookCounts = useCallback(() => {
     try {
       const allFlat = store.getAllTasksFlat() || [];
-      const pendingRewards = allFlat.filter(t => {
-        const isClaimed = Boolean(t.rewardClaimed || t.reward_claimed);
-        return Boolean(t.reward && !isClaimed);
+      let count = 0;
+      allFlat.forEach(t => {
+        const isDone = t.status === 'done' || t.completed === true;
+        const isMissed = t.status === 'missed' || t.missed === true;
+        if (!isDone && !isMissed) return;
+
+        const ratingNum = t.rating != null && !isNaN(Number(t.rating)) ? Number(t.rating) : null;
+        const isRewardClaimed = Boolean(
+          t.rewardClaimed === true || t.rewardClaimed === 1 || t.rewardClaimed === '1' ||
+          t.reward_claimed === true || t.reward_claimed === 1 || t.reward_claimed === '1' ||
+          t.rewardAcknowledged === true || t.rewardAcknowledged === 1 || t.rewardAcknowledged === '1' ||
+          t.reward_acknowledged === true || t.reward_acknowledged === 1 || t.reward_acknowledged === '1' ||
+          Boolean(t.rewardClaimedAt || t.reward_claimed_at) ||
+          (t.id && localStorage.getItem(`dayscore_reward_ack_${t.id}`) === '1') ||
+          (t._id && localStorage.getItem(`dayscore_reward_ack_${t._id}`) === '1')
+        );
+        if (isDone && (ratingNum == null || ratingNum > 4.0) && t.reward && !isRewardClaimed) count++;
+
+        const isPenaltyAccepted = Boolean(
+          t.penaltyAccepted === true || t.penaltyAccepted === 1 || t.penaltyAccepted === '1' ||
+          t.penalty_accepted === true || t.penalty_accepted === 1 || t.penalty_accepted === '1' ||
+          t.penaltyAcknowledged === true || t.penaltyAcknowledged === 1 || t.penaltyAcknowledged === '1' ||
+          t.penalty_acknowledged === true || t.penalty_acknowledged === 1 || t.penalty_acknowledged === '1' ||
+          Boolean(t.penaltyAcceptedAt || t.penalty_accepted_at) ||
+          (t.id && localStorage.getItem(`dayscore_penalty_ack_${t.id}`) === '1') ||
+          (t._id && localStorage.getItem(`dayscore_penalty_ack_${t._id}`) === '1')
+        );
+        const hasPenalty = isMissed || (isDone && ratingNum != null && ratingNum <= 4.0);
+        if (hasPenalty && !isPenaltyAccepted) count++;
       });
-      const pendingPenalties = allFlat.filter(t => {
-        const isAccepted = Boolean(t.penaltyAccepted || t.penalty_accepted);
-        const hasPenalty = Boolean(t.penalty || t.status === 'missed');
-        return Boolean(hasPenalty && !isAccepted);
-      });
-      setBookPendingCount(pendingRewards.length + pendingPenalties.length);
+      setBookPendingCount(count);
     } catch (e) {
       console.warn('Error calculating book counts:', e);
     }
