@@ -2126,7 +2126,7 @@ export default function TodayView() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.84rem' }}>
                 <BookOpen size={17} style={{ color: 'var(--accent-primary)', flexShrink: 0 }} />
                 <span>
-                  📖 You have <strong>{pendingBookCount} pending item{pendingBookCount > 1 ? 's' : ''}</strong> in your voucher Book.
+                  You have <strong>{pendingBookCount} pending item{pendingBookCount > 1 ? 's' : ''}</strong> in your voucher Book.
                 </span>
               </div>
               <button
