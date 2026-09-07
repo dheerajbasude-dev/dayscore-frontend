@@ -1000,18 +1000,27 @@ body {
 }
 
 @keyframes taskSlideOut {
-  from {
+  0% {
     opacity: 1;
     transform: translateX(0) scale(1);
-    max-height: 200px;
+    max-height: 260px;
+    margin-bottom: 0;
   }
-  to {
+  35% {
+    opacity: 0.7;
+    transform: translateX(25px) scale(0.97);
+  }
+  65% {
+    opacity: 0.15;
+    transform: translateX(50px) scale(0.92);
+  }
+  100% {
     opacity: 0;
-    transform: translateX(60px) scale(0.92);
+    transform: translateX(70px) scale(0.88);
     max-height: 0;
     padding-top: 0;
     padding-bottom: 0;
-    margin-bottom: 0;
+    margin-bottom: -12px;
     border-width: 0;
   }
 }
@@ -1027,8 +1036,9 @@ body {
 }
 
 .task-exit {
-  animation: taskSlideOut 0.4s cubic-bezier(0.55, 0, 1, 0.45) forwards;
-  pointer-events: none;
+  animation: taskSlideOut 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
+  pointer-events: none !important;
+  overflow: hidden !important;
 }
 
 /* Task Group List - Responsive Multi-Column Grid on Large Screens */
@@ -3947,12 +3957,12 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
+  padding: 14px 18px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-glass);
   border-radius: var(--radius-md);
-  gap: 12px;
-  transition: all 0.2s ease;
+  gap: 16px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   border-left: 4px solid var(--accent-success);
 }
 
@@ -3972,10 +3982,14 @@ body {
   border-left-color: var(--accent-danger) !important;
 }
 
+.rewards-book-item--milestone {
+  border-left-color: #a855f7 !important;
+}
+
 .rewards-book-item-left {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
+  gap: 14px;
   flex: 1;
   min-width: 0;
 }
@@ -3989,7 +4003,7 @@ body {
 .rewards-book-item-details {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   flex: 1;
   min-width: 0;
 }
@@ -4008,6 +4022,21 @@ body {
   border-radius: 4px;
   text-transform: uppercase;
   letter-spacing: 0.3px;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1.4;
+}
+
+.badge-success {
+  background: rgba(16, 185, 129, 0.15) !important;
+  color: #10b981 !important;
+  border: 1px solid rgba(16, 185, 129, 0.3) !important;
+}
+
+.badge-danger {
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: #ef4444 !important;
+  border: 1px solid rgba(239, 68, 68, 0.3) !important;
 }
 
 .badge-milestone {
@@ -4038,7 +4067,7 @@ body {
 }
 
 .rewards-book-item-text {
-  font-size: 0.92rem;
+  font-size: 0.94rem;
   font-weight: 600;
   color: var(--text-primary);
   line-height: 1.4;
@@ -4049,14 +4078,14 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  margin-top: 4px;
-  padding: 5px 10px;
+  gap: 10px;
+  margin-top: 6px;
+  padding: 6px 12px;
   background: var(--bg-glass-light);
   border: 1px solid var(--border-glass);
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 0.76rem;
-  flex-wrap: wrap;
+  width: 100%;
 }
 
 .task-pill-info {
@@ -4065,6 +4094,7 @@ body {
   gap: 6px;
   min-width: 0;
   flex-wrap: wrap;
+  flex: 1;
 }
 
 .task-pill-label {
@@ -4135,13 +4165,14 @@ body {
 .task-pill-jump-link {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  font-size: 0.68rem;
+  gap: 4px;
+  font-size: 0.7rem;
   font-weight: 700;
   color: var(--accent-primary);
-  margin-left: 6px;
-  padding: 1px 6px;
-  border-radius: 4px;
+  margin-left: auto;
+  flex-shrink: 0;
+  padding: 3px 8px;
+  border-radius: 6px;
   background: rgba(99, 102, 241, 0.12);
   border: 1px solid rgba(99, 102, 241, 0.25);
   transition: all 0.15s ease;
@@ -4209,6 +4240,8 @@ body {
   flex-shrink: 0;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  min-width: 110px;
   gap: 8px;
 }
 
@@ -4217,17 +4250,17 @@ body {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 4px !important;
-  height: 24px !important;
-  min-height: 24px !important;
-  padding: 2px 12px !important;
+  gap: 5px !important;
+  height: 28px !important;
+  min-height: 28px !important;
+  padding: 3px 14px !important;
   border-radius: 8px !important;
-  font-size: 0.72rem !important;
+  font-size: 0.75rem !important;
   font-weight: 700 !important;
   white-space: nowrap !important;
   flex-shrink: 0 !important;
   line-height: 1 !important;
-  transition: all 0.2s ease-in-out !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 /* Penalty Action Pill */
@@ -4248,7 +4281,7 @@ body {
   background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
   color: #ffffff !important;
   border: 1px solid rgba(248, 113, 113, 0.3) !important;
-  opacity: 0.5 !important;
+  opacity: 0.55 !important;
   cursor: default !important;
   box-shadow: none !important;
   transform: none !important;
@@ -4272,7 +4305,7 @@ body {
   background: linear-gradient(135deg, #a855f7 0%, #7e22ce 100%) !important;
   color: #ffffff !important;
   border: 1px solid rgba(192, 132, 252, 0.3) !important;
-  opacity: 0.5 !important;
+  opacity: 0.55 !important;
   cursor: default !important;
   box-shadow: none !important;
   transform: none !important;
@@ -4282,7 +4315,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 22px;
+  padding: 12px 22px;
   border-top: 1px solid var(--border-glass);
   background: var(--bg-secondary);
   font-size: 0.76rem;
@@ -4330,7 +4363,7 @@ body {
   font-size: 0.86rem;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 680px) {
   .rewards-book-modal-backdrop {
     padding: 0;
     align-items: flex-end;
@@ -4351,9 +4384,18 @@ body {
     padding-right: 14px;
   }
 
+  .rewards-book-header {
+    padding-top: 14px;
+    padding-bottom: 14px;
+  }
+
+  .rewards-book-title {
+    font-size: 1.05rem;
+  }
+
   .rewards-book-progress-grid {
     grid-template-columns: 1fr;
-    gap: 12px;
+    gap: 10px;
   }
 
   .rewards-discipline-badge {
@@ -4365,6 +4407,14 @@ body {
   .rewards-book-toolbar {
     flex-direction: column;
     align-items: stretch;
+    gap: 10px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  .rewards-book-tabs {
+    width: 100%;
+    justify-content: flex-start;
   }
 
   .rewards-book-search-box {
@@ -4374,11 +4424,50 @@ body {
   .rewards-book-item {
     flex-direction: column;
     align-items: stretch;
+    gap: 12px;
+    padding: 12px 14px;
+  }
+
+  .rewards-book-item-left {
+    width: 100%;
+    gap: 10px;
+  }
+
+  .rewards-book-task-pill {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .task-pill-jump-link {
+    align-self: flex-start;
+    margin-left: 0;
   }
 
   .rewards-book-item-actions {
+    width: 100%;
     justify-content: flex-end;
-    margin-top: 4px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    min-width: unset;
+  }
+
+  .rewards-action-pill {
+    height: 32px !important;
+    min-height: 32px !important;
+    font-size: 0.78rem !important;
+    padding: 4px 16px !important;
+  }
+
+  .rewards-book-footer {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+    gap: 10px;
+  }
+
+  .rewards-book-footer .btn {
+    width: 100%;
   }
 
   .rewards-book-cta-card {

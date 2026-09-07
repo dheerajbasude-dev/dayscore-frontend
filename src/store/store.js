@@ -393,28 +393,34 @@ export async function updateTask(dateStr, taskId, updates) {
 }
 
 export async function deleteTask(dateStr, taskId) {
+  const cleanDate = getLocalDateStr(dateStr) || format(new Date(), 'yyyy-MM-dd');
+  
+  // Immediately update local storage to prevent any stale cache or flicker
+  const localTasks = getTasks(cleanDate);
+  const updatedTasks = localTasks.filter(t => t.id !== taskId && t._id !== taskId);
+  saveTasks(cleanDate, updatedTasks);
+
   const token = getToken();
   if (token) {
     try {
-      const res = await authFetch(`/api/tasks/${taskId}?date=${dateStr}`, {
+      const res = await authFetch(`/api/tasks/${taskId}?date=${cleanDate}`, {
         method: 'DELETE'
       });
       if (res.ok) {
         await fetchAllTasksApi();
-        return getTasks(dateStr);
+        return getTasks(cleanDate);
       }
       const errData = await safeJsonParse(res).catch(() => ({}));
       throw new Error(errData.error || errData.message || `Failed to delete task on server (${res.status})`);
     } catch (err) {
       console.error('Delete task server error:', err);
+      // Roll back local save if failed
+      saveTasks(cleanDate, localTasks);
       throw err;
     }
   }
 
-  const tasks = getTasks(dateStr);
-  const newTasks = tasks.filter(t => t.id !== taskId && t._id !== taskId);
-  saveTasks(dateStr, newTasks);
-  return newTasks;
+  return updatedTasks;
 }
 
 // ==========================================

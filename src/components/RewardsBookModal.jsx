@@ -569,8 +569,6 @@ export default function RewardsBookModal({
                 <span className="tab-count-badge tab-count-badge--danger">{stats.pendingPenaltiesCount}</span>
               )}
             </button>
-
-
           </div>
 
           <div className="rewards-book-search-box">
@@ -639,7 +637,7 @@ export default function RewardsBookModal({
                 return (
                   <li 
                     key={item.id} 
-                    className={`rewards-book-item animate-slide-up ${isClaimed ? 'is-claimed' : ''} ${isPenalty ? 'rewards-book-item--penalty' : ''}`}
+                    className={`rewards-book-item animate-slide-up ${isClaimed ? 'is-claimed' : ''} ${isPenalty ? 'rewards-book-item--penalty' : (isMilestone ? 'rewards-book-item--milestone' : '')}`}
                     style={{ animationDelay: `${Math.min(idx * 0.03, 0.3)}s` }}
                   >
                     {/* Left: Index Badge + Main Content */}
@@ -748,12 +746,12 @@ export default function RewardsBookModal({
                                     </span>
                                   </>
                                 )}
-
-                                <span className="task-pill-jump-link">
-                                  <Calendar size={11} />
-                                  <span>Go to Date →</span>
-                                </span>
                               </div>
+
+                              <span className="task-pill-jump-link">
+                                <Calendar size={11} />
+                                <span>Go to Date →</span>
+                              </span>
                             </div>
                           );
                         })()}
