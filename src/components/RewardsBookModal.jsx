@@ -928,20 +928,6 @@ export default function RewardsBookModal({
           )}
         </div>
 
-        {/* Footer info bar */}
-        <div className="rewards-book-footer">
-          <span className="rewards-book-footer-note">
-            💡 Checking off or claiming rewards immediately syncs to your account and updates your daily score.
-          </span>
-          <button 
-            type="button" 
-            className="btn btn-secondary btn-sm"
-            onClick={onClose}
-          >
-            Close Book
-          </button>
-        </div>
-
       </div>
     </div>,
     document.body

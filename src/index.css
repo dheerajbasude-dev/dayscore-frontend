@@ -3894,9 +3894,9 @@ body {
 .rewards-book-list-container {
   flex: 1;
   overflow-y: auto;
-  padding: 14px 22px;
+  padding: 14px 22px 22px 22px;
   min-height: 240px;
-  max-height: calc(90vh - 280px);
+  max-height: calc(90vh - 220px);
 }
 
 .rewards-book-items-list {
