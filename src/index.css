@@ -572,7 +572,7 @@ body {
   display: flex;
   justify-content: space-around;
   align-items: center;
-  z-index: 50;
+  z-index: 1000;
   padding-bottom: env(safe-area-inset-bottom);
 }
 
@@ -4379,14 +4379,17 @@ body {
 
 @media (max-width: 640px) {
   .rewards-book-modal-backdrop {
-    padding: 0;
-    align-items: flex-end;
+    padding: 12px;
+    align-items: center;
+    justify-content: center;
   }
 
   .rewards-book-modal-content {
-    max-height: 94vh;
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0;
+    max-height: 88vh;
+    max-height: 88dvh;
+    border-radius: var(--radius-xl);
+    width: 100%;
+    margin: auto;
   }
 
   .rewards-book-header,
@@ -4967,6 +4970,12 @@ body {
   flex: 1;
   max-width: 80px;
   min-height: 44px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.bottom-nav-add-btn * {
+  pointer-events: none;
 }
 
 .bottom-nav-add-icon {

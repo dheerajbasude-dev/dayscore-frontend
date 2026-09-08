@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { CalendarCheck, BarChart3, Gift, Settings, Sun, Moon, User, LogOut, LogIn, Plus } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 import { useAuth } from '../context/AuthContext';
@@ -12,14 +12,28 @@ export default function Navigation() {
   const { user, logout } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleAddClick = (e) => {
-    e.preventDefault();
-    if (window.location.pathname !== '/') {
-      navigate('/');
+    if (e && e.preventDefault) e.preventDefault();
+
+    // Signal modal open in sessionStorage so TodayView will open it immediately upon mounting
+    try {
+      sessionStorage.setItem('dayscore_open_add_modal', 'true');
+    } catch {}
+
+    if (location.pathname !== '/') {
+      navigate('/', { state: { openAddModal: true } });
+      // Multi-interval event dispatch to guarantee delivery regardless of React mount delay
       setTimeout(() => {
         window.dispatchEvent(new CustomEvent('open-add-task-modal'));
-      }, 100);
+      }, 50);
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('open-add-task-modal'));
+      }, 180);
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('open-add-task-modal'));
+      }, 350);
     } else {
       window.dispatchEvent(new CustomEvent('open-add-task-modal'));
     }
@@ -112,6 +126,9 @@ export default function Navigation() {
           type="button" 
           className="bottom-nav-item bottom-nav-add-btn"
           onClick={handleAddClick}
+          onTouchEnd={(e) => {
+            handleAddClick(e);
+          }}
           aria-label="Add Task"
           title="Add New Task"
         >

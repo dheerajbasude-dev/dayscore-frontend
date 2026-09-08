@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useLocation } from 'react-router-dom'
 import { format, subDays, addDays, parseISO } from 'date-fns'
 import ScoreRing from '../components/ScoreRing'
 import TaskCard from '../components/TaskCard'
@@ -30,6 +30,7 @@ export default function TodayView() {
   const { user } = useAuth()
   const { showToast } = useToast()
   const [searchParams] = useSearchParams()
+  const location = useLocation()
   const realTodayStr = format(new Date(), 'yyyy-MM-dd')
   const [todayStr, setTodayStr] = useState(realTodayStr)
 
@@ -223,19 +224,43 @@ export default function TodayView() {
 
   const isToday = currentDateStr === todayStr
 
-  const handleOpenAddModal = () => {
-    if (currentDateStr < todayStr) return
-    setShowAddModal(true)
-  }
+  const handleOpenAddModal = useCallback(() => {
+    if (currentDateStr < todayStr) {
+      setCurrentDateStr(todayStr);
+      try {
+        const uid = store.getUserId();
+        localStorage.setItem(`dayscore_${uid}_selected_date`, todayStr);
+      } catch {}
+    }
+    setShowAddModal(true);
+  }, [currentDateStr, todayStr]);
 
   useEffect(() => {
     const handleOpenModalEvent = () => {
-      if (currentDateStr < todayStr) return
-      setShowAddModal(true)
+      handleOpenAddModal();
+    };
+    window.addEventListener('open-add-task-modal', handleOpenModalEvent);
+
+    // Also check if opened via navigation flag in sessionStorage (e.g. from bottom nav across routes)
+    try {
+      if (sessionStorage.getItem('dayscore_open_add_modal') === 'true') {
+        sessionStorage.removeItem('dayscore_open_add_modal');
+        handleOpenAddModal();
+      }
+    } catch {}
+
+    return () => window.removeEventListener('open-add-task-modal', handleOpenModalEvent);
+  }, [handleOpenAddModal]);
+
+  // Check router location state for openAddModal
+  useEffect(() => {
+    if (location.state?.openAddModal) {
+      handleOpenAddModal();
+      try {
+        window.history.replaceState({}, document.title);
+      } catch {}
     }
-    window.addEventListener('open-add-task-modal', handleOpenModalEvent)
-    return () => window.removeEventListener('open-add-task-modal', handleOpenModalEvent)
-  }, [currentDateStr, todayStr])
+  }, [location.state, handleOpenAddModal]);
 
   const [showPenaltyFlash, setShowPenaltyFlash] = useState(false)
   const [ratingTask, setRatingTask] = useState(null)
@@ -2427,19 +2452,17 @@ export default function TodayView() {
         </>
       )}
 
-      {/* Floating Action Button (Only show when visiting Today or Future dates) */}
-      {(!currentDateStr || currentDateStr >= todayStr) && (
-        <button
-          className="fab"
-          onClick={handleOpenAddModal}
-          aria-label="Add Task"
-          title="Add New Task"
-        >
-          <Plus size={28} />
-        </button>
-      )}
+      {/* Floating Action Button */}
+      <button
+        className="fab"
+        onClick={handleOpenAddModal}
+        aria-label="Add Task"
+        title="Add New Task"
+      >
+        <Plus size={28} />
+      </button>
 
-      {showAddModal && currentDateStr >= todayStr && (
+      {showAddModal && (
         <AddTaskModal
           isOpen={showAddModal}
           onClose={() => setShowAddModal(false)}
