@@ -500,7 +500,7 @@ export default function RewardsBookModal({
 
       setShowConfetti(true);
       setTimeout(() => setShowConfetti(false), 3000);
-      showToast(`🎉 Reward Claimed: "${item.text}"`, 'success');
+      showToast(`🎉 Reward Claimed: "${item.text}"`, 'reward');
       setRefreshKey(k => k + 1);
       onTaskUpdated?.();
     } catch (err) {
@@ -554,7 +554,7 @@ export default function RewardsBookModal({
       }
 
       store.acknowledgePunishment();
-      showToast(`✓ Penalty Acknowledged: "${item.text}"`, 'success');
+      showToast(`✓ Penalty Acknowledged: "${item.text}"`, 'penalty');
       setRefreshKey(k => k + 1);
       onTaskUpdated?.();
     } catch (err) {

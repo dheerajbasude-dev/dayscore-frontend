@@ -1674,6 +1674,9 @@ export default function TodayView() {
       setTasks(store.getTasks(currentDateStr));
       setArchives(store.getAllArchives());
       setTodaysReward(null);
+      if (rewardText) {
+        showToast(`🎉 Reward Claimed: "${rewardText}"`, 'reward');
+      }
     } catch (err) {
       console.error('Claim reward error:', err);
       showToast("Couldn't claim reward — check your connection and try again", 'error');
@@ -1726,6 +1729,10 @@ export default function TodayView() {
 
       store.acknowledgePunishment();
       setActivePunishment(null);
+      const punishmentText = isObject && (taskOrId.punishment || taskOrId.penalty) ? (taskOrId.punishment || taskOrId.penalty) : null;
+      if (punishmentText) {
+        showToast(`✓ Penalty Acknowledged: "${punishmentText}"`, 'penalty');
+      }
     } catch (err) {
       console.error('Accept penalty error:', err);
       showToast("Couldn't accept penalty — check your connection and try again", 'error');
