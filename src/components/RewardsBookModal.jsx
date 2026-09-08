@@ -33,11 +33,11 @@ export default function RewardsBookModal({
   onClose,
   onTaskUpdated,
   onNavigateToTask,
-  initialTab = 'rewards',
+  initialTab = 'penalties',
   activeTasks = []
 }) {
   const { showToast } = useToast();
-  const [activeTab, setActiveTab] = useState(initialTab === 'penalties' ? 'penalties' : 'rewards');
+  const [activeTab, setActiveTab] = useState(initialTab === 'rewards' ? 'rewards' : 'penalties');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Track whether initial data has loaded at least once
@@ -141,7 +141,7 @@ export default function RewardsBookModal({
   useEffect(() => {
     if (isOpen) {
       document.body.classList.add('modal-open');
-      const safeTab = initialTab === 'penalties' ? 'penalties' : 'rewards';
+      const safeTab = initialTab === 'rewards' ? 'rewards' : 'penalties';
       setActiveTab(safeTab);
       setSearchQuery('');
     } else {
@@ -659,23 +659,23 @@ export default function RewardsBookModal({
           <div className="rewards-book-tabs">
             <button
               type="button"
-              className={`rewards-book-tab ${activeTab === 'rewards' ? 'active' : ''}`}
-              onClick={() => setActiveTab('rewards')}
-            >
-              <span>🎁 Rewards</span>
-              {stats.pendingRewardsCount > 0 && (
-                <span className="tab-count-badge tab-count-badge--reward">{stats.pendingRewardsCount}</span>
-              )}
-            </button>
-
-            <button
-              type="button"
               className={`rewards-book-tab ${activeTab === 'penalties' ? 'active' : ''}`}
               onClick={() => setActiveTab('penalties')}
             >
               <span>⚠️ Penalties</span>
               {stats.pendingPenaltiesCount > 0 && (
                 <span className="tab-count-badge tab-count-badge--danger">{stats.pendingPenaltiesCount}</span>
+              )}
+            </button>
+
+            <button
+              type="button"
+              className={`rewards-book-tab ${activeTab === 'rewards' ? 'active' : ''}`}
+              onClick={() => setActiveTab('rewards')}
+            >
+              <span>🎁 Rewards</span>
+              {stats.pendingRewardsCount > 0 && (
+                <span className="tab-count-badge tab-count-badge--reward">{stats.pendingRewardsCount}</span>
               )}
             </button>
           </div>

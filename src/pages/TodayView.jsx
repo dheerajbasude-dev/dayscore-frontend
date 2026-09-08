@@ -354,7 +354,7 @@ export default function TodayView() {
 
   // Rewards & Penalties Book state
   const [isBookOpen, setIsBookOpen] = useState(false)
-  const [bookInitialTab, setBookInitialTab] = useState('rewards')
+  const [bookInitialTab, setBookInitialTab] = useState('penalties')
 
   const isCarriedTask = useCallback((t) => {
     if (!t) return false;
@@ -2250,7 +2250,7 @@ export default function TodayView() {
               <button
                 type="button"
                 className="btn btn-primary btn-sm"
-                onClick={() => { setBookInitialTab('rewards'); setIsBookOpen(true); }}
+                onClick={() => { setBookInitialTab('penalties'); setIsBookOpen(true); }}
                 style={{ fontSize: '0.78rem', padding: '4px 12px', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '5px' }}
               >
                 <span>Open Book</span>

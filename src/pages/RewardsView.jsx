@@ -23,7 +23,7 @@ export default function RewardsView() {
 
   // Rewards & Penalties Book state
   const [isBookOpen, setIsBookOpen] = useState(false)
-  const [bookInitialTab, setBookInitialTab] = useState('rewards')
+  const [bookInitialTab, setBookInitialTab] = useState('penalties')
   const [bookPendingCount, setBookPendingCount] = useState(0)
 
   // Loading states for async actions
@@ -255,7 +255,7 @@ export default function RewardsView() {
               <button
                 type="button"
                 className="btn btn-primary rewards-book-cta-btn"
-                onClick={() => { setBookInitialTab('rewards'); setIsBookOpen(true); }}
+                onClick={() => { setBookInitialTab('penalties'); setIsBookOpen(true); }}
               >
                 <BookOpen size={16} />
                 <span>Open Ledger Book</span>
