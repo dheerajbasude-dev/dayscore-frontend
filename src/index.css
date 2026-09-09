@@ -1032,10 +1032,12 @@ body {
   animation: taskSlideIn 0.35s cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
 
+.task-card.task-exit,
 .task-exit {
-  animation: taskSlideOut 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-  pointer-events: none;
+  animation: taskSlideOut 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
+  pointer-events: none !important;
   overflow: hidden !important;
+  will-change: transform, opacity, max-height;
 }
 
 /* Task Group List - Responsive Multi-Column Grid on Large Screens */

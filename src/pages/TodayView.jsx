@@ -1805,37 +1805,37 @@ export default function TodayView() {
     setTaskToDelete(null);
     setIsDeletingTask(false);
 
-    // 2. Immediately trigger card exit animation
+    // 2. Trigger smooth card exit animation (task remains in state for 400ms so animation is fully visible)
     setDeletingTaskIds(prev => new Set([...prev, ...idsToRemove]));
 
-    // 3. Optimistically remove the task from active state
-    const newTasks = prevTasks.filter(t => !idsToRemove.has(t.id) && !idsToRemove.has(t._id));
-    setTasks(newTasks);
-    setArchives(prev => prev.map(arc => ({
-      ...arc,
-      tasks: Array.isArray(arc.tasks) ? arc.tasks.filter(t => !idsToRemove.has(t.id) && !idsToRemove.has(t._id)) : arc.tasks
-    })).filter(arc => !Array.isArray(arc.tasks) || arc.tasks.length > 0));
+    // 3. Initiate background server delete concurrently
+    const deletePromise = store.deleteTask(taskDate, taskId);
 
-    // Clean up animation set after animation completes
-    setTimeout(() => {
+    // 4. Wait for the 400ms CSS slide-out animation to complete, then unmount from React state
+    setTimeout(async () => {
+      setTasks(prev => prev.filter(t => !idsToRemove.has(t.id) && !idsToRemove.has(t._id)));
+      setArchives(prev => prev.map(arc => ({
+        ...arc,
+        tasks: Array.isArray(arc.tasks) ? arc.tasks.filter(t => !idsToRemove.has(t.id) && !idsToRemove.has(t._id)) : arc.tasks
+      })).filter(arc => !Array.isArray(arc.tasks) || arc.tasks.length > 0));
+
       setDeletingTaskIds(prev => {
         const next = new Set(prev);
         idsToRemove.forEach(id => next.delete(id));
         return next;
       });
-    }, 400);
 
-    try {
-      // 4. Perform delete request in background (store updates local cache instantly and deletes from server)
-      await store.deleteTask(taskDate, taskId);
-    } catch (err) {
-      console.error('Delete task error:', err);
-      // Restore state on server failure
-      setTasks(prevTasks);
-      setArchives(prevArchives);
-      store.saveTasks(taskDate, prevTasks);
-      showToast("Couldn't delete task — check your connection and try again", 'error');
-    }
+      try {
+        await deletePromise;
+      } catch (err) {
+        console.error('Delete task error:', err);
+        // Restore state on server failure
+        setTasks(prevTasks);
+        setArchives(prevArchives);
+        store.saveTasks(taskDate, prevTasks);
+        showToast("Couldn't delete task — check your connection and try again", 'error');
+      }
+    }, 400);
   };
 
 
