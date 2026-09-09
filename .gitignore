@@ -9,6 +9,7 @@ server/.env
 server/database.sqlite
 *.log
 .agents
+.planning
 MEMORY.md
 
 .vercel
