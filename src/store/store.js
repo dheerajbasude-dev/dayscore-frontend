@@ -51,7 +51,12 @@ export function clearTaskMemoryCache() {
 }
 
 export function getTasks(dateStr) {
+  const token = getToken();
+  if (!token) return [];
+
   const uid = getUserId();
+  if (!uid || uid === 'guest') return [];
+
   const cleanDate = getLocalDateStr(dateStr) || format(new Date(), 'yyyy-MM-dd');
   const cacheKey = `${uid}_${cleanDate}`;
 
@@ -75,7 +80,10 @@ export function getTasks(dateStr) {
 }
 
 export function isTasksCached(dateStr) {
+  const token = getToken();
+  if (!token) return false;
   const uid = getUserId();
+  if (!uid || uid === 'guest') return false;
   const cleanDate = getLocalDateStr(dateStr) || format(new Date(), 'yyyy-MM-dd');
   return localStorage.getItem(`dayscore_${uid}_tasks_${cleanDate}`) !== null;
 }
@@ -262,10 +270,16 @@ export async function fetchAllTasksApi() {
 }
 
 export function saveTasks(dateStr, tasks) {
+  const token = getToken();
+  if (!token) return;
   const uid = getUserId();
+  if (!uid || uid === 'guest') return;
+
   const cleanDate = dateStr ? (dateStr.includes('T') ? dateStr.split('T')[0] : dateStr.trim().substring(0, 10)) : format(new Date(), 'yyyy-MM-dd');
   taskMemoryCache.set(`${uid}_${cleanDate}`, tasks);
-  localStorage.setItem(`dayscore_${uid}_tasks_${cleanDate}`, JSON.stringify(tasks));
+  try {
+    localStorage.setItem(`dayscore_${uid}_tasks_${cleanDate}`, JSON.stringify(tasks));
+  } catch (e) {}
 }
 
 export async function addTask(dateStr, task) {
@@ -438,7 +452,11 @@ export async function deleteTask(dateStr, taskId) {
 // ==========================================
 
 export function getArchivesFromTasks() {
+  const token = getToken();
+  if (!token) return [];
   const uid = getUserId();
+  if (!uid || uid === 'guest') return [];
+
   const prefix = `dayscore_${uid}_tasks_`;
   const archiveMap = new Map();
 
@@ -469,11 +487,16 @@ export function getArchivesFromTasks() {
 }
 
 export function getAllArchives() {
+  const token = getToken();
+  if (!token) return [];
   return getArchivesFromTasks();
 }
 
 export function getAllTasksFlat() {
+  const token = getToken();
+  if (!token) return [];
   const archives = getArchivesFromTasks();
+  if (!Array.isArray(archives) || archives.length === 0) return [];
   const list = [];
   const seenIds = new Set();
   const seenFp = new Set();
@@ -719,7 +742,11 @@ export async function deletePunishmentApi(text) {
 }
 
 export function getActivePunishment() {
+  const token = getToken();
+  if (!token) return null;
   const uid = getUserId();
+  if (!uid || uid === 'guest') return null;
+
   const data = localStorage.getItem(`dayscore_${uid}_active_punishment`);
   if (!data) return null;
   try {
@@ -737,7 +764,11 @@ export function getActivePunishment() {
 }
 
 export function setActivePunishment(text) {
+  const token = getToken();
+  if (!token) return;
   const uid = getUserId();
+  if (!uid || uid === 'guest') return;
+
   if (!text) {
     localStorage.removeItem(`dayscore_${uid}_active_punishment`);
     return;
@@ -749,7 +780,11 @@ export function setActivePunishment(text) {
 }
 
 export function acknowledgePunishment() {
+  const token = getToken();
+  if (!token) return;
   const uid = getUserId();
+  if (!uid || uid === 'guest') return;
+
   const active = getActivePunishment();
   if (active && typeof active === 'object') {
     active.acknowledged = true;
@@ -760,7 +795,11 @@ export function acknowledgePunishment() {
 }
 
 export function getStreakMilestoneRewards() {
+  const token = getToken();
+  if (!token) return { 7: '', 14: '', 30: '', 100: '' };
   const uid = getUserId();
+  if (!uid || uid === 'guest') return { 7: '', 14: '', 30: '', 100: '' };
+
   try {
     const data = localStorage.getItem(`dayscore_${uid}_streak_milestones`);
     if (!data) return { 7: '', 14: '', 30: '', 100: '' };
@@ -772,7 +811,11 @@ export function getStreakMilestoneRewards() {
 }
 
 export function getClaimedStreakMilestones() {
+  const token = getToken();
+  if (!token) return { 7: false, 14: false, 30: false, 100: false };
   const uid = getUserId();
+  if (!uid || uid === 'guest') return { 7: false, 14: false, 30: false, 100: false };
+
   try {
     const data = localStorage.getItem(`dayscore_${uid}_claimed_streak_milestones`);
     if (!data) return { 7: false, 14: false, 30: false, 100: false };
@@ -999,25 +1042,29 @@ export async function deleteTemplateApi(id) {
 // ==========================================
 
 export function getReflection(date) {
+  const token = getToken();
+  if (!token) return '';
   const uid = getUserId();
+  if (!uid || uid === 'guest') return '';
   return localStorage.getItem(`dayscore_${uid}_reflection_${date}`) || '';
 }
 
 export function saveReflection(date, content) {
+  const token = getToken();
+  if (!token) return;
   const uid = getUserId();
+  if (!uid || uid === 'guest') return;
+
   if (content) {
     localStorage.setItem(`dayscore_${uid}_reflection_${date}`, content);
   } else {
     localStorage.removeItem(`dayscore_${uid}_reflection_${date}`);
   }
 
-  const token = getToken();
-  if (token) {
-    authFetch(`/api/reflections/${date}`, {
-      method: 'PUT',
-      body: JSON.stringify({ content: content || '' })
-    }).catch(err => console.error('Save reflection API error:', err));
-  }
+  authFetch(`/api/reflections/${date}`, {
+    method: 'PUT',
+    body: JSON.stringify({ content: content || '' })
+  }).catch(err => console.error('Save reflection API error:', err));
 }
 
 export async function fetchReflectionApi(date) {
@@ -1227,19 +1274,18 @@ export async function resetAllData() {
  * Keeps MongoDB cloud data completely safe and untampered with.
  */
 export function clearLocalUserData(explicitUid = null) {
-  const keysToRemove = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (!key) continue;
-    if (key.startsWith('dayscore_') && key !== 'dayscore_theme') {
-      keysToRemove.push(key);
-    }
-  }
-  keysToRemove.forEach(k => {
-    try { localStorage.removeItem(k); } catch (e) {}
-  });
-
   taskMemoryCache.clear();
+
+  try {
+    const allKeys = Object.keys(localStorage);
+    allKeys.forEach(key => {
+      if (key !== 'dayscore_theme') {
+        try {
+          localStorage.removeItem(key);
+        } catch (e) {}
+      }
+    });
+  } catch (e) {}
 
   try {
     sessionStorage.clear();

@@ -735,6 +735,7 @@ export default function TodayView() {
 
   // Compute all tasks across all dates from active tasks & archives
   const allTasksAcrossDates = useMemo(() => {
+    if (!user) return [];
     const list = [];
     const seenIds = new Set();
 
@@ -764,9 +765,10 @@ export default function TodayView() {
       }
     });
     return list;
-  }, [archives, tasks, currentDateStr]);
+  }, [archives, tasks, currentDateStr, user]);
 
   const pendingBookCount = useMemo(() => {
+    if (!user) return 0;
     let count = 0;
     const allTasksList = Array.isArray(allTasksAcrossDates) && allTasksAcrossDates.length > 0 
       ? allTasksAcrossDates 
@@ -803,7 +805,7 @@ export default function TodayView() {
       if (hasPenalty && !isPenaltyAccepted) count++;
     });
     return count;
-  }, [allTasksAcrossDates, tasks]);
+  }, [allTasksAcrossDates, tasks, user]);
 
   // Initialize data per user & date
   useEffect(() => {
@@ -998,6 +1000,14 @@ export default function TodayView() {
 
   // Score, Streak & Averages Calculation effect
   useEffect(() => {
+    if (!user) {
+      setScoreResult({ score: 0, baseScore: 0, bonus1: 0, bonus2: 0, penalty: 0 });
+      setArchives([]);
+      setStreak({ current: 0, isActive: false });
+      setAverages({ week: 0, month: 0, allTime: 0 });
+      return;
+    }
+
     const result = scoring.calculateDailyScore(tasks);
     setScoreResult(result);
 
@@ -1012,7 +1022,7 @@ export default function TodayView() {
       month: scoring.getRollingAverage(updatedArchives, 30, tasks),
       allTime: scoring.getRollingAverage(updatedArchives, 0, tasks)
     });
-  }, [tasks, currentDateStr, todayStr]);
+  }, [tasks, currentDateStr, todayStr, user]);
 
   // Auto-process past and overdue tasks:
   // - Tasks on past dates with future due time -> move to target due date
@@ -1181,7 +1191,7 @@ export default function TodayView() {
     processPastAndOverdueTasks();
     const interval = setInterval(processPastAndOverdueTasks, 10000);
     return () => { isMounted = false; clearInterval(interval); };
-  }, [currentDateStr, todayStr]);
+  }, [currentDateStr, todayStr, user]);
 
   // Hooks
   const handleRollover = useCallback(() => {
@@ -2152,6 +2162,7 @@ export default function TodayView() {
   };
 
   const displayTasksList = useMemo(() => {
+    if (!user) return [];
     const rawList = viewMode === 'all' ? allTasksAcrossDates : tasks;
     let list = [...rawList];
 
@@ -2285,7 +2296,8 @@ export default function TodayView() {
     filterRatingRange,
     filterDateFrom,
     filterDateTo,
-    currentDateStr
+    currentDateStr,
+    user
   ]);
 
   // Restore scroll position after tasks render
@@ -2446,7 +2458,7 @@ export default function TodayView() {
                 onClick={() => handleSetViewMode('date')}
                 style={{ padding: '4px 10px', height: '28px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
               >
-                <Calendar size={13} /> Date View ({tasks.length})
+                <Calendar size={13} /> Date View ({user ? tasks.length : 0})
               </button>
               <button
                 type="button"
@@ -2454,7 +2466,7 @@ export default function TodayView() {
                 onClick={() => handleSetViewMode('all')}
                 style={{ padding: '4px 10px', height: '28px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
               >
-                <Layers size={13} /> All Tasks ({allTasksAcrossDates.length})
+                <Layers size={13} /> All Tasks ({user ? allTasksAcrossDates.length : 0})
               </button>
             </div>
           </div>
@@ -2467,7 +2479,7 @@ export default function TodayView() {
             details={scoreResult}
           />
 
-          {autoCarriedToastInfo && (
+          {user && autoCarriedToastInfo && (
             <div className="card-glass auto-carried-toast-banner animate-fade-in" style={{
               marginBottom: '16px',
               padding: '10px 16px',
@@ -2514,7 +2526,7 @@ export default function TodayView() {
           {/* Daily Reflection Section */}
           <div className="reflection-section-top" style={{ marginBottom: '16px' }}>
             <ReflectionBox 
-              value={reflection} 
+              value={user ? reflection : ''} 
               onChange={(val) => {
                 if (!user) {
                   setShowAuthModal(true);
@@ -2527,7 +2539,7 @@ export default function TodayView() {
           </div>
 
           {/* Pending Rewards & Penalties Book Alert */}
-          {pendingBookCount > 0 && (
+          {user && pendingBookCount > 0 && (
             <div className="card-glass rewards-book-pending-alert animate-fade-in" style={{
               marginBottom: '14px',
               padding: '10px 14px',

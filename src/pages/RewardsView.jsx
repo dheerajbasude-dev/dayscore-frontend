@@ -37,13 +37,17 @@ export default function RewardsView() {
   const [claimingMilestoneDays, setClaimingMilestoneDays] = useState(null)
 
   const todayStr = format(new Date(), 'yyyy-MM-dd')
-  const archives = store.getAllArchives()
-  const todayTasks = store.getTasks(todayStr)
-  const currentStreakObj = scoring.getStreak(archives, todayTasks)
-  const bestStreak = scoring.getBestStreak(archives, todayTasks)
+  const archives = user ? store.getAllArchives() : []
+  const todayTasks = user ? store.getTasks(todayStr) : []
+  const currentStreakObj = user ? scoring.getStreak(archives, todayTasks) : { current: 0, isActive: false }
+  const bestStreak = user ? scoring.getBestStreak(archives, todayTasks) : 0
   const effectiveStreak = Math.max(currentStreakObj.current || 0, bestStreak || 0)
 
   const updateBookCounts = useCallback(() => {
+    if (!user) {
+      setBookPendingCount(0);
+      return;
+    }
     try {
       const allFlat = store.getAllTasksFlat() || [];
       let count = 0;
@@ -82,7 +86,7 @@ export default function RewardsView() {
     } catch (e) {
       console.warn('Error calculating book counts:', e);
     }
-  }, []);
+  }, [user]);
 
   const loadRewardsData = useCallback(async () => {
     if (!user) {

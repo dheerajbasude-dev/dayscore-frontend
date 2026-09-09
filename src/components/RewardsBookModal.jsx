@@ -271,6 +271,7 @@ export default function RewardsBookModal({
 
   // Build the complete ledger items list with strict deduplication
   const ledgerItems = useMemo(() => {
+    if (!user) return [];
     const items = [];
     const seenRewardIds = new Set();
     const seenRewardFps = new Set();
@@ -398,7 +399,7 @@ export default function RewardsBookModal({
     });
 
     return items;
-  }, [allTasks, milestones, claimedMilestones, effectiveStreak]);
+  }, [allTasks, milestones, claimedMilestones, effectiveStreak, user]);
 
   // Aggregate Metrics & Progress Calculations
   const stats = useMemo(() => {
@@ -579,7 +580,7 @@ export default function RewardsBookModal({
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !user) return null;
 
   return createPortal(
     <div className="rewards-book-modal-backdrop animate-fade-in" onClick={onClose}>

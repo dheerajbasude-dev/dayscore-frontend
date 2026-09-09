@@ -152,19 +152,19 @@ export const AuthProvider = ({ children }) => {
     };
   }, []);
 
-  const logout = async () => {
+  const logout = () => {
     const currentUserId = user?.id || getUserFromToken(token)?.id;
+
+    // 1. Synchronous, guaranteed purge of local authentication and cached state
     try {
-      await unsubscribePushNotifications();
-    } catch (e) {
-      console.warn('Push unsubscribe error during logout:', e);
-    }
+      localStorage.removeItem('dayscore_token');
+    } catch (e) {}
+
     clearLocalUserData(currentUserId);
-    localStorage.removeItem('dayscore_token');
     setToken(null);
     setUser(null);
 
-    // Broadcast logout across tabs
+    // 2. Broadcast logout across all browser tabs immediately
     try {
       if (typeof BroadcastChannel !== 'undefined') {
         const bc = new BroadcastChannel('dayscore_auth_sync');
@@ -172,6 +172,18 @@ export const AuthProvider = ({ children }) => {
         bc.close();
       }
     } catch (e) {}
+
+    // 3. Detached non-blocking push unsubscription in background with strict 1s timeout
+    (async () => {
+      try {
+        await Promise.race([
+          unsubscribePushNotifications(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Push unsubscribe timeout')), 1000))
+        ]);
+      } catch (e) {
+        console.warn('Background push unsubscribe note during logout:', e);
+      }
+    })();
   };
 
   return (
