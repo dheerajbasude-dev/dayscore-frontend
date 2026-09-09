@@ -187,33 +187,33 @@ export function useNotifications(tasks, enabled, leadTimeMinutes = 30) {
         const dueTime = new Date(rawDue).getTime();
         if (isNaN(dueTime)) return;
 
-        // 1. Exact Due Time Reminder (Fires when task reaches due time)
-        const dueEventId = `${taskId}_exact_${dueTime}`;
-        const timeDiffDue = dueTime - now;
+        // 1. Missed Task Reminder (Default - fires at exact due time when due time finishes)
+        const missedEventId = `${taskId}_missed_${dueTime}`;
+        const timeDiffMissed = dueTime - now;
 
-        if (timeDiffDue <= 0 && timeDiffDue >= -120000) {
-          // Task due time reached within the last 2 minutes and not yet notified
-          if (!notifiedEvents.has(dueEventId)) {
-            markEventNotified(dueEventId);
+        if (timeDiffMissed <= 0 && timeDiffMissed >= -120000) {
+          // Task due time reached/finished within the last 2 minutes and not yet notified
+          if (!notifiedEvents.has(missedEventId)) {
+            markEventNotified(missedEventId);
             triggerDesktopNotification(
-              `⏰ Task Due: ${task.title}`,
-              `Task '${task.title}' (${task.priority || 'Med'} Priority) is due right now!`,
-              `dayscore-task-due-${taskId}`
+              `⚠️ Task Missed: ${task.title}`,
+              `Task '${task.title}' (${task.priority || 'Med'} Priority) was missed. Open DayScore to carry it over or complete it.`,
+              `dayscore-task-missed-${taskId}`
             );
-            markTaskNotifiedOnServer(taskId, 'due');
+            markTaskNotifiedOnServer(taskId, 'missed');
           }
-        } else if (timeDiffDue > 0 && timeDiffDue <= 24 * 60 * 60 * 1000) {
-          // Future due time: schedule exact-millisecond precision timer
-          if (!notifiedEvents.has(dueEventId)) {
+        } else if (timeDiffMissed > 0 && timeDiffMissed <= 24 * 60 * 60 * 1000) {
+          // Future due time: schedule exact-millisecond precision timer for exact due time
+          if (!notifiedEvents.has(missedEventId)) {
             const t = setTimeout(() => {
-              markEventNotified(dueEventId);
+              markEventNotified(missedEventId);
               triggerDesktopNotification(
-                `⏰ Task Due: ${task.title}`,
-                `Task '${task.title}' (${task.priority || 'Med'} Priority) is due right now!`,
-                `dayscore-task-due-${taskId}`
+                `⚠️ Task Missed: ${task.title}`,
+                `Task '${task.title}' (${task.priority || 'Med'} Priority) was missed. Open DayScore to carry it over or complete it.`,
+                `dayscore-task-missed-${taskId}`
               );
-              markTaskNotifiedOnServer(taskId, 'due');
-            }, timeDiffDue);
+              markTaskNotifiedOnServer(taskId, 'missed');
+            }, timeDiffMissed);
             timeouts.push(t);
           }
         }

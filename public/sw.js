@@ -1,5 +1,5 @@
-// DayScore Service Worker v3.1 (Build: 2026-09-09-ExactTimeReminder)
-const SW_VERSION = 'dayscore-sw-v3.1-2026-09-09-ExactTimeReminder';
+// DayScore Service Worker v3.2 (Build: 2026-09-09-MissedAtDue)
+const SW_VERSION = 'dayscore-sw-v3.2-2026-09-09-MissedAtDue';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
