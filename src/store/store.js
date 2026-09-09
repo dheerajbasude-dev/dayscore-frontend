@@ -95,10 +95,20 @@ export function formatServerTask(t) {
   const dueDateStr = getLocalDateStr(dueIso);
 
   let taskDate = '';
+  let effectiveCompletedDate = completedDate;
 
-  // 1. If completed, task belongs to its completion date
+  // 1. If completed, task belongs to its completion date, UNLESS its deadline was on an earlier date
   if (completedDate && (t.status === 'done' || t.completed === true)) {
-    taskDate = getLocalDateStr(completedDate);
+    const compDateStr = getLocalDateStr(completedDate);
+    if (dueDateStr && dueDateStr < compDateStr) {
+      // Deadline was yesterday or earlier: anchor strictly to deadline date and clamp completedAt
+      taskDate = dueDateStr;
+      if (dueIso) {
+        effectiveCompletedDate = dueIso;
+      }
+    } else {
+      taskDate = compDateStr;
+    }
   }
   // 2. If task has a due date:
   // - If due date has passed (expired/missed), the task belongs to its target DUE DATE (not earlier intermediate dates)
@@ -134,8 +144,8 @@ export function formatServerTask(t) {
     penalty_accepted: isAccepted ? 1 : 0,
     penaltyAcknowledged: isPenaltyAck,
     penalty_acknowledged: isPenaltyAck ? 1 : 0,
-    completedAt: completedDate,
-    completed_at: completedDate,
+    completedAt: effectiveCompletedDate,
+    completed_at: effectiveCompletedDate,
     createdAt: createdDate,
     created_at: createdDate,
     carriedOver: isCarried,

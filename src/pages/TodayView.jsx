@@ -574,8 +574,10 @@ export default function TodayView() {
               const dueDateStr = getLocalDateStr(dueIso);
               if (dueDateStr && dueDateStr >= todayStr) {
                 pastTasksToCarry.push({ ...t, taskDate: arc.date });
-              } else if (dueDateStr && dueDateStr <= arc.date) {
-                pastTasksToFinalize.push({ ...t, taskDate: arc.date });
+              } else if (dueDateStr && dueDateStr < todayStr) {
+                pastTasksToFinalize.push({ ...t, taskDate: arc.date, finalDate: dueDateStr });
+              } else if (!dueDateStr) {
+                pastTasksToFinalize.push({ ...t, taskDate: arc.date, finalDate: arc.date });
               }
             }
           });
@@ -601,6 +603,7 @@ export default function TodayView() {
 
       for (const task of pastTasksToFinalize) {
         const originDate = task.taskDate || task.date || task.dateLabel;
+        const targetFinalDate = task.finalDate || originDate;
         const taskId = task.id || task._id;
         if (!originDate || !taskId) continue;
 
@@ -634,6 +637,7 @@ export default function TodayView() {
         }
 
         const updates = {
+          date: targetFinalDate,
           status: finalStatus,
           completed: finalStatus === 'done',
           rating: finalRating,
@@ -644,9 +648,10 @@ export default function TodayView() {
           penaltyAccepted: false,
           penalty_accepted: 0
         };
+        const dueIso = task.dueDateTime || task.due_date_time;
         if (finalStatus === 'done') {
-          updates.completedAt = task.dueDateTime || task.due_date_time || new Date().toISOString();
-          updates.completed_at = task.dueDateTime || task.due_date_time || new Date().toISOString();
+          updates.completedAt = dueIso || new Date().toISOString();
+          updates.completed_at = dueIso || new Date().toISOString();
         } else {
           updates.completedAt = null;
           updates.completed_at = null;
@@ -1079,8 +1084,10 @@ export default function TodayView() {
                   taskReward = null;
                 }
 
-                if (task.status !== finalStatus || task.rating !== finalRating || task.penalty !== taskPenalty || task.reward !== taskReward) {
+                const targetFinalDate = (targetDueDateStr && targetDueDateStr < todayStr) ? targetDueDateStr : arc.date;
+                if (task.status !== finalStatus || task.rating !== finalRating || task.penalty !== taskPenalty || task.reward !== taskReward || (targetFinalDate !== arc.date)) {
                   const updates = {
+                    date: targetFinalDate,
                     status: finalStatus,
                     completed: finalStatus === 'done',
                     rating: finalRating,
@@ -1092,8 +1099,8 @@ export default function TodayView() {
                     penalty_accepted: 0
                   };
                   if (finalStatus === 'done') {
-                    updates.completedAt = task.completedAt || task.completed_at || due || now.toISOString();
-                    updates.completed_at = task.completedAt || task.completed_at || due || now.toISOString();
+                    updates.completedAt = due || task.completedAt || task.completed_at || now.toISOString();
+                    updates.completed_at = due || task.completedAt || task.completed_at || now.toISOString();
                   } else {
                     updates.completedAt = null;
                     updates.completed_at = null;
@@ -1483,10 +1490,23 @@ export default function TodayView() {
           }
         }
 
+        const dueIso = targetTask?.dueDateTime || targetTask?.due_date_time;
+        const dueObj = dueIso ? new Date(dueIso) : null;
+        const completionTimeIso = (dueObj && !isNaN(dueObj.getTime()) && dueObj < now)
+          ? dueIso
+          : now.toISOString();
+
+        if (dueIso) {
+          const dStr = getLocalDateStr(dueIso);
+          if (dStr && dStr < todayStr) {
+            updates.date = dStr;
+          }
+        }
+
         updates.status = 'done';
         updates.completed = true;
-        updates.completedAt = now.toISOString();
-        updates.completed_at = now.toISOString();
+        updates.completedAt = completionTimeIso;
+        updates.completed_at = completionTimeIso;
         updates.rating = avgRating;
         updates.maxRating = maxRating;
         updates.max_rating = maxRating;
