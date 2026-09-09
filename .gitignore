@@ -10,6 +10,7 @@ server/database.sqlite
 *.log
 .agents
 .planning
+.roo
 MEMORY.md
 
 .vercel
