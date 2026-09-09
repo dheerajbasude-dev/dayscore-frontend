@@ -177,39 +177,38 @@ export async function fetchAllTasksApi() {
       const serverTasks = (data.tasks || []).map(formatServerTask);
       const todayStr = format(new Date(), 'yyyy-MM-dd');
 
-      // Server-persisted carry-over for eligible past tasks
+      // Server-persisted carry-over for eligible ongoing past tasks
       const carryOverPromises = [];
       serverTasks.forEach(t => {
         const d = getLocalDateStr(t.date) || todayStr;
-        if (d < todayStr) {
-          const isAlreadyCarried = Boolean(t.carriedOver || t.carried_over || t.wasCarried || t.isCarried || (t.originalDate && getLocalDateStr(t.originalDate) < todayStr));
-          if (isAlreadyCarried) return;
+        const dueDateStr = getLocalDateStr(t.dueDateTime || t.due_date_time);
+        const isDone = Boolean(t.status === 'done' || t.completed === true);
+        const completedDate = getLocalDateStr(t.completedAt || t.completed_at);
+        const isCompletedToday = isDone && completedDate === todayStr;
 
-          const dueDateStr = getLocalDateStr(t.dueDateTime || t.due_date_time);
-          let shouldCarry = true;
-          if (dueDateStr && dueDateStr < todayStr) shouldCarry = false;
+        // Ongoing active tasks whose deadline is today or in the future
+        let shouldCarry = false;
+        if (dueDateStr && dueDateStr >= todayStr && (!isDone || isCompletedToday)) {
+          shouldCarry = true;
+        }
 
-          const completedDate = getLocalDateStr(t.completedAt || t.completed_at);
-          const isCompletedToday = (t.status === 'done' || t.completed === true) && completedDate === todayStr;
-
-          if (shouldCarry && (t.status !== 'done' || isCompletedToday)) {
-            const targetId = t.id || t._id;
-            const origDate = t.originalDate || t.original_date || d;
-            const updates = {
-              date: todayStr,
-              carriedOver: true,
-              carried_over: 1,
-              originalDate: origDate,
-              original_date: origDate
-            };
-            Object.assign(t, updates);
-            carryOverPromises.push(
-              authFetch(`/api/tasks/${targetId}`, {
-                method: 'PUT',
-                body: JSON.stringify(updates)
-              }).catch(err => console.error('Carry-over update error for task', targetId, err))
-            );
-          }
+        if (d < todayStr && shouldCarry) {
+          const targetId = t.id || t._id;
+          const origDate = t.originalDate || t.original_date || d;
+          const updates = {
+            date: todayStr,
+            carriedOver: true,
+            carried_over: 1,
+            originalDate: origDate,
+            original_date: origDate
+          };
+          Object.assign(t, updates);
+          carryOverPromises.push(
+            authFetch(`/api/tasks/${targetId}`, {
+              method: 'PUT',
+              body: JSON.stringify(updates)
+            }).catch(err => console.error('Carry-over update error for task', targetId, err))
+          );
         }
       });
 

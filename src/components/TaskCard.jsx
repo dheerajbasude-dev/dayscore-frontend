@@ -85,16 +85,16 @@ function TaskCard({
     return list.some(n => n && n.rating != null && Number(n.rating) > 0 && !n.isAutoMissed);
   }, [task?.daily_notes, task?.dailyNotes, task?.notes]);
 
-  const isDone = Boolean(task?.status === 'done' || task?.completed === true || isJustCompleted || (isOverdue && hasRatingNote));
+  const isDone = Boolean(task?.status === 'done' || task?.completed === true || isJustCompleted);
 
   const isMissed = useMemo(() => {
-    if (isDone || hasRatingNote) return false;
+    if (isDone) return false;
     if (task?.status === 'missed' || task?.missed === true || task?.wasMissed === true || task?.was_missed === true) {
       return true;
     }
     if (isOverdue) return true;
     return false;
-  }, [isDone, hasRatingNote, task?.status, task?.missed, task?.wasMissed, task?.was_missed, isOverdue]);
+  }, [isDone, task?.status, task?.missed, task?.wasMissed, task?.was_missed, isOverdue]);
 
   const isCarriedOver = useMemo(() => {
     if (!task) return false;

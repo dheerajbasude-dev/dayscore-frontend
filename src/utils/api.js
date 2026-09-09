@@ -6,15 +6,12 @@ export const getApiBaseUrl = () => {
   let url = (import.meta.env.VITE_API_URL || '').trim();
 
   if (!url) {
-    // In production environment (Vercel deployment), default to backend host if VITE_API_URL is omitted
-    if (import.meta.env.PROD) {
-      return 'https://dayscore-backend.vercel.app';
-    }
-    // In local development, return empty string so Vite server proxy handles /api
+    // Return empty string so Vite proxy (dev) and Vercel rewrites proxy (prod) handle /api seamlessly
     return '';
   }
 
   url = url.replace(/\/+$/, '');
+  url = url.replace(/\/api$/, '');
 
   // If URL is missing protocol prefix and is not a relative path starting with '/'
   if (!/^https?:\/\//i.test(url) && !url.startsWith('/')) {

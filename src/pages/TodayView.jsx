@@ -492,19 +492,55 @@ export default function TodayView() {
         if (pastEndDate) {
           const { hasRatedNote, avgRating } = calculateTaskAutoRating(t);
           const finalStatus = (t.status === 'done' || hasRatedNote) ? 'done' : 'missed';
-          
+          const finalRating = (finalStatus === 'done' && hasRatedNote) ? avgRating : 0;
+
+          let taskReward = t.reward || null;
+          let taskPenalty = t.penalty || null;
+
+          if (finalStatus === 'done') {
+            if (finalRating >= 9) {
+              if (!taskReward) {
+                const rewards = store.getRewards();
+                taskReward = (rewards && rewards.length > 0) ? rewards[Math.floor(Math.random() * rewards.length)] : "Treat yourself tonight!";
+              }
+              taskPenalty = null;
+            } else if (finalRating <= 4) {
+              if (!taskPenalty) {
+                const punishments = store.getPunishments();
+                taskPenalty = (punishments && punishments.length > 0) ? punishments[Math.floor(Math.random() * punishments.length)] : "Complete 15-min focus reflection";
+              }
+              taskReward = null;
+            }
+          } else {
+            if (!taskPenalty) {
+              const punishments = store.getPunishments();
+              taskPenalty = (punishments && punishments.length > 0) ? punishments[Math.floor(Math.random() * punishments.length)] : "Complete 15-min focus reflection";
+            }
+            taskReward = null;
+          }
+
           const updates = {
             date: pastEndDate,
             carriedOver: false,
             carried_over: 0,
-            status: finalStatus
+            status: finalStatus,
+            completed: finalStatus === 'done',
+            rating: finalRating,
+            reward: taskReward,
+            penalty: taskPenalty,
+            rewardClaimed: false,
+            reward_claimed: 0,
+            penaltyAccepted: false,
+            penalty_accepted: 0
           };
           if (finalStatus === 'done') {
-            updates.completed = true;
-            if (hasRatedNote) {
-              updates.rating = avgRating;
-            }
+            updates.completedAt = dueIso || new Date().toISOString();
+            updates.completed_at = dueIso || new Date().toISOString();
+          } else {
+            updates.completedAt = null;
+            updates.completed_at = null;
           }
+
           bgUpdates.push(store.updateTask(todayStr, t.id || t._id, updates));
           cleanedUpCount++;
         }
@@ -516,18 +552,18 @@ export default function TodayView() {
         autoCarryOverProcessedRef.current = processKey;
       }
       const pastTasksToCarry = [];
+      const pastTasksToFinalize = [];
+
       allArcs.forEach(arc => {
         if (arc.date && arc.date < todayStr && Array.isArray(arc.tasks)) {
           arc.tasks.forEach(t => {
             if (t.status !== 'done') {
               const dueIso = t.dueDateTime || t.due_date_time;
               const dueDateStr = getLocalDateStr(dueIso);
-              let shouldCarryOver = true;
-              if (dueDateStr && dueDateStr < todayStr) {
-                shouldCarryOver = false;
-              }
-              if (shouldCarryOver) {
+              if (dueDateStr && dueDateStr >= todayStr) {
                 pastTasksToCarry.push({ ...t, taskDate: arc.date });
+              } else if (dueDateStr && dueDateStr <= arc.date) {
+                pastTasksToFinalize.push({ ...t, taskDate: arc.date });
               }
             }
           });
@@ -542,13 +578,70 @@ export default function TodayView() {
 
         bgUpdates.push(store.updateTask(originDate, taskId, {
           date: todayStr,
-          status: task.status === 'done' ? 'done' : 'pending',
+          status: 'pending',
           carriedOver: true,
           carried_over: 1,
-          originalDate: originDate,
-          original_date: originDate
+          originalDate: task.originalDate || task.original_date || originDate,
+          original_date: task.originalDate || task.original_date || originDate
         }));
         carriedCount++;
+      }
+
+      for (const task of pastTasksToFinalize) {
+        const originDate = task.taskDate || task.date || task.dateLabel;
+        const taskId = task.id || task._id;
+        if (!originDate || !taskId) continue;
+
+        const { hasRatedNote, avgRating } = calculateTaskAutoRating(task);
+        const finalStatus = (task.status === 'done' || hasRatedNote) ? 'done' : 'missed';
+        const finalRating = (finalStatus === 'done' && hasRatedNote) ? avgRating : 0;
+
+        let taskReward = task.reward || null;
+        let taskPenalty = task.penalty || null;
+
+        if (finalStatus === 'done') {
+          if (finalRating >= 9) {
+            if (!taskReward) {
+              const rewards = store.getRewards();
+              taskReward = (rewards && rewards.length > 0) ? rewards[Math.floor(Math.random() * rewards.length)] : "Treat yourself tonight!";
+            }
+            taskPenalty = null;
+          } else if (finalRating <= 4) {
+            if (!taskPenalty) {
+              const punishments = store.getPunishments();
+              taskPenalty = (punishments && punishments.length > 0) ? punishments[Math.floor(Math.random() * punishments.length)] : "Complete 15-min focus reflection";
+            }
+            taskReward = null;
+          }
+        } else {
+          if (!taskPenalty) {
+            const punishments = store.getPunishments();
+            taskPenalty = (punishments && punishments.length > 0) ? punishments[Math.floor(Math.random() * punishments.length)] : "Complete 15-min focus reflection";
+          }
+          taskReward = null;
+        }
+
+        const updates = {
+          status: finalStatus,
+          completed: finalStatus === 'done',
+          rating: finalRating,
+          reward: taskReward,
+          penalty: taskPenalty,
+          rewardClaimed: false,
+          reward_claimed: 0,
+          penaltyAccepted: false,
+          penalty_accepted: 0
+        };
+        if (finalStatus === 'done') {
+          updates.completedAt = task.dueDateTime || task.due_date_time || new Date().toISOString();
+          updates.completed_at = task.dueDateTime || task.due_date_time || new Date().toISOString();
+        } else {
+          updates.completedAt = null;
+          updates.completed_at = null;
+        }
+
+        bgUpdates.push(store.updateTask(originDate, taskId, updates));
+        cleanedUpCount++;
       }
 
       if (bgUpdates.length > 0) {
@@ -872,65 +965,81 @@ export default function TodayView() {
         if (!arc.date || !Array.isArray(arc.tasks)) continue;
 
         for (const task of arc.tasks) {
-          const isPastCarried = arc.date < todayStr && Boolean(task.carriedOver || task.carried_over || task.wasCarried || task.isCarried);
+          const due = task.dueDateTime || task.due_date_time;
+          const targetDueDateStr = due ? getLocalDateStr(due) : null;
+          const isCarriedBeyond = arc.date < todayStr && Boolean(task.carriedOver || task.carried_over || task.wasCarried || task.isCarried) && targetDueDateStr && targetDueDateStr > arc.date;
           const completedDate = task.completedAt ? String(task.completedAt).substring(0, 10) : (task.completed_at ? String(task.completed_at).substring(0, 10) : '');
-          if (isPastCarried || (completedDate === todayStr && (task.status === 'done' || task.completed))) {
+          if (isCarriedBeyond || (completedDate === todayStr && (task.status === 'done' || task.completed))) {
             continue;
           }
 
           const { hasRatedNote, avgRating } = calculateTaskAutoRating(task);
           const isDoneWithNote = hasRatedNote;
 
-          if (task.status !== 'done' || (!isDoneWithNote && Number(task.rating || 0) === 0)) {
-            const due = task.dueDateTime || task.due_date_time;
-            
+          if (task.status !== 'done' || (!isDoneWithNote && Number(task.rating || 0) === 0) || (isDoneWithNote && task.rating !== avgRating)) {
             if (due) {
               const dueDateObj = new Date(due);
-              const targetDueDateStr = format(dueDateObj, 'yyyy-MM-dd');
 
-              if (targetDueDateStr > arc.date && targetDueDateStr <= todayStr && dueDateObj >= now) {
-                if (task.status === 'missed') {
-                  await store.updateTask(arc.date, task.id || task._id, { status: 'pending' });
-                  updated = true;
-                } else {
-                  await store.updateTask(arc.date, task.id || task._id, { date: targetDueDateStr });
-                  updated = true;
-                }
-              } else if (dueDateObj < now) {
-                const isPastOverredDay = arc.date < todayStr;
+              if (targetDueDateStr > arc.date && targetDueDateStr >= todayStr && dueDateObj >= now) {
+                // Ongoing multi-day task: advance to Today
+                await store.updateTask(arc.date, task.id || task._id, {
+                  date: todayStr,
+                  status: 'pending',
+                  carriedOver: true,
+                  carried_over: 1,
+                  originalDate: task.originalDate || task.original_date || arc.date
+                });
+                updated = true;
+              } else if (dueDateObj < now || (targetDueDateStr && targetDueDateStr <= arc.date && arc.date < todayStr)) {
+                // Task reached deadline on this date: finalize it
                 const finalStatus = isDoneWithNote ? 'done' : 'missed';
-                const finalRating = isDoneWithNote ? avgRating : (isPastOverredDay ? 0 : undefined);
-                const shouldMoveDate = targetDueDateStr && targetDueDateStr !== arc.date && targetDueDateStr <= todayStr;
-                if (task.status !== finalStatus || (isPastOverredDay && task.rating !== finalRating) || shouldMoveDate) {
-                  let taskPenalty = task.penalty;
-                  // Penalty ONLY triggers when a score badge is present (on overred day ★ 0 badge or rated note badge)
-                  if ((isPastOverredDay || isDoneWithNote) && (finalRating != null && finalRating <= 4) && !taskPenalty) {
-                    const punishments = store.getPunishments();
-                    if (punishments && punishments.length > 0) {
-                      taskPenalty = punishments[Math.floor(Math.random() * punishments.length)];
-                      store.setActivePunishment(taskPenalty);
-                      setActivePunishment(store.getActivePunishment());
-                      setShowPenaltyFlash(true);
-                      setTimeout(() => setShowPenaltyFlash(false), 3000);
-                    }
-                  }
+                const finalRating = isDoneWithNote ? avgRating : 0;
 
+                let taskReward = task.reward || null;
+                let taskPenalty = task.penalty || null;
+
+                if (finalStatus === 'done') {
+                  if (finalRating >= 9) {
+                    if (!taskReward) {
+                      const rewards = store.getRewards();
+                      taskReward = (rewards && rewards.length > 0) ? rewards[Math.floor(Math.random() * rewards.length)] : "Treat yourself tonight!";
+                    }
+                    taskPenalty = null;
+                  } else if (finalRating <= 4) {
+                    if (!taskPenalty) {
+                      const punishments = store.getPunishments();
+                      taskPenalty = (punishments && punishments.length > 0) ? punishments[Math.floor(Math.random() * punishments.length)] : "Complete 15-min focus reflection";
+                    }
+                    taskReward = null;
+                  }
+                } else {
+                  if (!taskPenalty) {
+                    const punishments = store.getPunishments();
+                    taskPenalty = (punishments && punishments.length > 0) ? punishments[Math.floor(Math.random() * punishments.length)] : "Complete 15-min focus reflection";
+                  }
+                  taskReward = null;
+                }
+
+                if (task.status !== finalStatus || task.rating !== finalRating || task.penalty !== taskPenalty || task.reward !== taskReward) {
                   const updates = {
                     status: finalStatus,
                     completed: finalStatus === 'done',
                     rating: finalRating,
-                    penalty: taskPenalty
+                    reward: taskReward,
+                    penalty: taskPenalty,
+                    rewardClaimed: false,
+                    reward_claimed: 0,
+                    penaltyAccepted: false,
+                    penalty_accepted: 0
                   };
                   if (finalStatus === 'done') {
-                    updates.completedAt = task.completedAt || task.completed_at || now.toISOString();
-                    updates.completed_at = task.completedAt || task.completed_at || now.toISOString();
+                    updates.completedAt = task.completedAt || task.completed_at || due || now.toISOString();
+                    updates.completed_at = task.completedAt || task.completed_at || due || now.toISOString();
                   } else {
                     updates.completedAt = null;
                     updates.completed_at = null;
                   }
-                  if (shouldMoveDate) {
-                    updates.date = targetDueDateStr;
-                  }
+
                   await store.updateTask(arc.date, task.id || task._id, updates);
                   updated = true;
                 }
@@ -938,24 +1047,43 @@ export default function TodayView() {
             } else if (arc.date < todayStr) {
               const finalStatus = isDoneWithNote ? 'done' : 'missed';
               const finalRating = isDoneWithNote ? avgRating : 0;
-              if (task.status !== finalStatus || task.rating !== finalRating) {
-                let taskPenalty = task.penalty;
+
+              let taskReward = task.reward || null;
+              let taskPenalty = task.penalty || null;
+
+              if (finalStatus === 'done') {
+                if (finalRating >= 9) {
+                  if (!taskReward) {
+                    const rewards = store.getRewards();
+                    taskReward = (rewards && rewards.length > 0) ? rewards[Math.floor(Math.random() * rewards.length)] : "Treat yourself tonight!";
+                  }
+                  taskPenalty = null;
+                } else if (finalRating <= 4) {
+                  if (!taskPenalty) {
+                    const punishments = store.getPunishments();
+                    taskPenalty = (punishments && punishments.length > 0) ? punishments[Math.floor(Math.random() * punishments.length)] : "Complete 15-min focus reflection";
+                  }
+                  taskReward = null;
+                }
+              } else {
                 if (!taskPenalty) {
                   const punishments = store.getPunishments();
-                  if (punishments && punishments.length > 0) {
-                    taskPenalty = punishments[Math.floor(Math.random() * punishments.length)];
-                    store.setActivePunishment(taskPenalty);
-                    setActivePunishment(store.getActivePunishment());
-                    setShowPenaltyFlash(true);
-                    setTimeout(() => setShowPenaltyFlash(false), 3000);
-                  }
+                  taskPenalty = (punishments && punishments.length > 0) ? punishments[Math.floor(Math.random() * punishments.length)] : "Complete 15-min focus reflection";
                 }
+                taskReward = null;
+              }
 
+              if (task.status !== finalStatus || task.rating !== finalRating || task.penalty !== taskPenalty || task.reward !== taskReward) {
                 const updates = {
                   status: finalStatus,
                   completed: finalStatus === 'done',
                   rating: finalRating,
-                  penalty: taskPenalty
+                  reward: taskReward,
+                  penalty: taskPenalty,
+                  rewardClaimed: false,
+                  reward_claimed: 0,
+                  penaltyAccepted: false,
+                  penalty_accepted: 0
                 };
                 if (finalStatus === 'done') {
                   updates.completedAt = task.completedAt || task.completed_at || now.toISOString();
@@ -1111,23 +1239,60 @@ export default function TodayView() {
         const taskDate = task.date || task.dateLabel || currentDateStr;
 
         if (hasRatedNote) {
-          if (task.status !== 'done' || task.rating !== avgRating) {
+          const finalRating = avgRating;
+          let taskReward = task.reward || null;
+          let taskPenalty = task.penalty || null;
+
+          if (finalRating >= 9) {
+            if (!taskReward) {
+              const rewards = store.getRewards();
+              taskReward = (rewards && rewards.length > 0) ? rewards[Math.floor(Math.random() * rewards.length)] : "Treat yourself tonight!";
+            }
+            taskPenalty = null;
+          } else if (finalRating <= 4) {
+            if (!taskPenalty) {
+              const punishments = store.getPunishments();
+              taskPenalty = (punishments && punishments.length > 0) ? punishments[Math.floor(Math.random() * punishments.length)] : "Complete 15-min focus reflection";
+            }
+            taskReward = null;
+          }
+
+          if (task.status !== 'done' || task.rating !== finalRating || task.penalty !== taskPenalty || task.reward !== taskReward) {
             modified = true;
             await store.updateTask(taskDate, targetId, {
               status: 'done',
               completed: true,
               completedAt: task.completedAt || task.completed_at || now.toISOString(),
               completed_at: task.completedAt || task.completed_at || now.toISOString(),
-              rating: avgRating,
+              rating: finalRating,
               maxRating: task.maxRating || task.max_rating || 10,
-              max_rating: task.maxRating || task.max_rating || 10
+              max_rating: task.maxRating || task.max_rating || 10,
+              reward: taskReward,
+              penalty: taskPenalty,
+              rewardClaimed: false,
+              reward_claimed: 0,
+              penaltyAccepted: false,
+              penalty_accepted: 0
             });
           }
         } else {
-          if (task.status !== 'done' && task.status !== 'missed') {
+          let taskPenalty = task.penalty;
+          if (!taskPenalty) {
+            const punishments = store.getPunishments();
+            taskPenalty = (punishments && punishments.length > 0) ? punishments[Math.floor(Math.random() * punishments.length)] : "Complete 15-min focus reflection";
+          }
+
+          if (task.status !== 'missed' || task.penalty !== taskPenalty) {
             modified = true;
             await store.updateTask(taskDate, targetId, {
-              status: 'missed'
+              status: 'missed',
+              completed: false,
+              completedAt: null,
+              completed_at: null,
+              rating: 0,
+              penalty: taskPenalty,
+              penaltyAccepted: false,
+              penalty_accepted: 0
             });
           }
         }
