@@ -38,7 +38,11 @@ export default function AuthModal({ isOpen, onClose }) {
           </div>
           <div className="modal-form-body" style={{ padding: '20px', textAlign: 'center' }}>
             <p>You are already signed in as {user.email}.</p>
-            <button className="btn btn-secondary" style={{ marginTop: '16px' }} onClick={() => { logout(); onClose(); }}>
+            <button className="btn btn-secondary" style={{ marginTop: '16px' }} onClick={() => {
+              logout();
+              setIsSignUp(false);
+              setError('');
+            }}>
               Sign Out
             </button>
           </div>

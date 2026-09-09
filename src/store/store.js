@@ -1205,5 +1205,34 @@ export async function resetAllData() {
   return true;
 }
 
+/**
+ * Purges all cached user data from browser memory and localStorage on logout.
+ * Keeps MongoDB cloud data completely safe and untampered with.
+ */
+export function clearLocalUserData(explicitUid = null) {
+  const keysToRemove = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (!key) continue;
+    if (key.startsWith('dayscore_') && key !== 'dayscore_theme') {
+      keysToRemove.push(key);
+    }
+  }
+  keysToRemove.forEach(k => {
+    try { localStorage.removeItem(k); } catch (e) {}
+  });
+
+  taskMemoryCache.clear();
+
+  try {
+    sessionStorage.clear();
+  } catch (e) {}
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('dayscore_user_logout'));
+  }
+}
+
+
 
 

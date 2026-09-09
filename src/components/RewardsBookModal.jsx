@@ -25,6 +25,7 @@ import { format, parseISO } from 'date-fns';
 import * as store from '../store/store';
 import * as scoring from '../store/scoring';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 import { getLocalDateStr, formatTaskMetaDates } from '../utils/taskUtils';
 import ConfettiCelebration from './ConfettiCelebration';
 
@@ -36,6 +37,7 @@ export default function RewardsBookModal({
   initialTab = 'penalties',
   activeTasks = []
 }) {
+  const { user } = useAuth();
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState(initialTab === 'rewards' ? 'rewards' : 'penalties');
   const [searchQuery, setSearchQuery] = useState('');
@@ -46,21 +48,21 @@ export default function RewardsBookModal({
   // Lazy initialize all data from local storage/cache so modal displays instantly with 0ms delay
   const [allTasks, setAllTasks] = useState(() => {
     try {
-      return store.getAllTasksFlat() || [];
+      return user ? (store.getAllTasksFlat() || []) : [];
     } catch (e) {
       return [];
     }
   });
   const [milestones, setMilestones] = useState(() => {
     try {
-      return store.getStreakMilestoneRewards() || {};
+      return user ? (store.getStreakMilestoneRewards() || {}) : {};
     } catch (e) {
       return {};
     }
   });
   const [claimedMilestones, setClaimedMilestones] = useState(() => {
     try {
-      return store.getClaimedStreakMilestones() || {};
+      return user ? (store.getClaimedStreakMilestones() || {}) : {};
     } catch (e) {
       return {};
     }
@@ -68,7 +70,7 @@ export default function RewardsBookModal({
   const [effectiveStreak, setEffectiveStreak] = useState(0);
   const [activePunishment, setActivePunishment] = useState(() => {
     try {
-      return store.getActivePunishment() || null;
+      return user ? (store.getActivePunishment() || null) : null;
     } catch (e) {
       return null;
     }
@@ -77,6 +79,7 @@ export default function RewardsBookModal({
   // Only show blocking loader on the very first mount if local storage has 0 tasks
   const [loading, setLoading] = useState(() => {
     try {
+      if (!user) return false;
       const initial = store.getAllTasksFlat();
       return !initial || initial.length === 0;
     } catch (e) {
@@ -164,6 +167,15 @@ export default function RewardsBookModal({
   // Instant data hydration & background revalidation (never flash loading screen on re-opening)
   useEffect(() => {
     if (!isOpen) return;
+
+    if (!user) {
+      setAllTasks([]);
+      setMilestones({});
+      setClaimedMilestones({});
+      setActivePunishment(null);
+      setLoading(false);
+      return;
+    }
 
     // 1. Immediately populate from local cache so newly added items show up instantly with 0ms delay
     const flat = store.getAllTasksFlat() || [];
@@ -450,6 +462,7 @@ export default function RewardsBookModal({
 
   // Claim a Reward (Task or Milestone)
   const handleClaimReward = async (item) => {
+    if (!user) return;
     if (claimingId) return;
     setClaimingId(item.id);
     try {
@@ -513,6 +526,7 @@ export default function RewardsBookModal({
 
   // Acknowledge / Accept a Penalty
   const handleAcceptPenalty = async (item) => {
+    if (!user) return;
     if (acceptingId) return;
     setAcceptingId(item.id);
     try {

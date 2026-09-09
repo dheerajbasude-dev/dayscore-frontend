@@ -26,6 +26,11 @@ export default function AnalyticsView() {
   useEffect(() => {
     let isMounted = true;
     const loadAnalyticsData = async () => {
+      if (!user) {
+        setArchives([])
+        setTodayTasks([])
+        return
+      }
       const todayStr = format(new Date(), 'yyyy-MM-dd')
 
       const computedArchives = store.getArchivesFromTasks()
@@ -59,6 +64,15 @@ export default function AnalyticsView() {
       observer.disconnect()
     }
   }, [user])
+
+  useEffect(() => {
+    const handleLogout = () => {
+      setArchives([]);
+      setTodayTasks([]);
+    };
+    window.addEventListener('dayscore_user_logout', handleLogout);
+    return () => window.removeEventListener('dayscore_user_logout', handleLogout);
+  }, []);
 
   const mergedArchives = useMemo(() => {
     const todayStr = format(new Date(), 'yyyy-MM-dd');

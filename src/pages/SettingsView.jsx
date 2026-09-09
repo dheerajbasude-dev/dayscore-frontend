@@ -96,6 +96,10 @@ export default function SettingsView() {
   const currentMinute = now.getMinutes()
 
   const handleOpenAddTemplate = () => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
     setEditingTemplate(null)
     const initialDate = format(new Date(), 'yyyy-MM-dd')
     const initialDue = addHours(new Date(), 2)
@@ -109,6 +113,10 @@ export default function SettingsView() {
   }
 
   const handleEditTemplate = (t) => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
     setEditingTemplate(t)
     setTTitle(t.title || '')
     setTCategory(t.category || 'Work')
@@ -162,6 +170,13 @@ export default function SettingsView() {
   useEffect(() => {
     let isMounted = true;
     const loadSettingsData = async () => {
+      if (!user) {
+        setSettings({ notifications: false, reminderLeadTime: 30 })
+        setTemplates([])
+        setLoading(false)
+        return
+      }
+
       // Instant cache load so switching tabs has ZERO delay and no re-triggering of loading spinners!
       const cached = store.getSettings()
       if (cached) setSettings(cached)
@@ -193,6 +208,18 @@ export default function SettingsView() {
     loadSettingsData()
     return () => { isMounted = false; }
   }, [user])
+
+  useEffect(() => {
+    const handleLogout = () => {
+      setSettings({ notifications: false, reminderLeadTime: 30 });
+      setTemplates([]);
+      setShowAddTemplate(false);
+      setShowResetModal(false);
+      setShowAuthModal(true);
+    };
+    window.addEventListener('dayscore_user_logout', handleLogout);
+    return () => window.removeEventListener('dayscore_user_logout', handleLogout);
+  }, []);
 
   // Real-Time Cross-Device & Cross-Tab Settings Synchronization
   useEffect(() => {
@@ -302,6 +329,10 @@ export default function SettingsView() {
   const [testPushStatus, setTestPushStatus] = useState('')
 
   const handleToggleNotifications = async () => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
     if (isPushSubscribing) return
     const nextState = !settings.notifications
     if (nextState) {
@@ -348,6 +379,10 @@ export default function SettingsView() {
   }
 
   const handleReminderChange = async (minutes) => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
     if (savingLeadTimeValue !== null) return;
     const numMinutes = Number(minutes);
     lastUserChangeRef.current = Date.now();
@@ -376,6 +411,10 @@ export default function SettingsView() {
   };
 
   const handleTestNotification = async () => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
     if (testPushStatus === 'sending') return
 
     // 1. Check browser notification permission
@@ -447,6 +486,10 @@ export default function SettingsView() {
 
   const handleSaveTemplate = async (e) => {
     e.preventDefault()
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
     if (!tTitle.trim() || isSavingTemplate) return
 
     const [year, month, day] = tDate.split('-').map(Number)
@@ -487,6 +530,10 @@ export default function SettingsView() {
   }
 
   const handleDeleteTemplate = async (id) => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
     if (deletingTemplateId === id) return
     setDeletingTemplateId(id)
     try {
@@ -498,6 +545,10 @@ export default function SettingsView() {
   }
 
   const handleExport = () => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
     const dataStr = store.exportAllData()
     const blob = new Blob([dataStr], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
@@ -507,6 +558,10 @@ export default function SettingsView() {
   }
 
   const handleImport = (e) => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
     const file = e.target.files[0]
     if (!file) return
     const reader = new FileReader()
@@ -519,12 +574,20 @@ export default function SettingsView() {
   }
 
   const handleOpenResetModal = () => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
     setResetConfirmText('')
     setShowResetModal(true)
   }
 
   const handleExecuteReset = async (e) => {
     if (e) e.preventDefault()
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
     if (resetConfirmText.trim() !== 'DELETE ALL DATA' || isResetting) return
     setIsResetting(true)
     try {

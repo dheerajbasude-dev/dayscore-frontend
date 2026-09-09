@@ -6,14 +6,16 @@ import * as store from '../store/store'
 import * as scoring from '../store/scoring'
 import { useAuth } from '../context/AuthContext'
 import RewardsBookModal from '../components/RewardsBookModal'
+import AuthModal from '../components/AuthModal'
 
 export default function RewardsView() {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const [rewards, setRewards] = useState(() => store.getRewards())
-  const [punishments, setPunishments] = useState(() => store.getPunishments())
-  const [milestones, setMilestones] = useState(() => store.getStreakMilestoneRewards() || {})
-  const [claimedMilestones, setClaimedMilestones] = useState(() => store.getClaimedStreakMilestones() || {})
+  const [showAuthModal, setShowAuthModal] = useState(false)
+  const [rewards, setRewards] = useState(() => (user ? store.getRewards() : []))
+  const [punishments, setPunishments] = useState(() => (user ? store.getPunishments() : []))
+  const [milestones, setMilestones] = useState(() => (user ? (store.getStreakMilestoneRewards() || {}) : {}))
+  const [claimedMilestones, setClaimedMilestones] = useState(() => (user ? (store.getClaimedStreakMilestones() || {}) : {}))
   const [loading, setLoading] = useState(() => !store.isRewardsCached())
   
   const [newReward, setNewReward] = useState('')
@@ -83,6 +85,16 @@ export default function RewardsView() {
   }, []);
 
   const loadRewardsData = useCallback(async () => {
+    if (!user) {
+      setRewards([])
+      setPunishments([])
+      setMilestones({})
+      setClaimedMilestones({})
+      setBookPendingCount(0)
+      setLoading(false)
+      return
+    }
+
     const cachedR = store.getRewards()
     const cachedP = store.getPunishments()
     if (cachedR && cachedR.length > 0) setRewards(cachedR)
@@ -109,7 +121,7 @@ export default function RewardsView() {
     }
     updateBookCounts()
     setLoading(false)
-  }, [updateBookCounts]);
+  }, [user, updateBookCounts]);
 
   useEffect(() => {
     let isMounted = true;
@@ -117,8 +129,25 @@ export default function RewardsView() {
     return () => { isMounted = false; }
   }, [user, loadRewardsData])
 
+  useEffect(() => {
+    const handleLogout = () => {
+      setRewards([]);
+      setPunishments([]);
+      setMilestones({});
+      setClaimedMilestones({});
+      setBookPendingCount(0);
+      setShowAuthModal(true);
+    };
+    window.addEventListener('dayscore_user_logout', handleLogout);
+    return () => window.removeEventListener('dayscore_user_logout', handleLogout);
+  }, []);
+
   const handleAddReward = async (e) => {
     if (e && e.preventDefault) e.preventDefault()
+    if (!user) {
+      setShowAuthModal(true)
+      return
+    }
     const text = newReward.trim()
     if (!text || isAddingReward) return
     setIsAddingReward(true)
@@ -134,6 +163,10 @@ export default function RewardsView() {
   }
 
   const handleDeleteReward = async (index) => {
+    if (!user) {
+      setShowAuthModal(true)
+      return
+    }
     if (deletingRewardIndex !== null) return
     const currentList = Array.isArray(rewards) ? rewards : []
     const targetText = currentList[index]
@@ -151,6 +184,10 @@ export default function RewardsView() {
 
   const handleAddPunishment = async (e) => {
     if (e && e.preventDefault) e.preventDefault()
+    if (!user) {
+      setShowAuthModal(true)
+      return
+    }
     const text = newPunishment.trim()
     if (!text || isAddingPunishment) return
     setIsAddingPunishment(true)
@@ -166,6 +203,10 @@ export default function RewardsView() {
   }
 
   const handleDeletePunishment = async (index) => {
+    if (!user) {
+      setShowAuthModal(true)
+      return
+    }
     if (deletingPunishmentIndex !== null) return
     const currentList = Array.isArray(punishments) ? punishments : []
     const targetText = currentList[index]
@@ -182,11 +223,19 @@ export default function RewardsView() {
   }
 
   const handleEditMilestone = (days) => {
+    if (!user) {
+      setShowAuthModal(true)
+      return
+    }
     setEditingMilestone(days)
     setMilestoneText(milestones[days] || '')
   }
 
   const handleSaveMilestone = async (days) => {
+    if (!user) {
+      setShowAuthModal(true)
+      return
+    }
     if (savingMilestoneDays !== null) return
     setSavingMilestoneDays(days)
     const updated = { ...milestones, [days]: milestoneText.trim() }
@@ -202,6 +251,10 @@ export default function RewardsView() {
   }
 
   const handleClaimMilestone = async (days) => {
+    if (!user) {
+      setShowAuthModal(true)
+      return
+    }
     if (claimingMilestoneDays !== null) return
     setClaimingMilestoneDays(days)
     try {
@@ -255,7 +308,14 @@ export default function RewardsView() {
               <button
                 type="button"
                 className="btn btn-primary rewards-book-cta-btn"
-                onClick={() => { setBookInitialTab('penalties'); setIsBookOpen(true); }}
+                onClick={() => {
+                  if (!user) {
+                    setShowAuthModal(true);
+                    return;
+                  }
+                  setBookInitialTab('penalties');
+                  setIsBookOpen(true);
+                }}
               >
                 <BookOpen size={16} />
                 <span>Open Ledger Book</span>
@@ -534,6 +594,11 @@ export default function RewardsView() {
           const taskId = task.id || task._id;
           navigate(`/?date=${targetDate}&taskId=${taskId}`);
         }}
+      />
+
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
       />
     </div>
   )

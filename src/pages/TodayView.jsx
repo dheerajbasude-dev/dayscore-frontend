@@ -225,6 +225,10 @@ export default function TodayView() {
   const isToday = currentDateStr === todayStr
 
   const handleOpenAddModal = useCallback(() => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
     if (currentDateStr < todayStr) {
       setCurrentDateStr(todayStr);
       try {
@@ -233,7 +237,7 @@ export default function TodayView() {
       } catch {}
     }
     setShowAddModal(true);
-  }, [currentDateStr, todayStr]);
+  }, [currentDateStr, todayStr, user]);
 
   useEffect(() => {
     const handleOpenModalEvent = () => {
@@ -336,7 +340,7 @@ export default function TodayView() {
     };
   }, []);
 
-  const [archives, setArchives] = useState(() => store.getArchivesFromTasks())
+  const [archives, setArchives] = useState(() => (user ? store.getArchivesFromTasks() : []))
   const [scoreResult, setScoreResult] = useState({ score: 0, baseScore: 0, bonus1: 0, bonus2: 0, penalty: 0 })
   const [streak, setStreak] = useState({ current: 0, isActive: false })
   const [averages, setAverages] = useState({ week: 0, month: 0, allTime: 0 })
@@ -382,6 +386,7 @@ export default function TodayView() {
 
   // --- Automated Background Carry-Over Toast Notification State ---
   const initialCarriedCount = useMemo(() => {
+    if (!user) return 0;
     const uid = store.getUserId();
     const prefix = `dayscore_${uid}_tasks_`;
     const todayTasks = store.getTasks(todayStr);
@@ -425,6 +430,7 @@ export default function TodayView() {
   }, [todayStr, user]);
 
   const shouldShowInitialToast = useMemo(() => {
+    if (!user) return false;
     if (initialCarriedCount <= 0) return false;
     try {
       const uid = store.getUserId();
@@ -456,6 +462,11 @@ export default function TodayView() {
 
   // Synchronously update carried task count & show banner once per day if carried tasks >= 1
   useEffect(() => {
+    if (!user) {
+      setAutoCarriedCount(0);
+      setShowAutoCarriedBanner(false);
+      return;
+    }
     const uid = store.getUserId();
     const alreadyShown = localStorage.getItem(`dayscore_${uid}_shown_carried_banner_${todayStr}`);
     const todayTasks = store.getTasks(todayStr);
@@ -468,6 +479,7 @@ export default function TodayView() {
   }, [tasks, todayStr, isCarriedTask, user]);
 
   useEffect(() => {
+    if (!user) return;
     let isMounted = true;
     const runAutoCarryOver = async () => {
       const currentUid = store.getUserId();
@@ -792,6 +804,12 @@ export default function TodayView() {
   useEffect(() => {
     let isMounted = true;
     const loadUserData = async () => {
+      if (!user) {
+        setArchives([]);
+        setActivePunishment(null);
+        setSettings({ notifications: false });
+        return;
+      }
       const allArchives = store.getArchivesFromTasks()
       if (!isMounted) return;
       setArchives(allArchives)
@@ -821,9 +839,49 @@ export default function TodayView() {
     return () => { isMounted = false; }
   }, [currentDateStr, user])
 
+  // Multi-tab and in-app instant logout purge listener
+  useEffect(() => {
+    const handleUserLogout = () => {
+      setTasks([]);
+      setArchives([]);
+      setReflection('');
+      setActivePunishment(null);
+      setTodaysReward(null);
+      setPastUnfinishedDates([]);
+      setShowPastPendingBanner(false);
+      setAutoCarriedCount(0);
+      setShowAutoCarriedBanner(false);
+      setShowAddModal(false);
+      setShowReflectionModal(false);
+      setShowFilterModal(false);
+      setRatingTask(null);
+      setTaskToDelete(null);
+      setIsBookOpen(false);
+      setScoreResult({ score: 0, baseScore: 0, bonus1: 0, bonus2: 0, penalty: 0 });
+      setStreak({ current: 0, isActive: false });
+      setAverages({ week: 0, month: 0, allTime: 0 });
+      setShowAuthModal(true);
+    };
+    window.addEventListener('dayscore_user_logout', handleUserLogout);
+    return () => window.removeEventListener('dayscore_user_logout', handleUserLogout);
+  }, []);
+
   // Load daily tasks & reflection per user & date
   useEffect(() => {
     let isMounted = true;
+
+    if (!user) {
+      setTasks([]);
+      setArchives([]);
+      setReflection('');
+      setTodaysReward(null);
+      setPastUnfinishedDates([]);
+      setShowPastPendingBanner(false);
+      setAutoCarriedCount(0);
+      setShowAutoCarriedBanner(false);
+      setLoading(false);
+      return;
+    }
 
     setReflection(store.getReflection(currentDateStr));
     store.fetchReflectionApi(currentDateStr).then(syncedRef => {
@@ -955,6 +1013,7 @@ export default function TodayView() {
   // - Tasks on past dates with future due time -> move to target due date
   // - Tasks on past dates with expired due time or no due time -> stay on original date & marked as missed
   useEffect(() => {
+    if (!user) return;
     let isMounted = true;
     const processPastAndOverdueTasks = async () => {
       const now = new Date();
@@ -1119,6 +1178,7 @@ export default function TodayView() {
 
   // Hooks
   const handleRollover = useCallback(() => {
+    if (!user) return;
     // Archive current day before rollover
     const currentTasks = store.getTasks(currentDateStr)
     if (currentTasks.length > 0) {
@@ -1135,12 +1195,16 @@ export default function TodayView() {
     }
     // Refresh date string which triggers re-renders and re-fetches
     setCurrentDateStr(format(new Date(), 'yyyy-MM-dd'))
-  }, [currentDateStr])
+  }, [currentDateStr, user])
 
   useDayRollover(currentDateStr, tasks, handleRollover, useCallback((updatedTasks) => setTasks(updatedTasks), []))
-  useNotifications(tasks, settings.notifications, settings.reminderLeadTime ?? 30)
+  useNotifications(tasks, user ? settings.notifications : false, settings.reminderLeadTime ?? 30)
 
   const handleAddTask = async (newTask) => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
     try {
       await store.addTask(todayStr, newTask);
       await store.fetchAllTasksApi();
@@ -1155,6 +1219,10 @@ export default function TodayView() {
   };
 
   const handleCarryOver = async (task) => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
     if (!task) return;
     const targetId = task.id || task._id;
     const sourceDate = task.sourceDate || task.date || task.dateLabel || currentDateStr;
@@ -1187,6 +1255,10 @@ export default function TodayView() {
   };
 
   const handleDismissCarryOver = async (task) => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
     if (!task) return;
     const targetId = task.id || task._id;
     const sourceDate = task.sourceDate || task.date || task.dateLabel || currentDateStr;
@@ -1310,6 +1382,10 @@ export default function TodayView() {
   }, [tasks, currentDateStr, isTaskTimeOver]);
 
   const handleAddDailyNote = async (targetTask, noteText, noteRating) => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
     if (!targetTask || !noteText || !noteText.trim()) return;
     if (currentDateStr < todayStr) return; // Daily progress notes addition only works on Today's date
     if (targetTask.status === 'done' || targetTask.status === 'missed') return; // Cannot add notes to completed/missed tasks
@@ -1460,11 +1536,19 @@ export default function TodayView() {
   };
 
   const handleAutoCompleteWithRating = async (task, computedRating) => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
     if (!task) return;
     await handleRatingConfirm(task, computedRating, 10);
   };
 
   const handleStatusChange = async (taskOrId, newStatus) => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
     const isObject = typeof taskOrId === 'object' && taskOrId !== null;
     const taskId = isObject ? (taskOrId.id || taskOrId._id) : taskOrId;
     const taskDate = isObject ? (taskOrId.date || taskOrId.dateLabel || currentDateStr) : currentDateStr;
@@ -1502,6 +1586,10 @@ export default function TodayView() {
 
   // Rating flow: open slider modal instead of directly completing
   const handleRequestComplete = (task) => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
     if (!task) return;
     // On older/past dates (currentDateStr < todayStr), past tasks cannot be completed
     if (currentDateStr < todayStr) return;
@@ -1510,6 +1598,10 @@ export default function TodayView() {
   }
 
   const handleRatingConfirm = async (ratingTaskId, rating, maxRating = 10) => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
     const targetTask = (typeof ratingTaskId === 'object' && ratingTaskId !== null)
       ? ratingTaskId
       : (ratingTask || tasks.find(t => String(t.id || t._id) === String(ratingTaskId)) || (Array.isArray(allTasksAcrossDates) ? allTasksAcrossDates.find(t => String(t.id || t._id) === String(ratingTaskId)) : null));
@@ -1664,6 +1756,10 @@ export default function TodayView() {
   }
 
   const handleDeleteTask = (taskOrId) => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
     const isObject = typeof taskOrId === 'object' && taskOrId !== null;
     const taskObj = isObject ? taskOrId : tasks.find(t => String(t.id || t._id) === String(taskOrId));
     if (taskObj) {
@@ -1672,6 +1768,10 @@ export default function TodayView() {
   };
 
   const handleConfirmDeleteTask = async (task) => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
     if (!task || isDeletingTask) return;
     const taskId = task.id || task._id;
     const taskDate = task.date || task.dateLabel || currentDateStr;
@@ -1731,6 +1831,10 @@ export default function TodayView() {
   const [ackRewardLoading, setAckRewardLoading] = useState(false)
 
   const handleAcknowledgePunishment = async () => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
     if (ackPunishmentLoading) return;
     setAckPunishmentLoading(true);
     try {
@@ -1763,6 +1867,10 @@ export default function TodayView() {
   }
 
   const handleAcknowledgeReward = async () => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
     if (ackRewardLoading) return;
     setAckRewardLoading(true);
     try {
@@ -1799,6 +1907,10 @@ export default function TodayView() {
   }
 
   const handleClaimTaskReward = async (taskOrId) => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
     const isObject = typeof taskOrId === 'object' && taskOrId !== null;
     const targetId = isObject ? (taskOrId.id || taskOrId._id) : taskOrId;
     const targetDate = isObject ? (getLocalDateStr(taskOrId.date) || taskOrId.dateLabel || currentDateStr) : currentDateStr;
@@ -1857,6 +1969,10 @@ export default function TodayView() {
   };
 
   const handleAcceptTaskPenalty = async (taskOrId) => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
     const isObject = typeof taskOrId === 'object' && taskOrId !== null;
     const targetId = isObject ? (taskOrId.id || taskOrId._id) : taskOrId;
     const targetDate = isObject ? (getLocalDateStr(taskOrId.date) || taskOrId.dateLabel || currentDateStr) : currentDateStr;
@@ -2387,6 +2503,10 @@ export default function TodayView() {
             <ReflectionBox 
               value={reflection} 
               onChange={(val) => {
+                if (!user) {
+                  setShowAuthModal(true);
+                  return;
+                }
                 setReflection(val);
                 store.saveReflection(currentDateStr, val);
               }} 
@@ -2415,7 +2535,14 @@ export default function TodayView() {
               <button
                 type="button"
                 className="btn btn-primary btn-sm"
-                onClick={() => { setBookInitialTab('penalties'); setIsBookOpen(true); }}
+                onClick={() => {
+                  if (!user) {
+                    setShowAuthModal(true);
+                    return;
+                  }
+                  setBookInitialTab('penalties');
+                  setIsBookOpen(true);
+                }}
                 style={{ fontSize: '0.78rem', padding: '4px 12px', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '5px' }}
               >
                 <span>Open Book</span>
@@ -2662,6 +2789,10 @@ export default function TodayView() {
             <ReflectionBox
               value={reflection}
               onChange={(val) => {
+                if (!user) {
+                  setShowAuthModal(true);
+                  return;
+                }
                 setReflection(val);
                 store.saveReflection(currentDateStr, val);
               }}
@@ -2954,6 +3085,7 @@ export default function TodayView() {
         initialTab={bookInitialTab}
         activeTasks={tasks}
         onTaskUpdated={async () => {
+          if (!user) return;
           await store.fetchAllTasksApi();
           setTasks(store.getTasks(currentDateStr));
           setArchives(store.getAllArchives());

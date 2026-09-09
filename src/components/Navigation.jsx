@@ -14,8 +14,20 @@ export default function Navigation() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+    setShowAuthModal(true);
+  };
+
   const handleAddClick = (e) => {
     if (e && e.preventDefault) e.preventDefault();
+
+    if (!user) {
+      navigate('/');
+      setShowAuthModal(true);
+      return;
+    }
 
     // Signal modal open in sessionStorage so TodayView will open it immediately upon mounting
     try {
@@ -73,7 +85,7 @@ export default function Navigation() {
               <span className="user-name">{user.name}</span>
               <span className="user-email">{user.email}</span>
             </div>
-            <button className="btn-icon user-logout-btn" onClick={logout} title="Sign Out">
+            <button className="btn-icon user-logout-btn" onClick={handleLogout} title="Sign Out">
               <LogOut size={16} />
             </button>
           </div>

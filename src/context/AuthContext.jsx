@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { getApiBaseUrl, safeJsonParse } from '../utils/api';
-import { clearTaskMemoryCache } from '../store/store';
+import { clearTaskMemoryCache, clearLocalUserData } from '../store/store';
 
 const AuthContext = createContext(null);
 
@@ -111,11 +111,42 @@ export const AuthProvider = ({ children }) => {
     return data.user;
   };
 
+  // Multi-tab logout listener
+  useEffect(() => {
+    let bc = null;
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        bc = new BroadcastChannel('dayscore_auth_sync');
+        bc.onmessage = (event) => {
+          if (event.data && event.data.type === 'LOGOUT') {
+            clearLocalUserData();
+            localStorage.removeItem('dayscore_token');
+            setToken(null);
+            setUser(null);
+          }
+        };
+      }
+    } catch (e) {}
+    return () => {
+      if (bc) try { bc.close(); } catch (e) {}
+    };
+  }, []);
+
   const logout = () => {
-    clearTaskMemoryCache();
+    const currentUserId = user?.id || getUserFromToken(token)?.id;
+    clearLocalUserData(currentUserId);
     localStorage.removeItem('dayscore_token');
     setToken(null);
     setUser(null);
+
+    // Broadcast logout across tabs
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        const bc = new BroadcastChannel('dayscore_auth_sync');
+        bc.postMessage({ type: 'LOGOUT' });
+        bc.close();
+      }
+    } catch (e) {}
   };
 
   return (
