@@ -134,6 +134,12 @@ export async function subscribeToPushNotifications(forceRenew = false) {
     }
   }
 
+  if (subscription && subscription.endpoint) {
+    try {
+      localStorage.setItem('dayscore_last_push_endpoint', subscription.endpoint);
+    } catch (e) {}
+  }
+
   // 4. Send subscription payload to backend MongoDB
   const token = localStorage.getItem('dayscore_token');
   const baseUrl = getApiBaseUrl();
@@ -168,12 +174,24 @@ export async function subscribeToPushNotifications(forceRenew = false) {
 export async function unsubscribePushNotifications() {
   if (!isPushNotificationSupported()) return;
   try {
-    const reg = await navigator.serviceWorker.ready;
-    const subscription = await reg.pushManager.getSubscription();
-    if (subscription) {
-      const endpoint = subscription.endpoint;
-      await subscription.unsubscribe();
+    let endpoint = null;
+    try {
+      endpoint = localStorage.getItem('dayscore_last_push_endpoint') || null;
+      localStorage.removeItem('dayscore_last_push_endpoint');
+    } catch (e) {}
 
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const subscription = await reg.pushManager.getSubscription();
+      if (subscription) {
+        endpoint = subscription.endpoint || endpoint;
+        await subscription.unsubscribe();
+      }
+    } catch (subErr) {
+      console.warn('Service worker unsubscription note:', subErr);
+    }
+
+    if (endpoint) {
       const token = localStorage.getItem('dayscore_token');
       const baseUrl = getApiBaseUrl();
 

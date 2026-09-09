@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { getApiBaseUrl, safeJsonParse } from '../utils/api';
 import { clearTaskMemoryCache, clearLocalUserData } from '../store/store';
+import { unsubscribePushNotifications, subscribeToPushNotifications } from '../utils/pushManager';
 
 const AuthContext = createContext(null);
 
@@ -88,6 +89,14 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('dayscore_token', data.token);
     setToken(data.token);
     setUser(data.user);
+
+    // Re-subscribe device for authenticated user if notification permission is granted
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+      subscribeToPushNotifications(true).catch(e => {
+        console.warn('Auto re-subscribe push after login note:', e);
+      });
+    }
+
     return data.user;
   };
 
@@ -108,6 +117,14 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('dayscore_token', data.token);
     setToken(data.token);
     setUser(data.user);
+
+    // Re-subscribe device for authenticated user if notification permission is granted
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+      subscribeToPushNotifications(true).catch(e => {
+        console.warn('Auto re-subscribe push after register note:', e);
+      });
+    }
+
     return data.user;
   };
 
@@ -119,6 +136,9 @@ export const AuthProvider = ({ children }) => {
         bc = new BroadcastChannel('dayscore_auth_sync');
         bc.onmessage = (event) => {
           if (event.data && event.data.type === 'LOGOUT') {
+            try {
+              unsubscribePushNotifications();
+            } catch (e) {}
             clearLocalUserData();
             localStorage.removeItem('dayscore_token');
             setToken(null);
@@ -132,8 +152,13 @@ export const AuthProvider = ({ children }) => {
     };
   }, []);
 
-  const logout = () => {
+  const logout = async () => {
     const currentUserId = user?.id || getUserFromToken(token)?.id;
+    try {
+      await unsubscribePushNotifications();
+    } catch (e) {
+      console.warn('Push unsubscribe error during logout:', e);
+    }
     clearLocalUserData(currentUserId);
     localStorage.removeItem('dayscore_token');
     setToken(null);
