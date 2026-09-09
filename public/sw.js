@@ -1,5 +1,5 @@
-// DayScore Service Worker v2.4 (Build: 2026-09-09-LockScreenWake)
-const SW_VERSION = 'dayscore-sw-v2.4-2026-09-09-LockScreenWake';
+// DayScore Service Worker v2.5 (Build: 2026-09-09-DozeBypass)
+const SW_VERSION = 'dayscore-sw-v2.5-2026-09-09-DozeBypass';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -33,7 +33,7 @@ self.addEventListener('push', (event) => {
     body: data.body,
     icon: data.icon || '/icons/icon-192.png',
     badge: data.badge || '/icons/badge-96.png',
-    tag: data.tag || `dayscore-notif-${Date.now()}`,
+    tag: (data.tag || 'dayscore-notif') + '-' + Date.now(), // Unique tag prevents Android OS from silently replacing or collapsing
     data: {
       url: data.url || '/'
     },
@@ -41,7 +41,7 @@ self.addEventListener('push', (event) => {
     requireInteraction: true, // Prompts Android to show heads-up alert and stay visible on lock screen
     silent: false, // Explicitly tell Android to play sound/vibrate and not mute in background
     timestamp: data.timestamp || Date.now(),
-    vibrate: [300, 150, 300, 150, 300] // Strong vibration pattern to wake device haptic engine
+    vibrate: [500, 250, 500, 250, 500] // Strong vibration pattern to wake device haptic engine
   };
 
   event.waitUntil(
