@@ -1116,6 +1116,17 @@ export async function saveSettings(settings) {
 
   localStorage.setItem(`dayscore_${uid}_settings`, JSON.stringify(normalized));
 
+  try {
+    if (typeof BroadcastChannel !== 'undefined') {
+      const bc = new BroadcastChannel('dayscore_settings_sync');
+      bc.postMessage({ settings: normalized });
+      bc.close();
+    }
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('dayscore_settings_updated', { detail: normalized }));
+    }
+  } catch (e) {}
+
   const token = getToken();
   if (token) {
     try {

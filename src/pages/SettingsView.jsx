@@ -194,6 +194,110 @@ export default function SettingsView() {
     return () => { isMounted = false; }
   }, [user])
 
+  // Real-Time Cross-Device & Cross-Tab Settings Synchronization
+  useEffect(() => {
+    let isMounted = true;
+    let syncInterval = null;
+
+    // 1. Core synchronization function: polls server for changes made on other devices
+    const syncSettingsFromServer = async () => {
+      if (!isMounted || !user) return;
+      // Don't overwrite if user actively changed a setting on THIS device recently
+      if (Date.now() - lastUserChangeRef.current < 2500 || savingLeadTimeValue !== null) return;
+      // Pause polling if tab/app is hidden to conserve mobile battery
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+
+      try {
+        const remote = await store.fetchSettingsApi();
+        if (!isMounted || !remote) return;
+        setSettings(prev => {
+          if (Date.now() - lastUserChangeRef.current < 2500 || savingLeadTimeValue !== null) {
+            return prev;
+          }
+          const remoteLead = remote.reminderLeadTime !== undefined ? Number(remote.reminderLeadTime) : Number(remote.reminder_lead_time);
+          const currentLead = prev.reminderLeadTime !== undefined ? Number(prev.reminderLeadTime) : Number(prev.reminder_lead_time);
+          const remoteNotifs = Boolean(remote.notifications);
+          const currentNotifs = Boolean(prev.notifications);
+
+          if (remoteLead !== currentLead || remoteNotifs !== currentNotifs) {
+            return {
+              ...prev,
+              ...remote,
+              reminderLeadTime: remoteLead,
+              reminder_lead_time: remoteLead,
+              notifications: remoteNotifs
+            };
+          }
+          return prev;
+        });
+      } catch (e) {
+        // Silently ignore transient network blips
+      }
+    };
+
+    // 2. Active low-latency polling every 2 seconds while Settings page is open and visible
+    if (user) {
+      syncInterval = setInterval(syncSettingsFromServer, 2000);
+    }
+
+    // 3. Instant sync on window focus or app resume (e.g. switching back to tab/app on phone)
+    const handleVisibilityOrFocus = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        syncSettingsFromServer();
+      }
+    };
+    window.addEventListener('visibilitychange', handleVisibilityOrFocus);
+    window.addEventListener('focus', handleVisibilityOrFocus);
+
+    // 4. Same-device multi-tab instant sync via BroadcastChannel (< 5ms)
+    let bc = null;
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        bc = new BroadcastChannel('dayscore_settings_sync');
+        bc.onmessage = (event) => {
+          if (!isMounted || !event.data || !event.data.settings) return;
+          const remote = event.data.settings;
+          const remoteLead = remote.reminderLeadTime !== undefined ? Number(remote.reminderLeadTime) : Number(remote.reminder_lead_time);
+          const remoteNotifs = Boolean(remote.notifications);
+          setSettings(prev => ({
+            ...prev,
+            ...remote,
+            reminderLeadTime: remoteLead,
+            reminder_lead_time: remoteLead,
+            notifications: remoteNotifs
+          }));
+        };
+      }
+    } catch (e) {}
+
+    // 5. Custom window event listener for in-app updates
+    const handleCustomEvent = (e) => {
+      if (!isMounted || !e.detail) return;
+      const remote = e.detail;
+      const remoteLead = remote.reminderLeadTime !== undefined ? Number(remote.reminderLeadTime) : Number(remote.reminder_lead_time);
+      const remoteNotifs = Boolean(remote.notifications);
+      setSettings(prev => ({
+        ...prev,
+        ...remote,
+        reminderLeadTime: remoteLead,
+        reminder_lead_time: remoteLead,
+        notifications: remoteNotifs
+      }));
+    };
+    window.addEventListener('dayscore_settings_updated', handleCustomEvent);
+
+    return () => {
+      isMounted = false;
+      if (syncInterval) clearInterval(syncInterval);
+      window.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+      window.removeEventListener('focus', handleVisibilityOrFocus);
+      window.removeEventListener('dayscore_settings_updated', handleCustomEvent);
+      if (bc) {
+        try { bc.close(); } catch (e) {}
+      }
+    };
+  }, [user, savingLeadTimeValue]);
+
   const [isPushSubscribing, setIsPushSubscribing] = useState(false)
   const [testPushStatus, setTestPushStatus] = useState('')
 
