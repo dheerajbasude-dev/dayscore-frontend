@@ -1,5 +1,5 @@
-// DayScore Service Worker v2.8 (Build: 2026-09-09-LockScreenDirect)
-const SW_VERSION = 'dayscore-sw-v2.8-2026-09-09-LockScreenDirect';
+// DayScore Service Worker v3.0 (Build: 2026-09-09-BackgroundPushFix)
+const SW_VERSION = 'dayscore-sw-v3.0-2026-09-09-BackgroundPushFix';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -7,6 +7,21 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim());
+});
+
+// ──────────────────────────────────────────────────────────────────────────────
+// CRITICAL: fetch event handler
+// Chrome on Desktop AND Android considers a service worker without a fetch
+// handler as "non-functional" and may terminate it aggressively when all tabs
+// are closed. By adding a fetch handler (even a pass-through), Chrome keeps
+// the SW process alive in the background, allowing push events to fire
+// immediately even when no tab is open.
+// ──────────────────────────────────────────────────────────────────────────────
+self.addEventListener('fetch', (event) => {
+  // Pass-through: let the browser handle all fetch requests normally.
+  // We do NOT intercept or cache anything — this handler exists solely
+  // to keep the service worker alive for background push delivery.
+  return;
 });
 
 // 1. Receive background Push Notification from server (even when app/tab is completely closed)
@@ -47,9 +62,12 @@ self.addEventListener('push', (event) => {
     ]
   };
 
+  // event.waitUntil() is CRITICAL — it tells the browser "don't kill this SW
+  // until the notification has been shown". Without it, the SW can be terminated
+  // before showNotification() completes, resulting in a silent/dropped push.
   event.waitUntil(
     self.registration.showNotification(data.title, notificationOptions).catch((err) => {
-      console.warn('showNotification rich options failed, falling back to minimal notification:', err);
+      console.warn('[SW] showNotification rich options failed, falling back to minimal notification:', err);
       return self.registration.showNotification(data.title, {
         body: data.body,
         icon: '/icons/icon-192.png'
@@ -105,7 +123,7 @@ self.addEventListener('pushsubscriptionchange', (event) => {
         });
       })
       .catch((err) => {
-        console.warn('Push subscription change renewal note:', err);
+        console.warn('[SW] Push subscription change renewal note:', err);
       })
   );
 });
