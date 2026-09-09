@@ -1,5 +1,5 @@
-// DayScore Service Worker v3.0 (Build: 2026-09-09-BackgroundPushFix)
-const SW_VERSION = 'dayscore-sw-v3.0-2026-09-09-BackgroundPushFix';
+// DayScore Service Worker v3.1 (Build: 2026-09-09-ExactTimeReminder)
+const SW_VERSION = 'dayscore-sw-v3.1-2026-09-09-ExactTimeReminder';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -48,7 +48,7 @@ self.addEventListener('push', (event) => {
     body: data.body,
     icon: data.icon || '/icons/icon-192.png',
     badge: data.badge || '/icons/badge-96.png',
-    tag: (data.tag || 'dayscore-notif') + '-' + Date.now(), // Unique tag prevents Android OS from silently replacing or collapsing
+    tag: data.tag || ('dayscore-notif-' + Date.now()), // Respect deduplication tag
     data: {
       url: data.url || '/'
     },

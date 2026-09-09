@@ -439,11 +439,13 @@ export default function SettingsView() {
       ? Number(settings.reminderLeadTime)
       : ((settings.reminder_lead_time !== undefined && settings.reminder_lead_time !== null)
         ? Number(settings.reminder_lead_time)
-        : 30);
-    const baseLead = rawMin === 0 ? 10 : rawMin;
-    const label = baseLead === 60
-      ? '1 hour before due time'
-      : `${baseLead} minutes before due time`;
+        : 0);
+    const baseLead = rawMin;
+    const label = baseLead === 0
+      ? 'at exact due time'
+      : baseLead === 60
+        ? '1 hour before due time'
+        : `${baseLead} minutes before due time`;
 
     // 2. Play audio chime
     playNotificationSound();

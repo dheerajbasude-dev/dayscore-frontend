@@ -119,6 +119,23 @@ export async function triggerDesktopNotification(title, body, tag = 'dayscore-no
 
 import { subscribeToPushNotifications, isPushNotificationSupported } from '../utils/pushManager';
 
+async function markTaskNotifiedOnServer(taskId, type, leadMinutes) {
+  try {
+    const token = localStorage.getItem('dayscore_token');
+    const baseUrl = import.meta.env.VITE_API_URL || '';
+    await fetch(`${baseUrl}/api/notifications/mark-notified`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify({ taskId, type, leadMinutes })
+    });
+  } catch (e) {
+    // Non-blocking background sync
+  }
+}
+
 export function useNotifications(tasks, enabled, leadTimeMinutes = 30) {
   const [permissionGranted, setPermissionGranted] = useState(false);
 
@@ -144,7 +161,103 @@ export function useNotifications(tasks, enabled, leadTimeMinutes = 30) {
     checkPermission();
   }, [enabled, checkPermission]);
 
-  // Client-side setTimeout alarms removed to prevent duplicate notifications.
-  // All scheduled task reminders and missed task alerts are pushed exclusively by the server cron job.
+  // Precision in-app reminders & heartbeat when DayScore is open (foreground or background tab)
+  useEffect(() => {
+    if (!enabled || !tasks || tasks.length === 0) return;
+    if (typeof window === 'undefined' || !('Notification' in window)) return;
+    if (Notification.permission !== 'granted') return;
+
+    const timeouts = [];
+    const leadMs = Number(leadTimeMinutes) * 60 * 1000;
+
+    const checkAndTriggerReminders = () => {
+      const now = Date.now();
+      const notifiedEvents = getNotifiedEvents();
+
+      tasks.forEach(task => {
+        if (task.status !== 'pending' && task.status !== 'inprogress') return;
+        const rawDue = task.dueDateTime || task.due_date_time;
+        const taskId = task.id || task._id;
+        if (!rawDue || !taskId) return;
+
+        const dueTime = new Date(rawDue).getTime();
+        if (isNaN(dueTime)) return;
+
+        // 1. Exact Due Time Reminder (Fires when task reaches due time)
+        const dueEventId = `${taskId}_exact_${dueTime}`;
+        const timeDiffDue = dueTime - now;
+
+        if (timeDiffDue <= 0 && timeDiffDue >= -120000) {
+          // Task due time reached within the last 2 minutes and not yet notified
+          if (!notifiedEvents.has(dueEventId)) {
+            markEventNotified(dueEventId);
+            triggerDesktopNotification(
+              `⏰ Task Due: ${task.title}`,
+              `Task '${task.title}' (${task.priority || 'Med'} Priority) is due right now!`,
+              `dayscore-task-due-${taskId}`
+            );
+            markTaskNotifiedOnServer(taskId, 'due');
+          }
+        } else if (timeDiffDue > 0 && timeDiffDue <= 24 * 60 * 60 * 1000) {
+          // Future due time: schedule exact-millisecond precision timer
+          if (!notifiedEvents.has(dueEventId)) {
+            const t = setTimeout(() => {
+              markEventNotified(dueEventId);
+              triggerDesktopNotification(
+                `⏰ Task Due: ${task.title}`,
+                `Task '${task.title}' (${task.priority || 'Med'} Priority) is due right now!`,
+                `dayscore-task-due-${taskId}`
+              );
+              markTaskNotifiedOnServer(taskId, 'due');
+            }, timeDiffDue);
+            timeouts.push(t);
+          }
+        }
+
+        // 2. Lead Time Reminder (Only if leadTimeMinutes > 0, e.g. 15, 30, 60 min before)
+        if (leadMs > 0) {
+          const notifyTime = dueTime - leadMs;
+          const leadEventId = `${taskId}_lead_${leadTimeMinutes}_${notifyTime}`;
+          const timeDiffLead = notifyTime - now;
+
+          if (timeDiffLead <= 0 && timeDiffLead >= -120000 && now < dueTime) {
+            if (!notifiedEvents.has(leadEventId)) {
+              markEventNotified(leadEventId);
+              const leadText = Number(leadTimeMinutes) === 60 ? '1 hour' : `${leadTimeMinutes} minutes`;
+              triggerDesktopNotification(
+                `⏰ Task Due Soon: ${task.title}`,
+                `Task '${task.title}' (${task.priority || 'Med'} Priority) is due in ${leadText}!`,
+                `dayscore-task-lead-${taskId}`
+              );
+              markTaskNotifiedOnServer(taskId, 'lead', leadTimeMinutes);
+            }
+          } else if (timeDiffLead > 0 && timeDiffLead <= 24 * 60 * 60 * 1000) {
+            if (!notifiedEvents.has(leadEventId)) {
+              const t = setTimeout(() => {
+                markEventNotified(leadEventId);
+                const leadText = Number(leadTimeMinutes) === 60 ? '1 hour' : `${leadTimeMinutes} minutes`;
+                triggerDesktopNotification(
+                  `⏰ Task Due Soon: ${task.title}`,
+                  `Task '${task.title}' (${task.priority || 'Med'} Priority) is due in ${leadText}!`,
+                  `dayscore-task-lead-${taskId}`
+                );
+                markTaskNotifiedOnServer(taskId, 'lead', leadTimeMinutes);
+              }, timeDiffLead);
+              timeouts.push(t);
+            }
+          }
+        }
+      });
+    };
+
+    checkAndTriggerReminders();
+    const interval = setInterval(checkAndTriggerReminders, 10000);
+
+    return () => {
+      timeouts.forEach(t => clearTimeout(t));
+      clearInterval(interval);
+    };
+  }, [tasks, enabled, leadTimeMinutes]);
+
   return { permissionGranted };
 }
