@@ -1792,56 +1792,49 @@ export default function TodayView() {
       setShowAuthModal(true);
       return;
     }
-    if (!task || isDeletingTask) return;
+    if (!task) return;
     const taskId = task.id || task._id;
     const taskDate = task.date || task.dateLabel || currentDateStr;
+    const idsToRemove = new Set([taskId, task.id, task._id].filter(Boolean));
 
-    // 1. Immediately show loading spinner on the Delete button inside the modal and disable it
-    setIsDeletingTask(true);
+    // Save previous state for rollback if server request fails
+    const prevTasks = [...tasks];
+    const prevArchives = [...archives];
 
-    try {
-      // 2. Perform delete API request on server while modal stays open with loading state
-      const deletePromise = store.deleteTask(taskDate, taskId);
-      const minTimerPromise = new Promise(r => setTimeout(r, 450));
-      await Promise.all([deletePromise, minTimerPromise]);
+    // 1. Immediately close the modal — 0ms wait!
+    setTaskToDelete(null);
+    setIsDeletingTask(false);
 
-      // 3. Clear memory cache and re-sync backend
-      store.clearTaskMemoryCache();
-      await store.fetchAllTasksApi().catch(() => {});
+    // 2. Immediately trigger card exit animation
+    setDeletingTaskIds(prev => new Set([...prev, ...idsToRemove]));
 
-      // 4. Server confirmed deletion — close the confirmation modal
-      setTaskToDelete(null);
+    // 3. Optimistically remove the task from active state
+    const newTasks = prevTasks.filter(t => !idsToRemove.has(t.id) && !idsToRemove.has(t._id));
+    setTasks(newTasks);
+    setArchives(prev => prev.map(arc => ({
+      ...arc,
+      tasks: Array.isArray(arc.tasks) ? arc.tasks.filter(t => !idsToRemove.has(t.id) && !idsToRemove.has(t._id)) : arc.tasks
+    })).filter(arc => !Array.isArray(arc.tasks) || arc.tasks.length > 0));
 
-      // 5. Trigger smooth exit animation on the task card in the list
-      const idsToRemove = new Set([taskId, task.id, task._id].filter(Boolean));
-      setDeletingTaskIds(prev => new Set([...prev, ...idsToRemove]));
-
-      // 6. Allow the smooth removal animation (fade-out + slide/collapse) to complete (400ms)
-      await new Promise(r => setTimeout(r, 400));
-
-      // 7. Remove task from DOM / React state after animation finishes
-      setTasks(prev => prev.filter(t => !idsToRemove.has(t.id) && !idsToRemove.has(t._id)));
-      setArchives(prev => prev.map(arc => ({
-        ...arc,
-        tasks: Array.isArray(arc.tasks) ? arc.tasks.filter(t => !idsToRemove.has(t.id) && !idsToRemove.has(t._id)) : arc.tasks
-      })).filter(arc => !Array.isArray(arc.tasks) || arc.tasks.length > 0));
-
-      // 8. Re-sync state from store
-      setTasks(store.getTasks(currentDateStr));
-      setArchives(store.getAllArchives());
-    } catch (err) {
-      console.error('Delete task error:', err);
-      // Restore button state appropriately on failure; modal stays open
-      showToast("Couldn't delete task — check your connection and try again", 'error');
-    } finally {
-      setIsDeletingTask(false);
+    // Clean up animation set after animation completes
+    setTimeout(() => {
       setDeletingTaskIds(prev => {
         const next = new Set(prev);
-        next.delete(taskId);
-        if (task.id) next.delete(task.id);
-        if (task._id) next.delete(task._id);
+        idsToRemove.forEach(id => next.delete(id));
         return next;
       });
+    }, 400);
+
+    try {
+      // 4. Perform delete request in background (store updates local cache instantly and deletes from server)
+      await store.deleteTask(taskDate, taskId);
+    } catch (err) {
+      console.error('Delete task error:', err);
+      // Restore state on server failure
+      setTasks(prevTasks);
+      setArchives(prevArchives);
+      store.saveTasks(taskDate, prevTasks);
+      showToast("Couldn't delete task — check your connection and try again", 'error');
     }
   };
 

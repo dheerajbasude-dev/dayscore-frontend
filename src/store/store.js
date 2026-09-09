@@ -402,27 +402,34 @@ export async function updateTask(dateStr, taskId, updates) {
 }
 
 export async function deleteTask(dateStr, taskId) {
+  const cleanDate = getLocalDateStr(dateStr) || format(new Date(), 'yyyy-MM-dd');
+  const tasks = getTasks(cleanDate);
+  const newTasks = tasks.filter(t => t.id !== taskId && t._id !== taskId);
+  saveTasks(cleanDate, newTasks);
+  clearTaskMemoryCache();
+
   const token = getToken();
   if (token) {
     try {
-      const res = await authFetch(`/api/tasks/${taskId}?date=${dateStr}`, {
+      const res = await authFetch(`/api/tasks/${taskId}?date=${cleanDate}`, {
         method: 'DELETE'
       });
       if (res.ok) {
-        await fetchAllTasksApi();
-        return getTasks(dateStr);
+        // Non-blocking background sync of full tasks to keep all caches consistent
+        fetchAllTasksApi().catch(() => {});
+        return newTasks;
       }
       const errData = await safeJsonParse(res).catch(() => ({}));
+      // Rollback cache if server failed
+      saveTasks(cleanDate, tasks);
       throw new Error(errData.error || errData.message || `Failed to delete task on server (${res.status})`);
     } catch (err) {
       console.error('Delete task server error:', err);
+      saveTasks(cleanDate, tasks);
       throw err;
     }
   }
 
-  const tasks = getTasks(dateStr);
-  const newTasks = tasks.filter(t => t.id !== taskId && t._id !== taskId);
-  saveTasks(dateStr, newTasks);
   return newTasks;
 }
 
