@@ -560,6 +560,29 @@ export default function SettingsView() {
                     )}
                   </button>
                 </div>
+
+                {/* Mobile / Lock Screen Delivery Guidance */}
+                <div style={{
+                  marginTop: '16px',
+                  padding: '12px 14px',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'rgba(99, 102, 241, 0.08)',
+                  border: '1px solid rgba(99, 102, 241, 0.22)',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '10px'
+                }}>
+                  <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>📱</span>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
+                    <strong style={{ color: 'var(--text-primary)', display: 'block', marginBottom: '2px' }}>
+                      Mobile / Lock Screen Delivery
+                    </strong>
+                    To ensure reminders alert immediately when your screen is locked or asleep, set DayScore Battery to <strong>Unrestricted</strong>:
+                    <span style={{ display: 'block', marginTop: '3px', color: 'var(--accent-primary)', fontWeight: '600', fontSize: '0.74rem' }}>
+                      Android Settings → Apps → DayScore → Battery → Unrestricted (Allow background activity)
+                    </span>
+                  </div>
+                </div>
               </div>
             )}
           </div>

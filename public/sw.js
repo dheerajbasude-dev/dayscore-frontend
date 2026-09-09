@@ -1,5 +1,5 @@
-// DayScore Service Worker v2.3 (Build: 2026-09-05-HighResIcons)
-const SW_VERSION = 'dayscore-sw-v2.3-2026-09-05-HighResIcons';
+// DayScore Service Worker v2.4 (Build: 2026-09-09-LockScreenWake)
+const SW_VERSION = 'dayscore-sw-v2.4-2026-09-09-LockScreenWake';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -38,7 +38,10 @@ self.addEventListener('push', (event) => {
       url: data.url || '/'
     },
     renotify: true,
-    vibrate: [200, 100, 200, 100, 200]
+    requireInteraction: true, // Prompts Android to show heads-up alert and stay visible on lock screen
+    silent: false, // Explicitly tell Android to play sound/vibrate and not mute in background
+    timestamp: data.timestamp || Date.now(),
+    vibrate: [300, 150, 300, 150, 300] // Strong vibration pattern to wake device haptic engine
   };
 
   event.waitUntil(
