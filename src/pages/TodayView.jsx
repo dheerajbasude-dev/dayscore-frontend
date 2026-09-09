@@ -137,8 +137,8 @@ export default function TodayView() {
     } catch (e) { }
   }
 
-  const [tasks, setTasks] = useState([])
-  const [reflection, setReflection] = useState('')
+  const [tasks, setTasks] = useState(() => (user ? store.getTasks(currentDateStr) : []))
+  const [reflection, setReflection] = useState(() => (user ? store.getReflection(currentDateStr) : ''))
   const [showAddModal, setShowAddModal] = useState(false)
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [showReflectionModal, setShowReflectionModal] = useState(false)
@@ -341,9 +341,26 @@ export default function TodayView() {
   }, []);
 
   const [archives, setArchives] = useState(() => (user ? store.getArchivesFromTasks() : []))
-  const [scoreResult, setScoreResult] = useState({ score: 0, baseScore: 0, bonus1: 0, bonus2: 0, penalty: 0 })
-  const [streak, setStreak] = useState({ current: 0, isActive: false })
-  const [averages, setAverages] = useState({ week: 0, month: 0, allTime: 0 })
+  const [scoreResult, setScoreResult] = useState(() => {
+    if (!user) return { score: 0, baseScore: 0, bonus1: 0, bonus2: 0, penalty: 0 };
+    const initialTasks = store.getTasks(currentDateStr);
+    return scoring.calculateDailyScore(initialTasks);
+  })
+  const [streak, setStreak] = useState(() => {
+    if (!user) return { current: 0, isActive: false };
+    const arcs = store.getAllArchives();
+    return scoring.getStreakAsOfDate(arcs, currentDateStr);
+  })
+  const [averages, setAverages] = useState(() => {
+    if (!user) return { week: 0, month: 0, allTime: 0 };
+    const arcs = store.getAllArchives();
+    const initialTasks = store.getTasks(currentDateStr);
+    return {
+      week: scoring.getRollingAverage(arcs, 7, initialTasks),
+      month: scoring.getRollingAverage(arcs, 30, initialTasks),
+      allTime: scoring.getRollingAverage(arcs, 0, initialTasks)
+    };
+  })
 
   const [activePunishment, setActivePunishment] = useState(null)
   const [pastUnfinishedDates, setPastUnfinishedDates] = useState([])
@@ -351,7 +368,10 @@ export default function TodayView() {
 
   const [todaysReward, setTodaysReward] = useState(null)
   const [settings, setSettings] = useState({ notifications: false })
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(() => {
+    if (!user) return false;
+    return !store.isTasksLoaded(currentDateStr);
+  })
   const [autoCarriedToastInfo, setAutoCarriedToastInfo] = useState(null)
   const [taskToDelete, setTaskToDelete] = useState(null)
   const [isDeletingTask, setIsDeletingTask] = useState(false)
@@ -935,12 +955,17 @@ export default function TodayView() {
         return changed;
       };
 
+      const isCached = store.isTasksLoaded(currentDateStr);
       const cached = store.getTasks(currentDateStr);
-      if (cached && cached.length > 0) {
+      if (cached) {
         backfillHighRatedRewards(cached);
         setTasks([...cached]);
         const cachedUnack = cached.find(isTaskRewardUnacknowledged);
         setTodaysReward(cachedUnack ? cachedUnack.reward : null);
+      }
+
+      // If data is already cached/loaded, keep loading false for zero-delay instant tab switching
+      if (isCached) {
         setLoading(false);
       } else {
         setLoading(true);

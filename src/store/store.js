@@ -45,9 +45,11 @@ const authFetch = async (url, options = {}) => {
 // ==========================================
 
 const taskMemoryCache = new Map();
+let tasksLoadedOnce = false;
 
 export function clearTaskMemoryCache() {
   taskMemoryCache.clear();
+  tasksLoadedOnce = false;
 }
 
 export function getTasks(dateStr) {
@@ -86,6 +88,20 @@ export function isTasksCached(dateStr) {
   if (!uid || uid === 'guest') return false;
   const cleanDate = getLocalDateStr(dateStr) || format(new Date(), 'yyyy-MM-dd');
   return localStorage.getItem(`dayscore_${uid}_tasks_${cleanDate}`) !== null;
+}
+
+export function isTasksLoaded(dateStr) {
+  const token = getToken();
+  if (!token) return true;
+  const uid = getUserId();
+  if (!uid || uid === 'guest') return true;
+  if (tasksLoadedOnce) return true;
+  if (taskMemoryCache.size > 0) return true;
+  return isTasksCached(dateStr);
+}
+
+export function setTasksLoadedOnce(val = true) {
+  tasksLoadedOnce = val;
 }
 
 export function formatServerTask(t) {
@@ -260,6 +276,12 @@ export async function fetchAllTasksApi() {
       tasksByDate.forEach((tasks, dateStr) => {
         saveTasks(dateStr, tasks);
       });
+
+      // Ensure todayStr is recorded as cached even if 0 tasks exist today
+      if (!tasksByDate.has(todayStr)) {
+        saveTasks(todayStr, []);
+      }
+      tasksLoadedOnce = true;
 
       return getArchivesFromTasks();
     }
@@ -1275,6 +1297,7 @@ export async function resetAllData() {
  */
 export function clearLocalUserData(explicitUid = null) {
   taskMemoryCache.clear();
+  tasksLoadedOnce = false;
 
   try {
     const allKeys = Object.keys(localStorage);
