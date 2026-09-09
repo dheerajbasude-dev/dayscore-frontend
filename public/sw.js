@@ -1,5 +1,5 @@
-// DayScore Service Worker v2.6 (Build: 2026-09-09-AlertWake)
-const SW_VERSION = 'dayscore-sw-v2.6-2026-09-09-AlertWake';
+// DayScore Service Worker v2.8 (Build: 2026-09-09-LockScreenDirect)
+const SW_VERSION = 'dayscore-sw-v2.8-2026-09-09-LockScreenDirect';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -29,8 +29,6 @@ self.addEventListener('push', (event) => {
     }
   }
 
-  const isMobile = typeof navigator !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent || '');
-
   const notificationOptions = {
     body: data.body,
     icon: data.icon || '/icons/icon-192.png',
@@ -40,12 +38,10 @@ self.addEventListener('push', (event) => {
       url: data.url || '/'
     },
     renotify: true,
-    // On mobile Android, requireInteraction: true causes Android to mark the notification as ONGOING,
-    // which suppresses heads-up popups and lock-screen alerts. We disable it on mobile for alerting delivery.
-    requireInteraction: !isMobile,
+    requireInteraction: true, // Keep notification persistently displayed on lock screen until user interacts
     silent: false, // Explicitly tell Android to play sound/vibrate and not mute in background
     timestamp: data.timestamp || Date.now(),
-    vibrate: [300, 150, 300, 150, 300], // Crisp vibration alert pattern
+    vibrate: [500, 200, 500, 200, 500], // Crisp high-visibility vibration alert pattern
     actions: [
       { action: 'open', title: 'Open Task' }
     ]
