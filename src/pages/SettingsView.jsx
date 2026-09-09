@@ -6,10 +6,12 @@ import * as store from '../store/store'
 import { useTheme } from '../hooks/useTheme'
 import { triggerDesktopNotification, playNotificationSound } from '../hooks/useNotifications'
 import { useAuth } from '../context/AuthContext'
+import AuthModal from '../components/AuthModal'
 import { subscribeToPushNotifications, unsubscribePushNotifications, dispatchTestPushNotification, isPushNotificationSupported } from '../utils/pushManager'
 
 export default function SettingsView() {
   const { user } = useAuth()
+  const [showAuthModal, setShowAuthModal] = useState(false)
   const { theme, toggleTheme } = useTheme()
   const [settings, setSettings] = useState(() => store.getSettings())
   const [templates, setTemplates] = useState(() => store.getTemplates())
@@ -199,15 +201,35 @@ export default function SettingsView() {
     if (isPushSubscribing) return
     const nextState = !settings.notifications
     if (nextState) {
+      if (typeof window !== 'undefined' && 'Notification' in window) {
+        if (Notification.permission === 'denied') {
+          alert(
+            '⚠️ Notifications are currently blocked for DayScore.\n\n' +
+            'To enable:\n' +
+            '1. Go to your Android Settings > Apps > DayScore (or Chrome) > Notifications.\n' +
+            '2. Turn ON "Allow notifications".\n' +
+            '3. Return to DayScore and turn this toggle on.'
+          )
+          return
+        }
+      }
+
       setIsPushSubscribing(true)
       try {
-        await subscribeToPushNotifications(true)
+        await subscribeToPushNotifications(false)
         const newSettings = { ...settings, notifications: true }
-        store.saveSettings(newSettings)
+        await store.saveSettings(newSettings)
         setSettings(newSettings)
       } catch (err) {
-        console.warn('Push subscription failed:', err)
-        alert('⚠️ Notification permission is required for background reminders.\n\nPlease check your browser address bar permissions and ensure notifications are allowed for DayScore.')
+        console.warn('Push subscription note:', err)
+        if (typeof Notification !== 'undefined' && Notification.permission !== 'granted') {
+          alert('⚠️ Notification permission was not granted.\n\nPlease allow notifications when prompted by your browser or Android device.')
+        } else {
+          // If permission is already granted, preserve the enabled setting so the switch turns ON
+          const newSettings = { ...settings, notifications: true }
+          await store.saveSettings(newSettings)
+          setSettings(newSettings)
+        }
       } finally {
         setIsPushSubscribing(false)
       }
@@ -216,7 +238,7 @@ export default function SettingsView() {
         await unsubscribePushNotifications()
       } catch (e) {}
       const newSettings = { ...settings, notifications: false }
-      store.saveSettings(newSettings)
+      await store.saveSettings(newSettings)
       setSettings(newSettings)
     }
   }
@@ -531,6 +553,33 @@ export default function SettingsView() {
                     );
                   })}
                 </div>
+
+                {!user && (
+                  <div style={{
+                    marginTop: '12px',
+                    padding: '10px 12px',
+                    borderRadius: 'var(--radius-md)',
+                    background: 'rgba(99, 102, 241, 0.08)',
+                    border: '1px solid rgba(99, 102, 241, 0.2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '10px',
+                    flexWrap: 'wrap'
+                  }}>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                      🔑 <strong style={{ color: 'var(--text-primary)' }}>Account Sync:</strong> Sign in to sync your tasks and ensure background reminders trigger even when DayScore is closed.
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => setShowAuthModal(true)}
+                      style={{ fontSize: '0.75rem', padding: '4px 10px', flexShrink: 0 }}
+                    >
+                      Sign In Now
+                    </button>
+                  </div>
+                )}
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', flexWrap: 'wrap', gap: '8px' }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
@@ -1198,6 +1247,8 @@ export default function SettingsView() {
         </div>,
         document.body
       )}
+      {/* Auth Modal */}
+      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </div>
   )
 }

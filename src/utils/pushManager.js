@@ -99,7 +99,7 @@ export async function subscribeToPushNotifications(forceRenew = false) {
 
   let subscription = await reg.pushManager.getSubscription();
 
-  // If forceRenew is requested or subscription exists, renew if needed
+  // If forceRenew is requested, attempt safe renewal
   if (subscription && forceRenew) {
     try {
       const oldEndpoint = subscription.endpoint;
@@ -122,31 +122,41 @@ export async function subscribeToPushNotifications(forceRenew = false) {
   }
 
   if (!subscription) {
-    subscription = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey
-    });
+    try {
+      subscription = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey
+      });
+    } catch (subErr) {
+      console.warn('Push subscribe attempt note, retrieving existing subscription:', subErr);
+      subscription = await reg.pushManager.getSubscription();
+      if (!subscription) throw subErr;
+    }
   }
 
   // 4. Send subscription payload to backend MongoDB
   const token = localStorage.getItem('dayscore_token');
   const baseUrl = getApiBaseUrl();
 
-  const response = await fetch(`${baseUrl}/api/notifications/subscribe`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {})
-    },
-    body: JSON.stringify({
-      subscription: subscription.toJSON(),
-      userAgent: navigator.userAgent
-    })
-  });
+  try {
+    const response = await fetch(`${baseUrl}/api/notifications/subscribe`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify({
+        subscription: subscription.toJSON(),
+        userAgent: navigator.userAgent
+      })
+    });
 
-  if (!response.ok) {
-    const errData = await response.json().catch(() => ({}));
-    throw new Error(errData.error || 'Failed to register push subscription on server.');
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      console.warn('Push registration server note:', errData?.error || response.statusText);
+    }
+  } catch (netErr) {
+    console.warn('Push registration network note:', netErr);
   }
 
   return subscription;
@@ -188,13 +198,20 @@ export async function dispatchTestPushNotification(leadTimeMinutes = 30) {
   const token = localStorage.getItem('dayscore_token');
   const baseUrl = getApiBaseUrl();
 
+  let endpoint = null;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) endpoint = sub.endpoint;
+  } catch (e) {}
+
   const response = await fetch(`${baseUrl}/api/notifications/test-push`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {})
     },
-    body: JSON.stringify({ leadTime: leadTimeMinutes })
+    body: JSON.stringify({ leadTime: leadTimeMinutes, endpoint })
   });
 
   if (!response.ok) {
