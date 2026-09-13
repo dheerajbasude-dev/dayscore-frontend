@@ -188,16 +188,14 @@ export function isTasksCached(dateStr) {
   return localStorage.getItem(`dayscore_${uid}_tasks_${cleanDate}`) !== null;
 }
 
-export function hasTasksLoadedOnce() {
-  return tasksLoadedOnce;
-}
-
 export function isTasksLoaded(dateStr) {
   const token = getToken();
   if (!token) return true;
   const uid = getUserId();
   if (!uid || uid === 'guest') return true;
-  return tasksLoadedOnce;
+  if (tasksLoadedOnce) return true;
+  if (taskMemoryCache.size > 0) return true;
+  return isTasksCached(dateStr);
 }
 
 export function setTasksLoadedOnce(val = true) {
