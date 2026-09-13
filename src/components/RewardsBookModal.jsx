@@ -348,9 +348,13 @@ export default function RewardsBookModal({
         (task.id && localStorage.getItem(`dayscore_penalty_ack_${task.id}`) === '1') ||
         (task._id && localStorage.getItem(`dayscore_penalty_ack_${task._id}`) === '1')
       );
+      const todayStr = format(new Date(), 'yyyy-MM-dd');
+      const isPastMissed = isMissed && cleanTaskDate < todayStr;
+      const hasVisibleRatingBadge = (isDone && ratingNum != null) || isPastMissed;
       const hasLowRatingPenalty = isDone && ratingNum != null && ratingNum <= 4.0;
+      const hasPenalty = hasVisibleRatingBadge && (isPastMissed || hasLowRatingPenalty);
 
-      if (isMissed || hasLowRatingPenalty) {
+      if (hasPenalty) {
         const penaltyText = task.penalty && task.penalty.trim() ? task.penalty : "Complete 15-min focus reflection / workout";
         const penaltyKey = taskId ? `penalty_${taskId}` : null;
         const penaltyFp = `penalty_fp_${taskTitleClean}_${(penaltyText).toLowerCase()}_${taskDue}_${taskComp}`;

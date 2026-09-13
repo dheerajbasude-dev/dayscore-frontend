@@ -332,7 +332,10 @@ function TaskCard({
 
   const displayRewardText = (task?.reward && String(task.reward).trim()) || (isHighRatingTask ? "Treat yourself for high score!" : null);
   const hasReward = Boolean(displayRewardText && hasHighRatingReward);
-  const hasPenalty = Boolean((task?.penalty || (isMissed && (ratingDisplay || !effectiveIsToday))) && (isMissed || hasLowRatingPenalty));
+
+  // A rating badge is visible if completed with rating (ratingDisplay) or missed on a past day (★ 0)
+  const hasVisibleRatingBadge = Boolean(ratingDisplay || (isMissed && !effectiveIsToday));
+  const hasPenalty = Boolean(hasVisibleRatingBadge && hasLowRatingPenalty);
 
   const hasUnclaimedReward = Boolean(hasReward && !isRewardClaimed);
   const hasUnacknowledgedPenalty = Boolean(hasPenalty && !isPenaltyAccepted);

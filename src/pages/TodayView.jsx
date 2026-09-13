@@ -821,7 +821,10 @@ export default function TodayView() {
         (t.id && localStorage.getItem(`dayscore_penalty_ack_${t.id}`) === '1') ||
         (t._id && localStorage.getItem(`dayscore_penalty_ack_${t._id}`) === '1')
       );
-      const hasPenalty = isMissed || (isDone && ratingNum != null && ratingNum <= 4.0);
+      const taskDate = getLocalDateStr(t.date || t.dateLabel) || todayStr;
+      const isPastMissed = isMissed && taskDate < todayStr;
+      const hasVisibleRatingBadge = (isDone && ratingNum != null) || isPastMissed;
+      const hasPenalty = hasVisibleRatingBadge && (isPastMissed || (isDone && ratingNum <= 4.0));
       if (hasPenalty && !isPenaltyAccepted) count++;
     });
     return count;

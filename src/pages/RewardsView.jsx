@@ -79,7 +79,11 @@ export default function RewardsView() {
           (t.id && localStorage.getItem(`dayscore_penalty_ack_${t.id}`) === '1') ||
           (t._id && localStorage.getItem(`dayscore_penalty_ack_${t._id}`) === '1')
         );
-        const hasPenalty = isMissed || (isDone && ratingNum != null && ratingNum <= 4.0);
+        const todayStr = format(new Date(), 'yyyy-MM-dd');
+        const taskDate = (t.date && t.date.includes('T') ? t.date.split('T')[0] : t.date) || todayStr;
+        const isPastMissed = isMissed && taskDate < todayStr;
+        const hasVisibleRatingBadge = (isDone && ratingNum != null) || isPastMissed;
+        const hasPenalty = hasVisibleRatingBadge && (isPastMissed || (isDone && ratingNum <= 4.0));
         if (hasPenalty && !isPenaltyAccepted) count++;
       });
       setBookPendingCount(count);
