@@ -1,16 +1,13 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Plus, Trash2, Edit2, Check, Gift, AlertOctagon, Info, History, Trophy, Sparkles, Loader2, BookOpen } from 'lucide-react'
+import { Plus, Trash2, Edit2, Check, Gift, AlertOctagon, Info, History, Trophy, Sparkles, Loader2 } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import * as store from '../store/store'
 import * as scoring from '../store/scoring'
 import { useAuth } from '../context/AuthContext'
-import RewardsBookModal, { calculateRewardsBookPendingCount } from '../components/RewardsBookModal'
 import AuthModal from '../components/AuthModal'
 
 export default function RewardsView() {
   const { user } = useAuth()
-  const navigate = useNavigate()
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [rewards, setRewards] = useState(() => (user ? store.getRewards() : []))
   const [punishments, setPunishments] = useState(() => (user ? store.getPunishments() : []))
@@ -23,9 +20,6 @@ export default function RewardsView() {
   const [editingMilestone, setEditingMilestone] = useState(null)
   const [milestoneText, setMilestoneText] = useState('')
 
-  // Rewards & Penalties Book state
-  const [isBookOpen, setIsBookOpen] = useState(false)
-  const [bookInitialTab, setBookInitialTab] = useState('penalties')
 
   // Loading states for async actions
   const [isAddingReward, setIsAddingReward] = useState(false)
@@ -42,34 +36,6 @@ export default function RewardsView() {
   const bestStreak = user ? scoring.getBestStreak(archives, todayTasks) : 0
   const effectiveStreak = Math.max(currentStreakObj.current || 0, bestStreak || 0)
 
-  const [bookVersion, setBookVersion] = useState(0)
-
-  useEffect(() => {
-    const handleVoucherClaimedEvent = () => {
-      setBookVersion(v => v + 1);
-    };
-    window.addEventListener('dayscore_voucher_book_updated', handleVoucherClaimedEvent);
-    return () => window.removeEventListener('dayscore_voucher_book_updated', handleVoucherClaimedEvent);
-  }, []);
-
-  // Derived pending count via useMemo - avoids state updates and eliminates re-render loops
-  const bookPendingCount = useMemo(() => {
-    if (!user) return 0;
-    try {
-      const allFlat = store.getAllTasksFlat() || [];
-      return calculateRewardsBookPendingCount({
-        allTasks: allFlat,
-        activeTasks: todayTasks,
-        milestones,
-        claimedMilestones,
-        effectiveStreak,
-        user
-      });
-    } catch (e) {
-      console.warn('Error calculating book counts:', e);
-      return 0;
-    }
-  }, [user, milestones, claimedMilestones, effectiveStreak, todayTasks, bookVersion]);
 
   const loadRewardsData = useCallback(async () => {
     if (!user) {
@@ -262,8 +228,6 @@ export default function RewardsView() {
 
       {loading ? (
         <div className="rewards-loading-skeleton" style={{ padding: '8px 0' }}>
-          <div className="skeleton-box" style={{ width: '100%', height: '56px', borderRadius: 'var(--radius-lg)', marginBottom: '24px' }} />
-          
           <div className="skeleton-box" style={{ width: '200px', height: '24px', borderRadius: '6px', marginBottom: '16px' }} />
           <div className="skeleton-box" style={{ width: '100%', height: '44px', borderRadius: 'var(--radius-md)', marginBottom: '16px' }} />
           {[1, 2, 3].map(n => (
@@ -278,38 +242,6 @@ export default function RewardsView() {
         </div>
       ) : (
         <>
-          {/* Rewards & Penalties Ledger Book Quick CTA Card */}
-          <div className="card-glass rewards-book-cta-card">
-            <div className="rewards-book-cta-left">
-              <div className="rewards-book-cta-icon">
-                <BookOpen size={24} />
-              </div>
-              <div className="rewards-book-cta-info">
-                <strong>Rewards & Penalties Ledger Book</strong>
-                <p>Check list-wise progress, acknowledge penalties, complete tasks, and claim your earned rewards.</p>
-              </div>
-            </div>
-            <div className="rewards-book-cta-actions">
-              <button
-                type="button"
-                className="btn btn-primary rewards-book-cta-btn"
-                onClick={() => {
-                  if (!user) {
-                    setShowAuthModal(true);
-                    return;
-                  }
-                  setBookInitialTab('penalties');
-                  setIsBookOpen(true);
-                }}
-              >
-                <BookOpen size={16} />
-                <span>Open Ledger Book</span>
-                {bookPendingCount > 0 && (
-                  <span className="badge badge-danger" style={{ marginLeft: '4px' }}>{bookPendingCount} Pending</span>
-                )}
-              </button>
-            </div>
-          </div>
 
           <div className="card-glass rewards-info-card">
             <Info size={24} color="var(--accent-primary)" style={{ flexShrink: 0 }} />
@@ -568,18 +500,6 @@ export default function RewardsView() {
           </section>
         </>
       )}
-
-      <RewardsBookModal
-        isOpen={isBookOpen}
-        onClose={() => setIsBookOpen(false)}
-        initialTab={bookInitialTab}
-        onTaskUpdated={loadRewardsData}
-        onNavigateToTask={(task, targetDate) => {
-          setIsBookOpen(false);
-          const taskId = task.id || task._id;
-          navigate(`/?date=${targetDate}&taskId=${taskId}`);
-        }}
-      />
 
       <AuthModal
         isOpen={showAuthModal}
