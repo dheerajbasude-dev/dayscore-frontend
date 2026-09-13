@@ -1,5 +1,5 @@
-// DayScore Service Worker v3.3 (Build: 2026-09-13-SingleNativeNotification)
-const SW_VERSION = 'dayscore-sw-v3.3-2026-09-13-SingleNativeNotification';
+// DayScore Service Worker v3.4 (Build: 2026-09-13-NoOpFetchRemoved)
+const SW_VERSION = 'dayscore-sw-v3.4-2026-09-13-NoOpFetchRemoved';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -7,21 +7,6 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim());
-});
-
-// ──────────────────────────────────────────────────────────────────────────────
-// CRITICAL: fetch event handler
-// Chrome on Desktop AND Android considers a service worker without a fetch
-// handler as "non-functional" and may terminate it aggressively when all tabs
-// are closed. By adding a fetch handler (even a pass-through), Chrome keeps
-// the SW process alive in the background, allowing push events to fire
-// immediately even when no tab is open.
-// ──────────────────────────────────────────────────────────────────────────────
-self.addEventListener('fetch', (event) => {
-  // Pass-through: let the browser handle all fetch requests normally.
-  // We do NOT intercept or cache anything — this handler exists solely
-  // to keep the service worker alive for background push delivery.
-  return;
 });
 
 // 1. Receive background Push Notification from server (even when app/tab is completely closed)
