@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
+import { format } from 'date-fns';
+import { getLocalDateStr } from '../utils/taskUtils';
 
 export function playNotificationSound() {
   // Completely disabled per user requirement: clean native system notifications only, zero synthetic chimes
@@ -154,6 +156,7 @@ export function useNotifications(tasks, enabled, leadTimeMinutes = 30) {
     }
 
     const timeouts = [];
+    const scheduledEventIds = new Set();
     const rawNum = Number(leadTimeMinutes);
     const baseLead = (rawNum === 15 || rawNum === 30 || rawNum === 60) ? rawNum : 10;
     const effectiveLead = baseLead + 1; // 11, 16, 31, 61
@@ -174,8 +177,8 @@ export function useNotifications(tasks, enabled, leadTimeMinutes = 30) {
         const dueTime = new Date(rawDue).getTime();
         if (isNaN(dueTime)) return;
 
-        const todayDateStr = new Date().toISOString().substring(0, 10);
-        const taskDate = task.date || task.dateLabel || todayDateStr;
+        const todayDateStr = format(new Date(), 'yyyy-MM-dd');
+        const taskDate = getLocalDateStr(task.date || task.dateLabel || task.taskDate) || todayDateStr;
         const isPastDate = taskDate < todayDateStr;
 
         // 1. Past Missed Task Reminder (Only for uncompleted tasks on past dates)
@@ -183,7 +186,8 @@ export function useNotifications(tasks, enabled, leadTimeMinutes = 30) {
           const missedEventId = `${taskId}_missed_${dueTime}`;
           const timeDiffDue = dueTime - now;
           if (timeDiffDue <= 0 && timeDiffDue >= -120000) {
-            if (!notifiedEvents.has(missedEventId)) {
+            if (!notifiedEvents.has(missedEventId) && !scheduledEventIds.has(missedEventId)) {
+              scheduledEventIds.add(missedEventId);
               markEventNotified(missedEventId);
               triggerDesktopNotification(
                 `⚠️ Task Missed: ${task.title}`,
@@ -220,7 +224,8 @@ export function useNotifications(tasks, enabled, leadTimeMinutes = 30) {
 
         if (!isAddedUnderLeadTime && !isAlreadySent) {
           if (timeDiffLead <= 0 && timeDiffLead >= -60000 && now < dueTime) {
-            if (!notifiedEvents.has(leadEventId)) {
+            if (!notifiedEvents.has(leadEventId) && !scheduledEventIds.has(leadEventId)) {
+              scheduledEventIds.add(leadEventId);
               markEventNotified(leadEventId);
               triggerDesktopNotification(
                 `⏰ Task Due Soon: ${task.title}`,
@@ -230,7 +235,8 @@ export function useNotifications(tasks, enabled, leadTimeMinutes = 30) {
               markTaskNotifiedOnServer(taskId, 'lead', baseLead);
             }
           } else if (timeDiffLead > 0 && timeDiffLead <= 24 * 60 * 60 * 1000) {
-            if (!notifiedEvents.has(leadEventId)) {
+            if (!notifiedEvents.has(leadEventId) && !scheduledEventIds.has(leadEventId)) {
+              scheduledEventIds.add(leadEventId);
               const t = setTimeout(() => {
                 markEventNotified(leadEventId);
                 triggerDesktopNotification(
@@ -252,6 +258,7 @@ export function useNotifications(tasks, enabled, leadTimeMinutes = 30) {
 
     return () => {
       timeouts.forEach(t => clearTimeout(t));
+      scheduledEventIds.clear();
       clearInterval(interval);
     };
   }, [tasks, enabled, leadTimeMinutes]);

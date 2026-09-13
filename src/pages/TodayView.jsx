@@ -635,7 +635,7 @@ export default function TodayView() {
       allArcs.forEach(arc => {
         if (arc.date && arc.date < todayStr && Array.isArray(arc.tasks)) {
           arc.tasks.forEach(t => {
-            if (t.status !== 'done') {
+            if (t.status !== 'done' && t.completed !== true) {
               const dueIso = t.dueDateTime || t.due_date_time;
               const dueDateStr = getLocalDateStr(dueIso);
               if (dueDateStr && dueDateStr >= todayStr) {
@@ -668,13 +668,14 @@ export default function TodayView() {
       }
 
       for (const task of pastTasksToFinalize) {
+        if (task.status === 'done' || task.completed === true) continue;
         const originDate = task.taskDate || task.date || task.dateLabel;
         const targetFinalDate = task.finalDate || originDate;
         const taskId = task.id || task._id;
         if (!originDate || !taskId) continue;
 
         const { hasRatedNote, avgRating } = calculateTaskAutoRating(task);
-        const finalStatus = (task.status === 'done' || hasRatedNote) ? 'done' : 'missed';
+        const finalStatus = (task.status === 'done' || task.completed || hasRatedNote) ? 'done' : 'missed';
         const finalRating = (finalStatus === 'done' && hasRatedNote) ? avgRating : 0;
 
         let taskReward = task.reward || null;
@@ -1104,8 +1105,7 @@ export default function TodayView() {
           const due = task.dueDateTime || task.due_date_time;
           const targetDueDateStr = due ? getLocalDateStr(due) : null;
           const isCarriedBeyond = arc.date < todayStr && Boolean(task.carriedOver || task.carried_over || task.wasCarried || task.isCarried) && targetDueDateStr && targetDueDateStr > arc.date;
-          const completedDate = task.completedAt ? String(task.completedAt).substring(0, 10) : (task.completed_at ? String(task.completed_at).substring(0, 10) : '');
-          if (isCarriedBeyond || (completedDate === todayStr && (task.status === 'done' || task.completed))) {
+          if (isCarriedBeyond || task.status === 'done' || task.completed === true) {
             continue;
           }
 
@@ -1384,6 +1384,8 @@ export default function TodayView() {
 
       for (const task of tasks) {
         if (!isTaskTimeOver(task)) continue;
+        // Do not overwrite direct completed / missed-task completion
+        if (task.status === 'done' || task.completed === true) continue;
 
         const { hasRatedNote, avgRating } = calculateTaskAutoRating(task);
         const targetId = task.id || task._id;
@@ -1427,6 +1429,9 @@ export default function TodayView() {
             });
           }
         } else {
+          // Do not overwrite direct completed / missed-task completion
+          if (task.status === 'done' || task.completed === true) continue;
+
           // Only auto-mark as missed if the task belongs to a PAST day (taskDate < todayStr)!
           // For today, tasks whose due time has passed remain active / overdue so the user can finish them.
           if (taskDate < todayStr) {
@@ -1656,9 +1661,12 @@ export default function TodayView() {
 
     const updates = { status: newStatus }
     if (newStatus === 'done') {
+      updates.completed = true;
+      updates.missed = false;
       updates.completedAt = new Date().toISOString()
       updates.completed_at = new Date().toISOString()
     } else if (newStatus === 'pending' || newStatus === 'inprogress') {
+      updates.completed = false;
       updates.completedAt = null
       updates.completed_at = null
       updates.rating = null
@@ -1788,6 +1796,7 @@ export default function TodayView() {
       date: taskDate || todayStr,
       status: 'done',
       completed: true,
+      missed: false,
       completedAt: now.toISOString(),
       completed_at: now.toISOString(),
       rating: Number(rating),
@@ -2158,7 +2167,7 @@ export default function TodayView() {
       const isCarried = isCarriedTask(t);
       const isDone = t.status === 'done' || t.completed === true;
       const isOverdue = isTaskTimeOver(t);
-      const isMissed = t.status === 'missed' || t.missed === true || (isOverdue && !isDone);
+      const isMissed = !isDone && (t.status === 'missed' || t.missed === true || isOverdue);
 
       // Tier 1 & 2: Missed Tasks
       if (isMissed) {
@@ -2283,9 +2292,9 @@ export default function TodayView() {
       if (filterStatus === 'pending') {
         list = list.filter(t => t.status === 'pending' || t.status === 'inprogress');
       } else if (filterStatus === 'done') {
-        list = list.filter(t => t.status === 'done');
+        list = list.filter(t => t.status === 'done' || t.completed === true);
       } else if (filterStatus === 'missed') {
-        list = list.filter(t => t.status === 'missed');
+        list = list.filter(t => (t.status === 'missed' || t.missed === true) && t.status !== 'done' && !t.completed);
       } else if (filterStatus === 'carriedOver') {
         list = list.filter(t => isCarriedTask(t));
       } else if (filterStatus === 'reward') {
@@ -2694,9 +2703,9 @@ export default function TodayView() {
                       <Check size={12} /> <strong>{displayTasksList.filter(t => t.status === 'done' || t.completed === true).length}</strong> Done
                     </span>
                   )}
-                  {displayTasksList.filter(t => t.status === 'missed' || t.missed === true).length > 0 && (
+                  {displayTasksList.filter(t => (t.status === 'missed' || t.missed === true) && t.status !== 'done' && !t.completed).length > 0 && (
                     <span className="task-stat-chip chip-missed" title="Missed Tasks">
-                      <AlertTriangle size={12} /> <strong>{displayTasksList.filter(t => t.status === 'missed' || t.missed === true).length}</strong> Missed
+                      <AlertTriangle size={12} /> <strong>{displayTasksList.filter(t => (t.status === 'missed' || t.missed === true) && t.status !== 'done' && !t.completed).length}</strong> Missed
                     </span>
                   )}
                   {displayTasksList.filter(t => isCarriedTask(t)).length > 0 && (
