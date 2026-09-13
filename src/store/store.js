@@ -52,6 +52,97 @@ export function clearTaskMemoryCache() {
   tasksLoadedOnce = false;
 }
 
+export function syncLocalCarryOver(dateStr) {
+  const token = getToken();
+  if (!token) return { todayTasks: [], carriedCount: 0 };
+  const uid = getUserId();
+  if (!uid || uid === 'guest') return { todayTasks: [], carriedCount: 0 };
+
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const targetDate = getLocalDateStr(dateStr) || todayStr;
+  if (targetDate !== todayStr) return { todayTasks: [], carriedCount: 0 };
+
+  const prefix = `dayscore_${uid}_tasks_`;
+  const todayKey = `${prefix}${todayStr}`;
+
+  // Read current today tasks
+  let todayTasks = [];
+  if (taskMemoryCache.has(`${uid}_${todayStr}`)) {
+    todayTasks = [...taskMemoryCache.get(`${uid}_${todayStr}`)];
+  } else {
+    try {
+      const raw = localStorage.getItem(todayKey);
+      todayTasks = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(todayTasks)) todayTasks = [];
+    } catch (e) {
+      todayTasks = [];
+    }
+  }
+
+  const todayIds = new Set(todayTasks.map(t => String(t.id || t._id)));
+  let hasChanges = false;
+  let carriedCount = 0;
+
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(prefix) && key !== todayKey) {
+        const pastDate = key.replace(prefix, '').trim().substring(0, 10);
+        if (pastDate && pastDate < todayStr) {
+          try {
+            const rawData = localStorage.getItem(key);
+            const pastList = rawData ? JSON.parse(rawData) : [];
+            if (Array.isArray(pastList) && pastList.length > 0) {
+              let pastModified = false;
+              const remainingPastList = [];
+
+              pastList.forEach(t => {
+                if (!t) return;
+                const tId = String(t.id || t._id);
+                const isDone = t.status === 'done' || t.completed === true;
+                const dueDateStr = getLocalDateStr(t.dueDateTime || t.due_date_time);
+                const shouldCarry = !isDone && dueDateStr && dueDateStr >= todayStr;
+
+                if (shouldCarry) {
+                  if (!todayIds.has(tId)) {
+                    const carriedTask = {
+                      ...t,
+                      date: todayStr,
+                      carriedOver: true,
+                      carried_over: 1,
+                      originalDate: t.originalDate || t.original_date || pastDate,
+                      original_date: t.originalDate || t.original_date || pastDate
+                    };
+                    todayTasks.push(carriedTask);
+                    todayIds.add(tId);
+                    carriedCount++;
+                    hasChanges = true;
+                  }
+                  pastModified = true;
+                } else {
+                  remainingPastList.push(t);
+                }
+              });
+
+              if (pastModified) {
+                localStorage.setItem(key, JSON.stringify(remainingPastList));
+                taskMemoryCache.set(`${uid}_${pastDate}`, remainingPastList);
+              }
+            }
+          } catch (e) {}
+        }
+      }
+    }
+  } catch (e) {}
+
+  if (hasChanges) {
+    localStorage.setItem(todayKey, JSON.stringify(todayTasks));
+    taskMemoryCache.set(`${uid}_${todayStr}`, todayTasks);
+  }
+
+  return { todayTasks, carriedCount };
+}
+
 export function getTasks(dateStr) {
   const token = getToken();
   if (!token) return [];
@@ -60,6 +151,13 @@ export function getTasks(dateStr) {
   if (!uid || uid === 'guest') return [];
 
   const cleanDate = getLocalDateStr(dateStr) || format(new Date(), 'yyyy-MM-dd');
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+
+  // If requesting today's tasks, ensure any eligible ongoing tasks from past dates are rolled over instantly
+  if (cleanDate === todayStr) {
+    syncLocalCarryOver(todayStr);
+  }
+
   const cacheKey = `${uid}_${cleanDate}`;
 
   if (taskMemoryCache.has(cacheKey)) {
@@ -210,45 +308,6 @@ export async function fetchAllTasksApi() {
       const data = await safeJsonParse(res);
       const serverTasks = (data.tasks || []).map(formatServerTask);
       const todayStr = format(new Date(), 'yyyy-MM-dd');
-
-      // Server-persisted carry-over for eligible ongoing past tasks
-      const carryOverPromises = [];
-      serverTasks.forEach(t => {
-        const d = getLocalDateStr(t.date) || todayStr;
-        const dueDateStr = getLocalDateStr(t.dueDateTime || t.due_date_time);
-        const isDone = Boolean(t.status === 'done' || t.completed === true);
-        const completedDate = getLocalDateStr(t.completedAt || t.completed_at);
-        const isCompletedToday = isDone && completedDate === todayStr;
-
-        // Ongoing active tasks whose deadline is today or in the future
-        let shouldCarry = false;
-        if (dueDateStr && dueDateStr >= todayStr && (!isDone || isCompletedToday)) {
-          shouldCarry = true;
-        }
-
-        if (d < todayStr && shouldCarry) {
-          const targetId = t.id || t._id;
-          const origDate = t.originalDate || t.original_date || d;
-          const updates = {
-            date: todayStr,
-            carriedOver: true,
-            carried_over: 1,
-            originalDate: origDate,
-            original_date: origDate
-          };
-          Object.assign(t, updates);
-          carryOverPromises.push(
-            authFetch(`/api/tasks/${targetId}`, {
-              method: 'PUT',
-              body: JSON.stringify(updates)
-            }).catch(err => console.error('Carry-over update error for task', targetId, err))
-          );
-        }
-      });
-
-      if (carryOverPromises.length > 0) {
-        await Promise.all(carryOverPromises);
-      }
 
       const tasksByDate = new Map();
       serverTasks.forEach(t => {
