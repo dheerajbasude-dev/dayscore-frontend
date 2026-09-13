@@ -1,5 +1,5 @@
-// DayScore Service Worker v3.2 (Build: 2026-09-09-MissedAtDue)
-const SW_VERSION = 'dayscore-sw-v3.2-2026-09-09-MissedAtDue';
+// DayScore Service Worker v3.3 (Build: 2026-09-13-SingleNativeNotification)
+const SW_VERSION = 'dayscore-sw-v3.3-2026-09-13-SingleNativeNotification';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -52,7 +52,7 @@ self.addEventListener('push', (event) => {
     data: {
       url: data.url || '/'
     },
-    renotify: true,
+    renotify: false,
     requireInteraction: true, // Keep notification persistently displayed on lock screen until user interacts
     silent: false, // Explicitly tell Android to play sound/vibrate and not mute in background
     timestamp: data.timestamp || Date.now(),

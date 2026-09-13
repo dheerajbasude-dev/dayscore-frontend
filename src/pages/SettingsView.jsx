@@ -447,11 +447,8 @@ export default function SettingsView() {
         ? '1 hour before due time'
         : `${baseLead} minutes before due time`;
 
-    // 2. Play audio chime
-    playNotificationSound();
-
     try {
-      // 3. Ensure device is registered with Web Push (force fresh token if needed)
+      // 2. Ensure device is registered with Web Push (force fresh token if needed)
       try {
         await subscribeToPushNotifications(true);
       } catch (subErr) {

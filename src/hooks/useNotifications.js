@@ -1,29 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 
 export function playNotificationSound() {
-  try {
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    if (!AudioCtx) return;
-    const ctx = new AudioCtx();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-
-    osc.type = 'sine';
-    // Pleasant two-tone chime (E5 -> G5)
-    osc.frequency.setValueAtTime(659.25, ctx.currentTime);
-    osc.frequency.setValueAtTime(783.99, ctx.currentTime + 0.15);
-
-    gain.gain.setValueAtTime(0.35, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
-
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-
-    osc.start();
-    osc.stop(ctx.currentTime + 0.4);
-  } catch (e) {
-    console.warn('AudioContext chime failed:', e);
-  }
+  // Completely disabled per user requirement: clean native system notifications only, zero synthetic chimes
+  return;
 }
 
 const notifiedKey = 'dayscore_notified_task_events';
@@ -63,14 +42,11 @@ export async function triggerDesktopNotification(title, body, tag = 'dayscore-no
     return { success: false, reason: 'permission_denied', permission };
   }
 
-  // 1. Play single audio chime sound
-  playNotificationSound();
-
   let displayed = false;
   const isMobile = typeof navigator !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent || '');
   const transparentIcon = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAA';
 
-  // 2. Service Worker showNotification (Primary on Desktop Chrome, Windows & Mobile)
+  // 1. Service Worker showNotification (Primary on Desktop Chrome, Windows & Mobile)
   if ('serviceWorker' in navigator) {
     try {
       let reg = await navigator.serviceWorker.getRegistration();
@@ -84,7 +60,7 @@ export async function triggerDesktopNotification(title, body, tag = 'dayscore-no
           icon: isMobile ? transparentIcon : '/icons/icon-192.png',
           badge: '/icons/badge-96.png',
           tag: tag,
-          renotify: true,
+          renotify: false,
           requireInteraction: true,
           vibrate: [200, 100, 200]
         });
@@ -161,11 +137,21 @@ export function useNotifications(tasks, enabled, leadTimeMinutes = 30) {
     checkPermission();
   }, [enabled, checkPermission]);
 
-  // Precision in-app reminders & heartbeat when DayScore is open (foreground or background tab)
+  // Reminders when DayScore is open:
+  // When Web Push is supported and active for the authenticated user, the backend server
+  // is already reliably pushing Missed and Lead reminders directly to the Service Worker.
+  // Suppressing duplicate local timers prevents the "2 notifications" bug!
   useEffect(() => {
     if (!enabled || !tasks || tasks.length === 0) return;
     if (typeof window === 'undefined' || !('Notification' in window)) return;
     if (Notification.permission !== 'granted') return;
+
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('dayscore_token') : null;
+    const isServerPushActive = Boolean(token && isPushNotificationSupported());
+    if (isServerPushActive) {
+      // Server Web Push is actively handling reminders; skip local timers to guarantee zero duplicates!
+      return;
+    }
 
     const timeouts = [];
     const rawNum = Number(leadTimeMinutes);
