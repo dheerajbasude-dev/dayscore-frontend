@@ -541,8 +541,20 @@ export default function RewardsBookModal({
     setClaimingId(item.id);
     try {
       if (item.type === 'milestone') {
-        const updated = await store.claimStreakMilestoneApi(item.days);
-        setClaimedMilestones({ ...updated });
+        // Immediate optimistic UI update
+        setClaimedMilestones(prev => ({ ...prev, [item.days]: true }));
+        setShowConfetti(true);
+        setTimeout(() => setShowConfetti(false), 2500);
+        showToast(`🎉 Reward Claimed: "${item.text}"`, 'reward');
+        setRefreshKey(k => k + 1);
+
+        // Fast background server sync
+        store.claimStreakMilestoneApi(item.days).then(updated => {
+          if (updated) setClaimedMilestones({ ...updated });
+          onTaskUpdated?.();
+        }).catch(err => {
+          console.error('Error claiming milestone:', err);
+        });
       } else if (item.task) {
         const targetId = item.task.id || item.task._id;
         const targetDate = item.taskDate || format(new Date(), 'yyyy-MM-dd');
@@ -558,38 +570,37 @@ export default function RewardsBookModal({
           updatePayload.reward = item.text;
         }
 
-        const updatePromise = store.updateTask(targetDate, targetId, updatePayload);
-        const timerPromise = new Promise(r => setTimeout(r, 450));
-        await Promise.all([updatePromise, timerPromise]);
-
+        // 1. Instant local storage update (0ms)
         try {
           if (targetId) localStorage.setItem(`dayscore_reward_ack_${targetId}`, '1');
           if (item.task.id) localStorage.setItem(`dayscore_reward_ack_${item.task.id}`, '1');
           if (item.task._id) localStorage.setItem(`dayscore_reward_ack_${item.task._id}`, '1');
         } catch (e) {}
 
-        // Immediately update local allTasks state
+        // 2. Instant local allTasks state update (0ms) - disappears from pending list immediately!
         setAllTasks(prev => prev.map(t => {
           const tid = t.id || t._id;
           if (String(tid) === String(targetId)) {
             return {
               ...t,
-              rewardClaimed: true,
-              reward_claimed: 1,
-              rewardAcknowledged: true,
-              reward_acknowledged: 1,
-              rewardClaimedAt: new Date().toISOString()
+              ...updatePayload
             };
           }
           return t;
         }));
-      }
 
-      setShowConfetti(true);
-      setTimeout(() => setShowConfetti(false), 3000);
-      showToast(`🎉 Reward Claimed: "${item.text}"`, 'reward');
-      setRefreshKey(k => k + 1);
-      onTaskUpdated?.();
+        setShowConfetti(true);
+        setTimeout(() => setShowConfetti(false), 2500);
+        showToast(`🎉 Reward Claimed: "${item.text}"`, 'reward');
+        setRefreshKey(k => k + 1);
+
+        // 3. Fast background persistence without blocking UI
+        store.updateTask(targetDate, targetId, updatePayload)
+          .then(() => onTaskUpdated?.())
+          .catch(err => {
+            console.error('Error saving claimed reward to server:', err);
+          });
+      }
     } catch (err) {
       console.error('Error claiming reward:', err);
       showToast("Couldn't claim reward. Please check your connection.", 'error');
@@ -608,43 +619,44 @@ export default function RewardsBookModal({
         const targetId = item.task.id || item.task._id;
         const targetDate = item.taskDate || format(new Date(), 'yyyy-MM-dd');
 
-        const updatePromise = store.updateTask(targetDate, targetId, {
+        const penaltyPayload = {
           penaltyAccepted: true,
           penalty_accepted: 1,
           penaltyAcknowledged: true,
           penalty_acknowledged: 1,
           penaltyAcceptedAt: new Date().toISOString()
-        });
-        const timerPromise = new Promise(r => setTimeout(r, 450));
-        await Promise.all([updatePromise, timerPromise]);
+        };
 
+        // 1. Instant local storage update (0ms)
         try {
           if (targetId) localStorage.setItem(`dayscore_penalty_ack_${targetId}`, '1');
           if (item.task.id) localStorage.setItem(`dayscore_penalty_ack_${item.task.id}`, '1');
           if (item.task._id) localStorage.setItem(`dayscore_penalty_ack_${item.task._id}`, '1');
         } catch (e) {}
 
-        // Immediately update local allTasks state
+        // 2. Instant local allTasks state update (0ms) - disappears from pending list immediately!
         setAllTasks(prev => prev.map(t => {
           const tid = t.id || t._id;
           if (String(tid) === String(targetId)) {
             return {
               ...t,
-              penaltyAccepted: true,
-              penalty_accepted: 1,
-              penaltyAcknowledged: true,
-              penalty_acknowledged: 1,
-              penaltyAcceptedAt: new Date().toISOString()
+              ...penaltyPayload
             };
           }
           return t;
         }));
-      }
 
-      store.acknowledgePunishment();
-      showToast(`✓ Penalty Acknowledged: "${item.text}"`, 'penalty');
-      setRefreshKey(k => k + 1);
-      onTaskUpdated?.();
+        store.acknowledgePunishment();
+        showToast(`✓ Penalty Acknowledged: "${item.text}"`, 'penalty');
+        setRefreshKey(k => k + 1);
+
+        // 3. Fast background persistence without blocking UI
+        store.updateTask(targetDate, targetId, penaltyPayload)
+          .then(() => onTaskUpdated?.())
+          .catch(err => {
+            console.error('Error accepting penalty on server:', err);
+          });
+      }
     } catch (err) {
       console.error('Error accepting penalty:', err);
       showToast("Couldn't acknowledge penalty. Please try again.", 'error');

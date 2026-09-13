@@ -202,6 +202,10 @@ export function setTasksLoadedOnce(val = true) {
   tasksLoadedOnce = val;
 }
 
+export function hasTasksLoadedOnce() {
+  return tasksLoadedOnce;
+}
+
 export function formatServerTask(t) {
   const isClaimed = t.reward_claimed === 1 || t.reward_claimed === '1' || t.reward_claimed === true || t.rewardClaimed === true || t.rewardClaimed === 1;
   const isAcknowledged = t.reward_acknowledged === 1 || t.reward_acknowledged === '1' || t.reward_acknowledged === true || t.rewardAcknowledged === true || t.rewardAcknowledged === 1;

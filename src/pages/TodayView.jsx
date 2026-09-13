@@ -370,7 +370,7 @@ export default function TodayView() {
   const [settings, setSettings] = useState({ notifications: false })
   const [loading, setLoading] = useState(() => {
     if (!user) return false;
-    return !store.isTasksLoaded(currentDateStr);
+    return !store.hasTasksLoadedOnce();
   })
   const [autoCarriedToastInfo, setAutoCarriedToastInfo] = useState(null)
   const [taskToDelete, setTaskToDelete] = useState(null)
@@ -939,7 +939,7 @@ export default function TodayView() {
         return changed;
       };
 
-      const isCached = store.isTasksLoaded(currentDateStr);
+      const isCached = store.hasTasksLoadedOnce();
       const cached = store.getTasks(currentDateStr);
       if (cached) {
         backfillHighRatedRewards(cached);
@@ -948,21 +948,27 @@ export default function TodayView() {
         setTodaysReward(cachedUnack ? cachedUnack.reward : null);
       }
 
-      // If data is already cached/loaded, keep loading false for zero-delay instant tab switching
+      // If data has already loaded once in this session, keep loading false for zero-delay instant tab switching
       if (isCached) {
         setLoading(false);
       } else {
         setLoading(true);
       }
 
-      await store.fetchAllTasksApi();
-      if (!isMounted) return;
-
-      const freshToday = store.getTasks(currentDateStr);
-      backfillHighRatedRewards(freshToday);
-      setTasks([...freshToday]);
-      setArchives(store.getAllArchives());
-      setLoading(false);
+      let freshToday = [];
+      try {
+        await store.fetchAllTasksApi();
+      } catch (e) {
+        console.warn('fetchAllTasksApi error:', e);
+      } finally {
+        if (isMounted) {
+          freshToday = store.getTasks(currentDateStr);
+          backfillHighRatedRewards(freshToday);
+          setTasks([...freshToday]);
+          setArchives(store.getAllArchives());
+          setLoading(false);
+        }
+      }
 
       const unacknowledgedTask = freshToday.find(isTaskRewardUnacknowledged);
       setTodaysReward(unacknowledgedTask ? unacknowledgedTask.reward : null);
@@ -1957,7 +1963,6 @@ export default function TodayView() {
     });
 
     try {
-      // Keep button in loading state during API update with min 450ms for smooth visual feedback
       const updatePayload = {
         rewardClaimed: true,
         reward_claimed: 1,
@@ -1970,22 +1975,36 @@ export default function TodayView() {
       if (rewardText) {
         updatePayload.reward = rewardText;
       }
-      const updatePromise = store.updateTask(targetDate, targetId, updatePayload);
-      const timerPromise = new Promise(r => setTimeout(r, 450));
-      await Promise.all([updatePromise, timerPromise]);
 
+      // 1. Instant local storage update (0ms)
       try {
         if (targetId) localStorage.setItem(`dayscore_reward_ack_${targetId}`, '1');
         if (altId) localStorage.setItem(`dayscore_reward_ack_${altId}`, '1');
       } catch (e) {}
 
-      await store.fetchAllTasksApi().catch(() => {});
-      setTasks(store.getTasks(currentDateStr));
-      setArchives(store.getAllArchives());
+      // 2. Instant optimistic React state update (0ms)
+      setTasks(prev => (prev || []).map(t => {
+        const tid = t.id || t._id;
+        if (String(tid) === String(targetId) || (altId && String(tid) === String(altId))) {
+          return { ...t, ...updatePayload };
+        }
+        return t;
+      }));
       setTodaysReward(null);
       if (rewardText) {
         showToast(`🎉 Reward Claimed: "${rewardText}"`, 'reward');
       }
+
+      // 3. Fast background persistence without blocking UI
+      store.updateTask(targetDate, targetId, updatePayload)
+        .then(() => store.fetchAllTasksApi().catch(() => {}))
+        .then(() => {
+          setTasks(store.getTasks(currentDateStr));
+          setArchives(store.getAllArchives());
+        })
+        .catch(err => {
+          console.error('Claim reward error:', err);
+        });
     } catch (err) {
       console.error('Claim reward error:', err);
       showToast("Couldn't claim reward — check your connection and try again", 'error');
@@ -2018,8 +2037,7 @@ export default function TodayView() {
     });
 
     try {
-      // Keep button in loading state during API update with min 450ms for smooth visual feedback
-      const updatePromise = store.updateTask(targetDate, targetId, {
+      const penaltyPayload = {
         penaltyAccepted: true,
         penalty_accepted: 1,
         penaltyAcknowledged: true,
@@ -2027,18 +2045,22 @@ export default function TodayView() {
         rewardClaimed: false,
         reward_claimed: 0,
         penaltyAcceptedAt: new Date().toISOString()
-      });
-      const timerPromise = new Promise(r => setTimeout(r, 450));
-      await Promise.all([updatePromise, timerPromise]);
+      };
 
+      // 1. Instant local storage update (0ms)
       try {
         if (targetId) localStorage.setItem(`dayscore_penalty_ack_${targetId}`, '1');
         if (altId) localStorage.setItem(`dayscore_penalty_ack_${altId}`, '1');
       } catch (e) {}
 
-      await store.fetchAllTasksApi().catch(() => {});
-      setTasks(store.getTasks(currentDateStr));
-      setArchives(store.getAllArchives());
+      // 2. Instant optimistic React state update (0ms)
+      setTasks(prev => (prev || []).map(t => {
+        const tid = t.id || t._id;
+        if (String(tid) === String(targetId) || (altId && String(tid) === String(altId))) {
+          return { ...t, ...penaltyPayload };
+        }
+        return t;
+      }));
 
       store.acknowledgePunishment();
       setActivePunishment(null);
@@ -2046,6 +2068,17 @@ export default function TodayView() {
       if (punishmentText) {
         showToast(`✓ Penalty Acknowledged: "${punishmentText}"`, 'penalty');
       }
+
+      // 3. Fast background persistence without blocking UI
+      store.updateTask(targetDate, targetId, penaltyPayload)
+        .then(() => store.fetchAllTasksApi().catch(() => {}))
+        .then(() => {
+          setTasks(store.getTasks(currentDateStr));
+          setArchives(store.getAllArchives());
+        })
+        .catch(err => {
+          console.error('Accept penalty error:', err);
+        });
     } catch (err) {
       console.error('Accept penalty error:', err);
       showToast("Couldn't accept penalty — check your connection and try again", 'error');
@@ -3118,11 +3151,14 @@ export default function TodayView() {
         onClose={() => setIsBookOpen(false)}
         initialTab={bookInitialTab}
         activeTasks={tasks}
-        onTaskUpdated={async () => {
+        onTaskUpdated={() => {
           if (!user) return;
-          await store.fetchAllTasksApi();
           setTasks(store.getTasks(currentDateStr));
           setArchives(store.getAllArchives());
+          store.fetchAllTasksApi().then(() => {
+            setTasks(store.getTasks(currentDateStr));
+            setArchives(store.getAllArchives());
+          }).catch(() => {});
         }}
         onNavigateToTask={(task, targetDate) => {
           setIsBookOpen(false);
