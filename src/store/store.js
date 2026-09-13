@@ -200,10 +200,32 @@ export function isTasksLoaded(dateStr) {
 
 export function setTasksLoadedOnce(val = true) {
   tasksLoadedOnce = val;
+  const uid = getUserId();
+  if (uid && uid !== 'guest') {
+    try {
+      if (val) {
+        localStorage.setItem(`dayscore_${uid}_loaded_once`, '1');
+      } else {
+        localStorage.removeItem(`dayscore_${uid}_loaded_once`);
+      }
+    } catch (e) {}
+  }
 }
 
-export function hasTasksLoadedOnce() {
-  return tasksLoadedOnce;
+export function hasTasksLoadedOnce(dateStr) {
+  if (tasksLoadedOnce) return true;
+  const uid = getUserId();
+  if (!uid || uid === 'guest') return false;
+  try {
+    if (localStorage.getItem(`dayscore_${uid}_loaded_once`) === '1') {
+      tasksLoadedOnce = true;
+      return true;
+    }
+  } catch (e) {}
+  if (dateStr && isTasksCached(dateStr)) {
+    return true;
+  }
+  return false;
 }
 
 export function formatServerTask(t) {
@@ -350,7 +372,7 @@ export async function fetchAllTasksApi() {
       if (!tasksByDate.has(todayStr)) {
         saveTasks(todayStr, []);
       }
-      tasksLoadedOnce = true;
+      setTasksLoadedOnce(true);
 
       return getArchivesFromTasks();
     }

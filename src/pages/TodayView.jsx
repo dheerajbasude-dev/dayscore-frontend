@@ -370,7 +370,7 @@ export default function TodayView() {
   const [settings, setSettings] = useState({ notifications: false })
   const [loading, setLoading] = useState(() => {
     if (!user) return false;
-    return !store.hasTasksLoadedOnce();
+    return !store.hasTasksLoadedOnce(currentDateStr);
   })
   const [autoCarriedToastInfo, setAutoCarriedToastInfo] = useState(null)
   const [taskToDelete, setTaskToDelete] = useState(null)
@@ -939,7 +939,7 @@ export default function TodayView() {
         return changed;
       };
 
-      const isCached = store.hasTasksLoadedOnce();
+      const isCached = store.hasTasksLoadedOnce(currentDateStr);
       const cached = store.getTasks(currentDateStr);
       if (cached) {
         backfillHighRatedRewards(cached);
@@ -948,8 +948,9 @@ export default function TodayView() {
         setTodaysReward(cachedUnack ? cachedUnack.reward : null);
       }
 
-      // If data has already loaded once in this session, keep loading false for zero-delay instant tab switching
-      if (isCached) {
+      // If data has already loaded once in this session OR is already cached in localStorage,
+      // keep loading false for zero-delay instant load both on tab switching AND on page refresh!
+      if (isCached || (cached && cached.length > 0)) {
         setLoading(false);
       } else {
         setLoading(true);

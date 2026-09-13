@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Trash2, Edit2, Check, Gift, AlertOctagon, Info, History, Trophy, Sparkles, Loader2, BookOpen } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
@@ -26,7 +26,6 @@ export default function RewardsView() {
   // Rewards & Penalties Book state
   const [isBookOpen, setIsBookOpen] = useState(false)
   const [bookInitialTab, setBookInitialTab] = useState('penalties')
-  const [bookPendingCount, setBookPendingCount] = useState(0)
 
   // Loading states for async actions
   const [isAddingReward, setIsAddingReward] = useState(false)
@@ -43,14 +42,12 @@ export default function RewardsView() {
   const bestStreak = user ? scoring.getBestStreak(archives, todayTasks) : 0
   const effectiveStreak = Math.max(currentStreakObj.current || 0, bestStreak || 0)
 
-  const updateBookCounts = useCallback(() => {
-    if (!user) {
-      setBookPendingCount(0);
-      return;
-    }
+  // Derived pending count via useMemo - avoids state updates and eliminates re-render loops
+  const bookPendingCount = useMemo(() => {
+    if (!user) return 0;
     try {
       const allFlat = store.getAllTasksFlat() || [];
-      const count = calculateRewardsBookPendingCount({
+      return calculateRewardsBookPendingCount({
         allTasks: allFlat,
         activeTasks: todayTasks,
         milestones,
@@ -58,9 +55,9 @@ export default function RewardsView() {
         effectiveStreak,
         user
       });
-      setBookPendingCount(count);
     } catch (e) {
       console.warn('Error calculating book counts:', e);
+      return 0;
     }
   }, [user, milestones, claimedMilestones, effectiveStreak, todayTasks]);
 
@@ -70,7 +67,6 @@ export default function RewardsView() {
       setPunishments([])
       setMilestones({})
       setClaimedMilestones({})
-      setBookPendingCount(0)
       setLoading(false)
       return
     }
@@ -81,7 +77,6 @@ export default function RewardsView() {
     if (cachedP && cachedP.length > 0) setPunishments(cachedP)
     setMilestones(store.getStreakMilestoneRewards() || {})
     setClaimedMilestones(store.getClaimedStreakMilestones() || {})
-    updateBookCounts()
 
     if (store.isRewardsCached()) {
       setLoading(false)
@@ -89,9 +84,11 @@ export default function RewardsView() {
       setLoading(true)
     }
 
-    const loadedRewards = await store.fetchRewardsApi()
-    const loadedPunishments = await store.fetchPunishmentsApi()
-    const milestoneData = await store.fetchStreakMilestonesApi()
+    const [loadedRewards, loadedPunishments, milestoneData] = await Promise.all([
+      store.fetchRewardsApi().catch(() => []),
+      store.fetchPunishmentsApi().catch(() => []),
+      store.fetchStreakMilestonesApi().catch(() => null)
+    ]);
 
     if (Array.isArray(loadedRewards)) setRewards(loadedRewards)
     if (Array.isArray(loadedPunishments)) setPunishments(loadedPunishments)
@@ -99,9 +96,8 @@ export default function RewardsView() {
       setMilestones(milestoneData.milestones || {})
       setClaimedMilestones(milestoneData.claimed || {})
     }
-    updateBookCounts()
     setLoading(false)
-  }, [user, updateBookCounts]);
+  }, [user]);
 
   useEffect(() => {
     let isMounted = true;
@@ -115,7 +111,6 @@ export default function RewardsView() {
       setPunishments([]);
       setMilestones({});
       setClaimedMilestones({});
-      setBookPendingCount(0);
       setShowAuthModal(true);
     };
     window.addEventListener('dayscore_user_logout', handleLogout);
