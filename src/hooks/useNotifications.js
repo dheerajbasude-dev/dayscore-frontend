@@ -218,24 +218,32 @@ export function useNotifications(tasks, enabled, leadTimeMinutes = 30) {
           }
         }
 
-        // 2. Lead Time Reminder (Fires at 11, 16, 31, or 61 min ahead)
+        // 2. Lead Time Reminder (Fires strictly at 11, 16, 31, or 61 min ahead)
         const notifyTime = dueTime - leadMs;
         const leadEventId = `${taskId}_lead_${baseLead}_${notifyTime}`;
         const timeDiffLead = notifyTime - now;
 
-        if (timeDiffLead <= 0 && timeDiffLead >= -120000 && now < dueTime) {
-          if (!notifiedEvents.has(leadEventId)) {
-            markEventNotified(leadEventId);
-            triggerDesktopNotification(
-              `⏰ Task Due Soon: ${task.title}`,
-              `Task '${task.title}' (${task.priority || 'Med'} Priority) is due in ${leadText}!`,
-              `dayscore-task-lead-${taskId}`
-            );
-            markTaskNotifiedOnServer(taskId, 'lead', baseLead);
-          }
-        } else if (timeDiffLead > 0 && timeDiffLead <= 24 * 60 * 60 * 1000) {
-          if (!notifiedEvents.has(leadEventId)) {
-            const t = setTimeout(() => {
+        const rawCreated = task.createdAt || task.created_at;
+        const createdAtMs = rawCreated ? new Date(rawCreated).getTime() : 0;
+        const rawUpdated = task.updatedAt || task.updated_at;
+        const updatedAtMs = rawUpdated ? new Date(rawUpdated).getTime() : 0;
+        const baselineTime = Math.max(createdAtMs, updatedAtMs);
+
+        // If the task was added or updated under the specified notification time (remaining time < lead time),
+        // or if notifyTime had already passed when created/updated, skip lead notification completely!
+        const isAddedUnderLeadTime = baselineTime > 0 && baselineTime >= notifyTime;
+
+        // Also check if already marked sent or skipped on task
+        const isAlreadySent = Boolean(
+          task.lead_reminder_sent ||
+          task.leadReminderSent ||
+          (Array.isArray(task.sent_lead_times) && task.sent_lead_times.includes(baseLead)) ||
+          (Array.isArray(task.sentLeadTimes) && task.sentLeadTimes.includes(baseLead))
+        );
+
+        if (!isAddedUnderLeadTime && !isAlreadySent) {
+          if (timeDiffLead <= 0 && timeDiffLead >= -60000 && now < dueTime) {
+            if (!notifiedEvents.has(leadEventId)) {
               markEventNotified(leadEventId);
               triggerDesktopNotification(
                 `⏰ Task Due Soon: ${task.title}`,
@@ -243,8 +251,20 @@ export function useNotifications(tasks, enabled, leadTimeMinutes = 30) {
                 `dayscore-task-lead-${taskId}`
               );
               markTaskNotifiedOnServer(taskId, 'lead', baseLead);
-            }, timeDiffLead);
-            timeouts.push(t);
+            }
+          } else if (timeDiffLead > 0 && timeDiffLead <= 24 * 60 * 60 * 1000) {
+            if (!notifiedEvents.has(leadEventId)) {
+              const t = setTimeout(() => {
+                markEventNotified(leadEventId);
+                triggerDesktopNotification(
+                  `⏰ Task Due Soon: ${task.title}`,
+                  `Task '${task.title}' (${task.priority || 'Med'} Priority) is due in ${leadText}!`,
+                  `dayscore-task-lead-${taskId}`
+                );
+                markTaskNotifiedOnServer(taskId, 'lead', baseLead);
+              }, timeDiffLead);
+              timeouts.push(t);
+            }
           }
         }
       });

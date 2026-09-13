@@ -270,6 +270,12 @@ export function formatServerTask(t) {
     completed_at: effectiveCompletedDate,
     createdAt: createdDate,
     created_at: createdDate,
+    updatedAt: t.updated_at || t.updatedAt || createdDate,
+    updated_at: t.updated_at || t.updatedAt || createdDate,
+    lead_reminder_sent: Boolean(t.lead_reminder_sent || t.leadReminderSent),
+    leadReminderSent: Boolean(t.lead_reminder_sent || t.leadReminderSent),
+    sent_lead_times: Array.isArray(t.sent_lead_times) ? t.sent_lead_times : (Array.isArray(t.sentLeadTimes) ? t.sentLeadTimes : []),
+    sentLeadTimes: Array.isArray(t.sent_lead_times) ? t.sent_lead_times : (Array.isArray(t.sentLeadTimes) ? t.sentLeadTimes : []),
     carriedOver: isCarried,
     carried_over: isCarried ? 1 : 0,
     daily_notes: Array.isArray(t.daily_notes || t.dailyNotes) ? (t.daily_notes || t.dailyNotes) : [],
@@ -416,6 +422,9 @@ export async function addTask(dateStr, task) {
     penaltyAccepted: false,
     penalty_accepted: 0,
     createdAt: new Date().toISOString(),
+    created_at: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
     carriedOver: !!task.carriedOver,
     ...task
   };
@@ -432,7 +441,8 @@ export async function updateTask(dateStr, taskId, updates) {
   const existing = tasks.find(t => t.id === taskId || t._id === taskId) || {};
   const targetId = existing.id || existing._id || taskId;
 
-  const cleanUpdates = { ...updates };
+  const nowIso = new Date().toISOString();
+  const cleanUpdates = { ...updates, updatedAt: nowIso, updated_at: nowIso };
 
   if (existing.status === 'missed') {
     if (cleanUpdates.status === 'done') {
