@@ -3118,11 +3118,10 @@ export default function TodayView() {
         onClose={() => setIsBookOpen(false)}
         initialTab={bookInitialTab}
         activeTasks={tasks}
-        onTaskUpdated={async () => {
+        onTaskUpdated={() => {
           if (!user) return;
-          await store.fetchAllTasksApi();
-          setTasks(store.getTasks(currentDateStr));
-          setArchives(store.getAllArchives());
+          setTasks([...store.getTasks(currentDateStr)]);
+          setArchives([...store.getAllArchives()]);
         }}
         onNavigateToTask={(task, targetDate) => {
           setIsBookOpen(false);
