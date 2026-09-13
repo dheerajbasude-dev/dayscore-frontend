@@ -29,6 +29,199 @@ import { useAuth } from '../context/AuthContext';
 import { getLocalDateStr, formatTaskMetaDates } from '../utils/taskUtils';
 import ConfettiCelebration from './ConfettiCelebration';
 
+export function generateRewardsBookLedger({
+  allTasks = [],
+  activeTasks = [],
+  milestones = {},
+  claimedMilestones = {},
+  effectiveStreak = 0,
+  user = null
+} = {}) {
+  if (!user) return [];
+  const items = [];
+  const seenRewardIds = new Set();
+  const seenRewardFps = new Set();
+  const seenPenaltyIds = new Set();
+  const seenPenaltyFps = new Set();
+
+  const mergedTasks = [];
+  const seenTaskIds = new Set();
+  const seenTaskFps = new Set();
+
+  const getTaskFingerprint = (t) => {
+    if (!t) return '';
+    const title = (t.title || '').trim().toLowerCase();
+    const due = (t.dueDateTime || t.due_date_time || '').substring(0, 16);
+    const comp = (t.completedAt || t.completed_at || '').substring(0, 16);
+    const rew = (t.reward || '').trim().toLowerCase();
+    const pen = (t.penalty || '').trim().toLowerCase();
+    return `${title}_${due}_${comp}_${rew}_${pen}`;
+  };
+
+  const candidateTasks = [
+    ...(Array.isArray(allTasks) ? allTasks : []),
+    ...(Array.isArray(activeTasks) ? activeTasks : [])
+  ];
+
+  candidateTasks.forEach(t => {
+    if (!t) return;
+    const strId = t.id ? String(t.id) : (t._id ? String(t._id) : null);
+    const fp = getTaskFingerprint(t);
+    if (strId && seenTaskIds.has(strId)) return;
+    if (fp && seenTaskFps.has(fp)) return;
+    if (strId) seenTaskIds.add(strId);
+    if (fp) seenTaskFps.add(fp);
+    mergedTasks.push(t);
+  });
+
+  // 1. Task-based Rewards & Penalties
+  mergedTasks.forEach(task => {
+    const rawId = task.id || task._id;
+    const taskId = rawId ? String(rawId) : null;
+    const cleanTaskDate = getLocalDateStr(task.date || task.taskDate || task.originalDate || task.dueDateTime || task.due_date_time || task.dateLabel) || format(new Date(), 'yyyy-MM-dd');
+    const isDone = task.status === 'done' || task.completed === true;
+    const isMissed = task.status === 'missed' || task.missed === true;
+    const ratingNum = task.rating != null && !isNaN(Number(task.rating)) ? Number(task.rating) : null;
+
+    // Only completed or missed tasks have settled rewards or penalties!
+    // Incomplete/in-progress tasks are excluded from the book ledger.
+    if (!isDone && !isMissed) {
+      return;
+    }
+
+    const taskTitleClean = (task.title || '').trim().toLowerCase();
+    const taskDue = (task.dueDateTime || task.due_date_time || '').substring(0, 16);
+    const taskComp = (task.completedAt || task.completed_at || '').substring(0, 16);
+
+    // 1. Has reward?
+    // A reward exists only if task is completed AND (rating > 4.0 or unrated) AND has a reward defined
+    const isRewardClaimed = Boolean(
+      task.rewardClaimed === true || task.rewardClaimed === 1 || task.rewardClaimed === '1' ||
+      task.reward_claimed === true || task.reward_claimed === 1 || task.reward_claimed === '1' ||
+      task.rewardAcknowledged === true || task.rewardAcknowledged === 1 || task.rewardAcknowledged === '1' ||
+      task.reward_acknowledged === true || task.reward_acknowledged === 1 || task.reward_acknowledged === '1' ||
+      Boolean(task.rewardClaimedAt || task.reward_claimed_at) ||
+      (task.id && localStorage.getItem(`dayscore_reward_ack_${task.id}`) === '1') ||
+      (task._id && localStorage.getItem(`dayscore_reward_ack_${task._id}`) === '1')
+    );
+    const hasHighRatingReward = isDone && (ratingNum == null || ratingNum > 4.0);
+    const isHighRatingTask = isDone && ratingNum != null && ratingNum >= 9;
+    const rewardText = (task.reward && task.reward.trim()) || (isHighRatingTask ? "Treat yourself for high score!" : null);
+
+    if (isDone && hasHighRatingReward && rewardText) {
+      const rewardKey = taskId ? `reward_${taskId}` : null;
+      const rewardFp = `reward_fp_${taskTitleClean}_${(rewardText).toLowerCase()}_${taskDue}_${taskComp}`;
+
+      const isDuplicate = (rewardKey && seenRewardIds.has(rewardKey)) || seenRewardFps.has(rewardFp);
+      if (!isDuplicate) {
+        if (rewardKey) seenRewardIds.add(rewardKey);
+        seenRewardFps.add(rewardFp);
+
+        items.push({
+          id: rewardKey || `reward_item_${items.length}_${Date.now()}`,
+          rawId: taskId || rewardFp,
+          type: 'reward',
+          text: rewardText,
+          task,
+          taskDate: cleanTaskDate,
+          isCompleted: true,
+          isClaimed: isRewardClaimed,
+          status: isRewardClaimed ? 'claimed' : 'pending',
+          date: task.completedAt || task.completed_at || cleanTaskDate,
+          rating: ratingNum
+        });
+      }
+    }
+
+    // 2. Has penalty?
+    // A penalty exists if task is missed, OR if completed with low rating (<= 4.0)
+    const isPenaltyAccepted = Boolean(
+      task.penaltyAccepted === true || task.penaltyAccepted === 1 || task.penaltyAccepted === '1' ||
+      task.penalty_accepted === true || task.penalty_accepted === 1 || task.penalty_accepted === '1' ||
+      task.penaltyAcknowledged === true || task.penaltyAcknowledged === 1 || task.penaltyAcknowledged === '1' ||
+      task.penalty_acknowledged === true || task.penalty_acknowledged === 1 || task.penalty_acknowledged === '1' ||
+      Boolean(task.penaltyAcceptedAt || task.penalty_accepted_at) ||
+      (task.id && localStorage.getItem(`dayscore_penalty_ack_${task.id}`) === '1') ||
+      (task._id && localStorage.getItem(`dayscore_penalty_ack_${task._id}`) === '1')
+    );
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    const isPastMissed = isMissed && cleanTaskDate < todayStr;
+    const hasVisibleRatingBadge = (isDone && ratingNum != null) || isPastMissed;
+    const hasLowRatingPenalty = isDone && ratingNum != null && ratingNum <= 4.0;
+    const hasPenalty = hasVisibleRatingBadge && (isPastMissed || hasLowRatingPenalty);
+
+    if (hasPenalty) {
+      const penaltyText = task.penalty && task.penalty.trim() ? task.penalty : "Complete 15-min focus reflection / workout";
+      const penaltyKey = taskId ? `penalty_${taskId}` : null;
+      const penaltyFp = `penalty_fp_${taskTitleClean}_${(penaltyText).toLowerCase()}_${taskDue}_${taskComp}`;
+
+      const isDuplicate = (penaltyKey && seenPenaltyIds.has(penaltyKey)) || seenPenaltyFps.has(penaltyFp);
+      if (!isDuplicate) {
+        if (penaltyKey) seenPenaltyIds.add(penaltyKey);
+        seenPenaltyFps.add(penaltyFp);
+
+        items.push({
+          id: penaltyKey || `penalty_item_${items.length}_${Date.now()}`,
+          rawId: taskId || penaltyFp,
+          type: 'penalty',
+          text: penaltyText,
+          task,
+          taskDate: cleanTaskDate,
+          isCompleted: isDone,
+          isClaimed: isPenaltyAccepted,
+          status: isPenaltyAccepted ? 'acknowledged' : 'pending',
+          date: task.dueDateTime || task.due_date_time || cleanTaskDate,
+          rating: ratingNum
+        });
+      }
+    }
+  });
+
+  // 2. Streak Milestone Rewards (7, 14, 30, 100 days)
+  const milestoneDays = [7, 14, 30, 100];
+  milestoneDays.forEach(days => {
+    const rewardText = milestones[days];
+    if (rewardText && rewardText.trim()) {
+      const isUnlocked = effectiveStreak >= days;
+      const isClaimed = Boolean(claimedMilestones[days]);
+      items.push({
+        id: `milestone_${days}`,
+        rawId: days,
+        type: 'milestone',
+        days,
+        text: rewardText,
+        isUnlocked,
+        isClaimed,
+        status: isClaimed ? 'claimed' : (isUnlocked ? 'pending' : 'locked'),
+        date: `Streak Milestone: ${days} Days`
+      });
+    }
+  });
+
+  return items;
+}
+
+export function calculateRewardsBookPendingCount({
+  allTasks = [],
+  activeTasks = [],
+  milestones = {},
+  claimedMilestones = {},
+  effectiveStreak = 0,
+  user = null
+} = {}) {
+  const ledgerItems = generateRewardsBookLedger({
+    allTasks,
+    activeTasks,
+    milestones,
+    claimedMilestones,
+    effectiveStreak,
+    user
+  });
+  const pendingRewards = ledgerItems.filter(i => (i.type === 'reward' || (i.type === 'milestone' && i.isUnlocked)) && !i.isClaimed);
+  const pendingPenalties = ledgerItems.filter(i => i.type === 'penalty' && !i.isClaimed);
+  return pendingRewards.length + pendingPenalties.length;
+}
+
 export default function RewardsBookModal({
   isOpen,
   onClose,
@@ -271,138 +464,14 @@ export default function RewardsBookModal({
 
   // Build the complete ledger items list with strict deduplication
   const ledgerItems = useMemo(() => {
-    if (!user) return [];
-    const items = [];
-    const seenRewardIds = new Set();
-    const seenRewardFps = new Set();
-    const seenPenaltyIds = new Set();
-    const seenPenaltyFps = new Set();
-
-    // 1. Task-based Rewards & Penalties
-    allTasks.forEach(task => {
-      const rawId = task.id || task._id;
-      const taskId = rawId ? String(rawId) : null;
-      const cleanTaskDate = getLocalDateStr(task.date || task.taskDate || task.originalDate || task.dueDateTime || task.due_date_time) || format(new Date(), 'yyyy-MM-dd');
-      const isDone = task.status === 'done' || task.completed === true;
-      const isMissed = task.status === 'missed' || task.missed === true;
-      const ratingNum = task.rating != null && !isNaN(Number(task.rating)) ? Number(task.rating) : null;
-
-      // Only completed or missed tasks have settled rewards or penalties!
-      // Incomplete/in-progress tasks are excluded from the book ledger.
-      if (!isDone && !isMissed) {
-        return;
-      }
-
-      const taskTitleClean = (task.title || '').trim().toLowerCase();
-      const taskDue = (task.dueDateTime || task.due_date_time || '').substring(0, 16);
-      const taskComp = (task.completedAt || task.completed_at || '').substring(0, 16);
-
-      // 1. Has reward?
-      // A reward exists only if task is completed AND (rating > 4.0 or unrated) AND has a reward defined
-      const isRewardClaimed = Boolean(
-        task.rewardClaimed === true || task.rewardClaimed === 1 || task.rewardClaimed === '1' ||
-        task.reward_claimed === true || task.reward_claimed === 1 || task.reward_claimed === '1' ||
-        task.rewardAcknowledged === true || task.rewardAcknowledged === 1 || task.rewardAcknowledged === '1' ||
-        task.reward_acknowledged === true || task.reward_acknowledged === 1 || task.reward_acknowledged === '1' ||
-        Boolean(task.rewardClaimedAt || task.reward_claimed_at) ||
-        (task.id && localStorage.getItem(`dayscore_reward_ack_${task.id}`) === '1') ||
-        (task._id && localStorage.getItem(`dayscore_reward_ack_${task._id}`) === '1')
-      );
-      const hasHighRatingReward = isDone && (ratingNum == null || ratingNum > 4.0);
-      const isHighRatingTask = isDone && ratingNum != null && ratingNum >= 9;
-      const rewardText = (task.reward && task.reward.trim()) || (isHighRatingTask ? "Treat yourself for high score!" : null);
-
-      if (isDone && hasHighRatingReward && rewardText) {
-        const rewardKey = taskId ? `reward_${taskId}` : null;
-        const rewardFp = `reward_fp_${taskTitleClean}_${(rewardText).toLowerCase()}_${taskDue}_${taskComp}`;
-
-        const isDuplicate = (rewardKey && seenRewardIds.has(rewardKey)) || seenRewardFps.has(rewardFp);
-        if (!isDuplicate) {
-          if (rewardKey) seenRewardIds.add(rewardKey);
-          seenRewardFps.add(rewardFp);
-
-          items.push({
-            id: rewardKey || `reward_item_${items.length}_${Date.now()}`,
-            rawId: taskId || rewardFp,
-            type: 'reward',
-            text: rewardText,
-            task,
-            taskDate: cleanTaskDate,
-            isCompleted: true,
-            isClaimed: isRewardClaimed,
-            status: isRewardClaimed ? 'claimed' : 'pending',
-            date: task.completedAt || task.completed_at || cleanTaskDate,
-            rating: ratingNum
-          });
-        }
-      }
-
-      // 2. Has penalty?
-      // A penalty exists if task is missed, OR if completed with low rating (<= 4.0)
-      const isPenaltyAccepted = Boolean(
-        task.penaltyAccepted === true || task.penaltyAccepted === 1 || task.penaltyAccepted === '1' ||
-        task.penalty_accepted === true || task.penalty_accepted === 1 || task.penalty_accepted === '1' ||
-        task.penaltyAcknowledged === true || task.penaltyAcknowledged === 1 || task.penaltyAcknowledged === '1' ||
-        task.penalty_acknowledged === true || task.penalty_acknowledged === 1 || task.penalty_acknowledged === '1' ||
-        Boolean(task.penaltyAcceptedAt || task.penalty_accepted_at) ||
-        (task.id && localStorage.getItem(`dayscore_penalty_ack_${task.id}`) === '1') ||
-        (task._id && localStorage.getItem(`dayscore_penalty_ack_${task._id}`) === '1')
-      );
-      const todayStr = format(new Date(), 'yyyy-MM-dd');
-      const isPastMissed = isMissed && cleanTaskDate < todayStr;
-      const hasVisibleRatingBadge = (isDone && ratingNum != null) || isPastMissed;
-      const hasLowRatingPenalty = isDone && ratingNum != null && ratingNum <= 4.0;
-      const hasPenalty = hasVisibleRatingBadge && (isPastMissed || hasLowRatingPenalty);
-
-      if (hasPenalty) {
-        const penaltyText = task.penalty && task.penalty.trim() ? task.penalty : "Complete 15-min focus reflection / workout";
-        const penaltyKey = taskId ? `penalty_${taskId}` : null;
-        const penaltyFp = `penalty_fp_${taskTitleClean}_${(penaltyText).toLowerCase()}_${taskDue}_${taskComp}`;
-
-        const isDuplicate = (penaltyKey && seenPenaltyIds.has(penaltyKey)) || seenPenaltyFps.has(penaltyFp);
-        if (!isDuplicate) {
-          if (penaltyKey) seenPenaltyIds.add(penaltyKey);
-          seenPenaltyFps.add(penaltyFp);
-
-          items.push({
-            id: penaltyKey || `penalty_item_${items.length}_${Date.now()}`,
-            rawId: taskId || penaltyFp,
-            type: 'penalty',
-            text: penaltyText,
-            task,
-            taskDate: cleanTaskDate,
-            isCompleted: isDone,
-            isClaimed: isPenaltyAccepted,
-            status: isPenaltyAccepted ? 'acknowledged' : 'pending',
-            date: task.dueDateTime || task.due_date_time || cleanTaskDate,
-            rating: ratingNum
-          });
-        }
-      }
+    return generateRewardsBookLedger({
+      allTasks,
+      activeTasks: [],
+      milestones,
+      claimedMilestones,
+      effectiveStreak,
+      user
     });
-
-    // 2. Streak Milestone Rewards (7, 14, 30, 100 days)
-    const milestoneDays = [7, 14, 30, 100];
-    milestoneDays.forEach(days => {
-      const rewardText = milestones[days];
-      if (rewardText && rewardText.trim()) {
-        const isUnlocked = effectiveStreak >= days;
-        const isClaimed = Boolean(claimedMilestones[days]);
-        items.push({
-          id: `milestone_${days}`,
-          rawId: days,
-          type: 'milestone',
-          days,
-          text: rewardText,
-          isUnlocked,
-          isClaimed,
-          status: isClaimed ? 'claimed' : (isUnlocked ? 'pending' : 'locked'),
-          date: `Streak Milestone: ${days} Days`
-        });
-      }
-    });
-
-    return items;
   }, [allTasks, milestones, claimedMilestones, effectiveStreak, user]);
 
   // Aggregate Metrics & Progress Calculations

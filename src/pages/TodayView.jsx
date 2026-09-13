@@ -13,7 +13,7 @@ import ReflectionBox from '../components/ReflectionBox'
 import ConfettiCelebration from '../components/ConfettiCelebration'
 import PenaltyCelebration from '../components/PenaltyCelebration'
 import AuthModal from '../components/AuthModal'
-import RewardsBookModal from '../components/RewardsBookModal'
+import RewardsBookModal, { calculateRewardsBookPendingCount } from '../components/RewardsBookModal'
 import { Plus, AlertTriangle, Gift, PenLine, ChevronLeft, ChevronRight, ChevronUp, Calendar, Layers, Search, SlidersHorizontal, Filter, RotateCcw, X, Clock, Zap, Check, BookOpen } from 'lucide-react'
 import * as store from '../store/store'
 import * as scoring from '../store/scoring'
@@ -789,46 +789,26 @@ export default function TodayView() {
 
   const pendingBookCount = useMemo(() => {
     if (!user) return 0;
-    let count = 0;
-    const allTasksList = Array.isArray(allTasksAcrossDates) && allTasksAcrossDates.length > 0 
-      ? allTasksAcrossDates 
-      : tasks;
-    allTasksList.forEach(t => {
-      const isDone = t.status === 'done' || t.completed === true;
-      const isMissed = t.status === 'missed' || t.missed === true;
-      if (!isDone && !isMissed) return;
+    const mData = store.getStreakMilestoneRewards() || {};
+    const cData = store.getClaimedStreakMilestones() || {};
+    let effStreak = 0;
+    try {
+      const allArcs = archives.length > 0 ? archives : store.getAllArchives();
+      const currentTodayTasks = store.getTasks(todayStr);
+      const currentStreakObj = scoring.getStreak(allArcs, currentTodayTasks);
+      const bestStreak = scoring.getBestStreak(allArcs, currentTodayTasks);
+      effStreak = Math.max(currentStreakObj.current || 0, bestStreak || 0);
+    } catch (e) {}
 
-      const ratingNum = t.rating != null && !isNaN(Number(t.rating)) ? Number(t.rating) : null;
-      const isRewardClaimed = Boolean(
-        t.rewardClaimed === true || t.rewardClaimed === 1 || t.rewardClaimed === '1' ||
-        t.reward_claimed === true || t.reward_claimed === 1 || t.reward_claimed === '1' ||
-        t.rewardAcknowledged === true || t.rewardAcknowledged === 1 || t.rewardAcknowledged === '1' ||
-        t.reward_acknowledged === true || t.reward_acknowledged === 1 || t.reward_acknowledged === '1' ||
-        Boolean(t.rewardClaimedAt || t.reward_claimed_at) ||
-        (t.id && localStorage.getItem(`dayscore_reward_ack_${t.id}`) === '1') ||
-        (t._id && localStorage.getItem(`dayscore_reward_ack_${t._id}`) === '1')
-      );
-      const isHighRatingTask = isDone && ratingNum != null && ratingNum >= 9;
-      const hasTaskReward = Boolean((t.reward && String(t.reward).trim()) || isHighRatingTask);
-      if (isDone && (ratingNum == null || ratingNum > 4.0) && hasTaskReward && !isRewardClaimed) count++;
-
-      const isPenaltyAccepted = Boolean(
-        t.penaltyAccepted === true || t.penaltyAccepted === 1 || t.penaltyAccepted === '1' ||
-        t.penalty_accepted === true || t.penalty_accepted === 1 || t.penalty_accepted === '1' ||
-        t.penaltyAcknowledged === true || t.penaltyAcknowledged === 1 || t.penaltyAcknowledged === '1' ||
-        t.penalty_acknowledged === true || t.penalty_acknowledged === 1 || t.penalty_acknowledged === '1' ||
-        Boolean(t.penaltyAcceptedAt || t.penalty_accepted_at) ||
-        (t.id && localStorage.getItem(`dayscore_penalty_ack_${t.id}`) === '1') ||
-        (t._id && localStorage.getItem(`dayscore_penalty_ack_${t._id}`) === '1')
-      );
-      const taskDate = getLocalDateStr(t.date || t.dateLabel) || todayStr;
-      const isPastMissed = isMissed && taskDate < todayStr;
-      const hasVisibleRatingBadge = (isDone && ratingNum != null) || isPastMissed;
-      const hasPenalty = hasVisibleRatingBadge && (isPastMissed || (isDone && ratingNum <= 4.0));
-      if (hasPenalty && !isPenaltyAccepted) count++;
+    return calculateRewardsBookPendingCount({
+      allTasks: allTasksAcrossDates,
+      activeTasks: tasks,
+      milestones: mData,
+      claimedMilestones: cData,
+      effectiveStreak: effStreak,
+      user
     });
-    return count;
-  }, [allTasksAcrossDates, tasks, user]);
+  }, [allTasksAcrossDates, tasks, archives, todayStr, user]);
 
   // Initialize data per user & date
   useEffect(() => {
@@ -859,7 +839,8 @@ export default function TodayView() {
       await Promise.all([
         store.fetchPunishmentsApi(),
         store.fetchRewardsApi(),
-        store.fetchTemplatesApi()
+        store.fetchTemplatesApi(),
+        store.fetchStreakMilestonesApi()
       ])
       if (!isMounted) return;
       setActivePunishment(store.getActivePunishment())

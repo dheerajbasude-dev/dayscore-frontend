@@ -5,7 +5,7 @@ import { format, parseISO } from 'date-fns'
 import * as store from '../store/store'
 import * as scoring from '../store/scoring'
 import { useAuth } from '../context/AuthContext'
-import RewardsBookModal from '../components/RewardsBookModal'
+import RewardsBookModal, { calculateRewardsBookPendingCount } from '../components/RewardsBookModal'
 import AuthModal from '../components/AuthModal'
 
 export default function RewardsView() {
@@ -50,47 +50,19 @@ export default function RewardsView() {
     }
     try {
       const allFlat = store.getAllTasksFlat() || [];
-      let count = 0;
-      allFlat.forEach(t => {
-        const isDone = t.status === 'done' || t.completed === true;
-        const isMissed = t.status === 'missed' || t.missed === true;
-        if (!isDone && !isMissed) return;
-
-        const ratingNum = t.rating != null && !isNaN(Number(t.rating)) ? Number(t.rating) : null;
-        const isRewardClaimed = Boolean(
-          t.rewardClaimed === true || t.rewardClaimed === 1 || t.rewardClaimed === '1' ||
-          t.reward_claimed === true || t.reward_claimed === 1 || t.reward_claimed === '1' ||
-          t.rewardAcknowledged === true || t.rewardAcknowledged === 1 || t.rewardAcknowledged === '1' ||
-          t.reward_acknowledged === true || t.reward_acknowledged === 1 || t.reward_acknowledged === '1' ||
-          Boolean(t.rewardClaimedAt || t.reward_claimed_at) ||
-          (t.id && localStorage.getItem(`dayscore_reward_ack_${t.id}`) === '1') ||
-          (t._id && localStorage.getItem(`dayscore_reward_ack_${t._id}`) === '1')
-        );
-        const isHighRatingTask = isDone && ratingNum != null && ratingNum >= 9;
-        const hasTaskReward = Boolean((t.reward && String(t.reward).trim()) || isHighRatingTask);
-        if (isDone && (ratingNum == null || ratingNum > 4.0) && hasTaskReward && !isRewardClaimed) count++;
-
-        const isPenaltyAccepted = Boolean(
-          t.penaltyAccepted === true || t.penaltyAccepted === 1 || t.penaltyAccepted === '1' ||
-          t.penalty_accepted === true || t.penalty_accepted === 1 || t.penalty_accepted === '1' ||
-          t.penaltyAcknowledged === true || t.penaltyAcknowledged === 1 || t.penaltyAcknowledged === '1' ||
-          t.penalty_acknowledged === true || t.penalty_acknowledged === 1 || t.penalty_acknowledged === '1' ||
-          Boolean(t.penaltyAcceptedAt || t.penalty_accepted_at) ||
-          (t.id && localStorage.getItem(`dayscore_penalty_ack_${t.id}`) === '1') ||
-          (t._id && localStorage.getItem(`dayscore_penalty_ack_${t._id}`) === '1')
-        );
-        const todayStr = format(new Date(), 'yyyy-MM-dd');
-        const taskDate = (t.date && t.date.includes('T') ? t.date.split('T')[0] : t.date) || todayStr;
-        const isPastMissed = isMissed && taskDate < todayStr;
-        const hasVisibleRatingBadge = (isDone && ratingNum != null) || isPastMissed;
-        const hasPenalty = hasVisibleRatingBadge && (isPastMissed || (isDone && ratingNum <= 4.0));
-        if (hasPenalty && !isPenaltyAccepted) count++;
+      const count = calculateRewardsBookPendingCount({
+        allTasks: allFlat,
+        activeTasks: todayTasks,
+        milestones,
+        claimedMilestones,
+        effectiveStreak,
+        user
       });
       setBookPendingCount(count);
     } catch (e) {
       console.warn('Error calculating book counts:', e);
     }
-  }, [user]);
+  }, [user, milestones, claimedMilestones, effectiveStreak, todayTasks]);
 
   const loadRewardsData = useCallback(async () => {
     if (!user) {
