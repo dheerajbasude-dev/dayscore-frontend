@@ -42,6 +42,16 @@ export default function RewardsView() {
   const bestStreak = user ? scoring.getBestStreak(archives, todayTasks) : 0
   const effectiveStreak = Math.max(currentStreakObj.current || 0, bestStreak || 0)
 
+  const [bookVersion, setBookVersion] = useState(0)
+
+  useEffect(() => {
+    const handleVoucherClaimedEvent = () => {
+      setBookVersion(v => v + 1);
+    };
+    window.addEventListener('dayscore_voucher_book_updated', handleVoucherClaimedEvent);
+    return () => window.removeEventListener('dayscore_voucher_book_updated', handleVoucherClaimedEvent);
+  }, []);
+
   // Derived pending count via useMemo - avoids state updates and eliminates re-render loops
   const bookPendingCount = useMemo(() => {
     if (!user) return 0;
@@ -59,7 +69,7 @@ export default function RewardsView() {
       console.warn('Error calculating book counts:', e);
       return 0;
     }
-  }, [user, milestones, claimedMilestones, effectiveStreak, todayTasks]);
+  }, [user, milestones, claimedMilestones, effectiveStreak, todayTasks, bookVersion]);
 
   const loadRewardsData = useCallback(async () => {
     if (!user) {

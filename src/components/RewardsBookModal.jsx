@@ -543,15 +543,27 @@ export default function RewardsBookModal({
       if (item.type === 'milestone') {
         // Immediate optimistic UI update
         setClaimedMilestones(prev => ({ ...prev, [item.days]: true }));
+        try {
+          const uid = store.getUserId();
+          if (uid && uid !== 'guest') {
+            const current = store.getClaimedStreakMilestones() || {};
+            localStorage.setItem(`dayscore_${uid}_claimed_milestones`, JSON.stringify({ ...current, [item.days]: true }));
+          }
+        } catch (e) {}
         setShowConfetti(true);
         setTimeout(() => setShowConfetti(false), 2500);
         showToast(`🎉 Reward Claimed: "${item.text}"`, 'reward');
         setRefreshKey(k => k + 1);
 
+        // Immediate 0ms notification to parent
+        onTaskUpdated?.({ milestoneDays: item.days });
+        try {
+          window.dispatchEvent(new CustomEvent('dayscore_voucher_book_updated', { detail: { milestoneDays: item.days } }));
+        } catch (e) {}
+
         // Fast background server sync
         store.claimStreakMilestoneApi(item.days).then(updated => {
           if (updated) setClaimedMilestones({ ...updated });
-          onTaskUpdated?.();
         }).catch(err => {
           console.error('Error claiming milestone:', err);
         });
@@ -575,6 +587,24 @@ export default function RewardsBookModal({
           if (targetId) localStorage.setItem(`dayscore_reward_ack_${targetId}`, '1');
           if (item.task.id) localStorage.setItem(`dayscore_reward_ack_${item.task.id}`, '1');
           if (item.task._id) localStorage.setItem(`dayscore_reward_ack_${item.task._id}`, '1');
+
+          const uid = store.getUserId();
+          if (uid && uid !== 'guest') {
+            const key = `dayscore_${uid}_tasks_${targetDate}`;
+            const raw = localStorage.getItem(key);
+            if (raw) {
+              const list = JSON.parse(raw);
+              if (Array.isArray(list)) {
+                const updatedList = list.map(t => {
+                  if (String(t.id || t._id) === String(targetId)) {
+                    return { ...t, ...updatePayload };
+                  }
+                  return t;
+                });
+                localStorage.setItem(key, JSON.stringify(updatedList));
+              }
+            }
+          }
         } catch (e) {}
 
         // 2. Instant local allTasks state update (0ms) - disappears from pending list immediately!
@@ -594,9 +624,16 @@ export default function RewardsBookModal({
         showToast(`🎉 Reward Claimed: "${item.text}"`, 'reward');
         setRefreshKey(k => k + 1);
 
-        // 3. Fast background persistence without blocking UI
+        // 3. Immediate 0ms notification to parent (TodayView banner updates from 20 to 19 instantly)
+        onTaskUpdated?.({ taskId: targetId, updatePayload, targetDate });
+        try {
+          window.dispatchEvent(new CustomEvent('dayscore_voucher_book_updated', {
+            detail: { taskId: targetId, updatePayload, targetDate }
+          }));
+        } catch (e) {}
+
+        // 4. Fast background persistence without blocking UI
         store.updateTask(targetDate, targetId, updatePayload)
-          .then(() => onTaskUpdated?.())
           .catch(err => {
             console.error('Error saving claimed reward to server:', err);
           });
@@ -632,6 +669,24 @@ export default function RewardsBookModal({
           if (targetId) localStorage.setItem(`dayscore_penalty_ack_${targetId}`, '1');
           if (item.task.id) localStorage.setItem(`dayscore_penalty_ack_${item.task.id}`, '1');
           if (item.task._id) localStorage.setItem(`dayscore_penalty_ack_${item.task._id}`, '1');
+
+          const uid = store.getUserId();
+          if (uid && uid !== 'guest') {
+            const key = `dayscore_${uid}_tasks_${targetDate}`;
+            const raw = localStorage.getItem(key);
+            if (raw) {
+              const list = JSON.parse(raw);
+              if (Array.isArray(list)) {
+                const updatedList = list.map(t => {
+                  if (String(t.id || t._id) === String(targetId)) {
+                    return { ...t, ...penaltyPayload };
+                  }
+                  return t;
+                });
+                localStorage.setItem(key, JSON.stringify(updatedList));
+              }
+            }
+          }
         } catch (e) {}
 
         // 2. Instant local allTasks state update (0ms) - disappears from pending list immediately!
@@ -650,9 +705,16 @@ export default function RewardsBookModal({
         showToast(`✓ Penalty Acknowledged: "${item.text}"`, 'penalty');
         setRefreshKey(k => k + 1);
 
-        // 3. Fast background persistence without blocking UI
+        // 3. Immediate 0ms notification to parent (TodayView banner updates from 20 to 19 instantly)
+        onTaskUpdated?.({ taskId: targetId, updatePayload: penaltyPayload, targetDate });
+        try {
+          window.dispatchEvent(new CustomEvent('dayscore_voucher_book_updated', {
+            detail: { taskId: targetId, updatePayload: penaltyPayload, targetDate }
+          }));
+        } catch (e) {}
+
+        // 4. Fast background persistence without blocking UI
         store.updateTask(targetDate, targetId, penaltyPayload)
-          .then(() => onTaskUpdated?.())
           .catch(err => {
             console.error('Error accepting penalty on server:', err);
           });

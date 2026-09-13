@@ -379,6 +379,52 @@ export default function TodayView() {
   // Rewards & Penalties Book state
   const [isBookOpen, setIsBookOpen] = useState(false)
   const [bookInitialTab, setBookInitialTab] = useState('penalties')
+  const [bookVersion, setBookVersion] = useState(0)
+
+  const handleVoucherBookTaskUpdated = useCallback((updateInfo) => {
+    if (!user) return;
+    if (updateInfo?.taskId && updateInfo?.updatePayload) {
+      const strId = String(updateInfo.taskId);
+      const payload = updateInfo.updatePayload;
+
+      // 1. Instantly update active tasks state
+      setTasks(prev => (prev || []).map(t => {
+        const tid = String(t.id || t._id || '');
+        if (tid === strId) {
+          return { ...t, ...payload };
+        }
+        return t;
+      }));
+
+      // 2. Instantly update archives state across all dates
+      setArchives(prev => (prev || []).map(arc => {
+        if (!Array.isArray(arc.tasks)) return arc;
+        let arcModified = false;
+        const updatedTasks = arc.tasks.map(t => {
+          const tid = String(t.id || t._id || '');
+          if (tid === strId) {
+            arcModified = true;
+            return { ...t, ...payload };
+          }
+          return t;
+        });
+        return arcModified ? { ...arc, tasks: updatedTasks } : arc;
+      }));
+    }
+
+    // 3. Increment bookVersion to force immediate recalculation of pendingBookCount (0ms)
+    setBookVersion(v => v + 1);
+  }, [user]);
+
+  useEffect(() => {
+    const handleVoucherClaimedEvent = (e) => {
+      if (e.detail) {
+        handleVoucherBookTaskUpdated(e.detail);
+      }
+    };
+    window.addEventListener('dayscore_voucher_book_updated', handleVoucherClaimedEvent);
+    return () => window.removeEventListener('dayscore_voucher_book_updated', handleVoucherClaimedEvent);
+  }, [handleVoucherBookTaskUpdated]);
 
   const isCarriedTask = useCallback((t) => {
     if (!t) return false;
@@ -785,7 +831,7 @@ export default function TodayView() {
       }
     });
     return list;
-  }, [archives, tasks, currentDateStr, user]);
+  }, [archives, tasks, currentDateStr, user, bookVersion]);
 
   const pendingBookCount = useMemo(() => {
     if (!user) return 0;
@@ -808,7 +854,7 @@ export default function TodayView() {
       effectiveStreak: effStreak,
       user
     });
-  }, [allTasksAcrossDates, tasks, archives, todayStr, user]);
+  }, [allTasksAcrossDates, tasks, archives, todayStr, user, bookVersion]);
 
   // Initialize data per user & date
   useEffect(() => {
@@ -1991,6 +2037,7 @@ export default function TodayView() {
         }
         return t;
       }));
+      handleVoucherBookTaskUpdated({ taskId: targetId, updatePayload, targetDate });
       setTodaysReward(null);
       if (rewardText) {
         showToast(`🎉 Reward Claimed: "${rewardText}"`, 'reward');
@@ -2063,6 +2110,7 @@ export default function TodayView() {
         return t;
       }));
 
+      handleVoucherBookTaskUpdated({ taskId: targetId, updatePayload: penaltyPayload, targetDate });
       store.acknowledgePunishment();
       setActivePunishment(null);
       const punishmentText = isObject && (taskOrId.punishment || taskOrId.penalty) ? (taskOrId.punishment || taskOrId.penalty) : null;
@@ -3152,15 +3200,7 @@ export default function TodayView() {
         onClose={() => setIsBookOpen(false)}
         initialTab={bookInitialTab}
         activeTasks={tasks}
-        onTaskUpdated={() => {
-          if (!user) return;
-          setTasks(store.getTasks(currentDateStr));
-          setArchives(store.getAllArchives());
-          store.fetchAllTasksApi().then(() => {
-            setTasks(store.getTasks(currentDateStr));
-            setArchives(store.getAllArchives());
-          }).catch(() => {});
-        }}
+        onTaskUpdated={handleVoucherBookTaskUpdated}
         onNavigateToTask={(task, targetDate) => {
           setIsBookOpen(false);
           resetAllFilters();
