@@ -4,7 +4,7 @@ import { Trash2, Download, Upload, AlertTriangle, Moon, Sun, Bell, Plus, X, Penc
 import { format, addHours, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths } from 'date-fns'
 import * as store from '../store/store'
 import { useTheme } from '../hooks/useTheme'
-import { triggerDesktopNotification, playNotificationSound } from '../hooks/useNotifications'
+import { triggerDesktopNotification } from '../hooks/useNotifications'
 import { useAuth } from '../context/AuthContext'
 import AuthModal from '../components/AuthModal'
 import { subscribeToPushNotifications, unsubscribePushNotifications, dispatchTestPushNotification, isPushNotificationSupported } from '../utils/pushManager'
@@ -455,7 +455,7 @@ export default function SettingsView() {
         console.warn('Push subscription note during test:', subErr);
       }
 
-      // 4. Dispatch live Web Push from backend (delivered once via Service Worker)
+      // 3. Dispatch live Web Push from backend (delivered once via Service Worker)
       let pushDelivered = false;
       try {
         const pushRes = await dispatchTestPushNotification(baseLead);
@@ -466,7 +466,7 @@ export default function SettingsView() {
         console.warn('Backend push dispatch note:', pushErr);
       }
 
-      // 5. If server push was not delivered (e.g. offline/guest), trigger local notification fallback
+      // 4. If server push was not delivered (e.g. offline/guest), trigger local notification fallback
       if (!pushDelivered) {
         await triggerDesktopNotification(
           '⏰ DayScore Task Reminders Active!',
