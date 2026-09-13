@@ -1427,24 +1427,28 @@ export default function TodayView() {
             });
           }
         } else {
-          let taskPenalty = task.penalty;
-          if (!taskPenalty) {
-            const punishments = store.getPunishments();
-            taskPenalty = (punishments && punishments.length > 0) ? punishments[Math.floor(Math.random() * punishments.length)] : "Complete 15-min focus reflection";
-          }
+          // Only auto-mark as missed if the task belongs to a PAST day (taskDate < todayStr)!
+          // For today, tasks whose due time has passed remain active / overdue so the user can finish them.
+          if (taskDate < todayStr) {
+            let taskPenalty = task.penalty;
+            if (!taskPenalty) {
+              const punishments = store.getPunishments();
+              taskPenalty = (punishments && punishments.length > 0) ? punishments[Math.floor(Math.random() * punishments.length)] : "Complete 15-min focus reflection";
+            }
 
-          if (task.status !== 'missed' || task.penalty !== taskPenalty) {
-            modified = true;
-            await store.updateTask(taskDate, targetId, {
-              status: 'missed',
-              completed: false,
-              completedAt: null,
-              completed_at: null,
-              rating: 0,
-              penalty: taskPenalty,
-              penaltyAccepted: false,
-              penalty_accepted: 0
-            });
+            if (task.status !== 'missed' || task.penalty !== taskPenalty) {
+              modified = true;
+              await store.updateTask(taskDate, targetId, {
+                status: 'missed',
+                completed: false,
+                completedAt: null,
+                completed_at: null,
+                rating: 0,
+                penalty: taskPenalty,
+                penaltyAccepted: false,
+                penalty_accepted: 0
+              });
+            }
           }
         }
       }
@@ -1646,7 +1650,7 @@ export default function TodayView() {
     const taskDate = isObject ? (taskOrId.date || taskOrId.dateLabel || currentDateStr) : currentDateStr;
     const currentTask = isObject ? taskOrId : tasks.find(t => t.id === taskId || t._id === taskId);
 
-    if (currentTask && currentTask.status === 'missed' && newStatus !== 'missed') {
+    if (currentTask && currentTask.status === 'missed' && newStatus !== 'missed' && newStatus !== 'done') {
       return;
     }
 
