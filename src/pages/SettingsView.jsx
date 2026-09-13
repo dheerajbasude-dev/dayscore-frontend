@@ -778,39 +778,6 @@ export default function SettingsView() {
                     )}
                   </button>
                 </div>
-
-                {/* Mobile / Lock Screen Delivery Guidance */}
-                <div style={{
-                  marginTop: '16px',
-                  padding: '14px',
-                  borderRadius: 'var(--radius-md)',
-                  background: 'rgba(99, 102, 241, 0.08)',
-                  border: '1px solid rgba(99, 102, 241, 0.25)',
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '12px'
-                }}>
-                  <span style={{ fontSize: '1.3rem', lineHeight: 1 }}>📱</span>
-                  <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                    <strong style={{ color: 'var(--text-primary)', display: 'block', marginBottom: '4px', fontSize: '0.84rem' }}>
-                      Mobile & Lock Screen Instant Alert Checklist
-                    </strong>
-                    To guarantee alerts sound, vibrate, and light up your phone even when locked or screen is off:
-                    <div style={{ marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                      <div>
-                        <span style={{ color: '#818cf8', fontWeight: '700' }}>1. Disable Battery Sleeping:</span>{' '}
-                        <span style={{ color: 'var(--text-primary)' }}>Android Settings → Apps → DayScore (or Chrome) → Battery → <strong>Unrestricted</strong></span>
-                      </div>
-                      <div>
-                        <span style={{ color: '#818cf8', fontWeight: '700' }}>2. Wake Screen on Alert:</span>{' '}
-                        <span style={{ color: 'var(--text-primary)' }}>Android Settings → Display → Lock screen → <strong>Wake screen for notifications</strong></span>
-                      </div>
-                      <div>
-                        <span style={{ color: '#818cf8', fontWeight: '700' }}>3. Allow Lock Screen Content:</span>{' '}
-                        <span style={{ color: 'var(--text-primary)' }}>Android Settings → Apps → DayScore → Notifications → Lock screen → <strong>Show all content</strong></span>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </div>
             )}
