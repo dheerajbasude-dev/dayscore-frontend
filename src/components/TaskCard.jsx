@@ -244,8 +244,8 @@ function TaskCard({
 
   const displayRatingVal = effectiveRating != null ? effectiveRating : (task?.rating != null ? Number(task.rating) : null);
 
-  const getRatingBadgeClass = () => {
-    const num = Number(displayRatingVal != null ? displayRatingVal : task?.rating);
+  const getRatingBadgeClass = (score = displayRatingVal) => {
+    const num = Number(score != null ? score : task?.rating);
     if (isNaN(num) || num <= 4.0) return 'rating-badge-low';
     if (num <= 8.5) return 'rating-badge-medium';
     return 'rating-badge-high';
@@ -633,6 +633,13 @@ function TaskCard({
             <>
               <span className="meta-dot">·</span>
               <span className={`rating-badge ${getRatingBadgeClass()}`}>★ {displayRatingVal}/{maxR}</span>
+            </>
+          ) : (!isDone && !isMissed && isCarriedOver && hasRatingNote && effectiveRating != null) ? (
+            <>
+              <span className="meta-dot">·</span>
+              <span className={`rating-badge ${getRatingBadgeClass(effectiveRating)}`} title={`In-progress average score: ${Number.isInteger(effectiveRating) ? effectiveRating : effectiveRating.toFixed(1)}`}>
+                ★ {Number.isInteger(effectiveRating) ? effectiveRating : effectiveRating.toFixed(1)}
+              </span>
             </>
           ) : (isMissed && !effectiveIsToday) ? (
             <>
