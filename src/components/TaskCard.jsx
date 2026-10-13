@@ -639,7 +639,7 @@ function TaskCard({
               <span className="meta-dot">·</span>
               <span className={`rating-badge ${getRatingBadgeClass()}`}>★ {displayRatingVal}/{maxR}</span>
             </>
-          ) : (!isDone && !isMissed && isCarriedOver && hasRatingNote && effectiveRating != null) ? (
+          ) : (!isDone && !isMissed && hasRatingNote && effectiveRating != null) ? (
             <>
               <span className="meta-dot">·</span>
               <span className={`rating-badge ${getRatingBadgeClass(effectiveRating)}`} title={`In-progress average score: ${Number.isInteger(effectiveRating) ? effectiveRating : effectiveRating.toFixed(1)}`}>
