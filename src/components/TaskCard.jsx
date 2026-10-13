@@ -106,6 +106,11 @@ function TaskCard({
 
     const startDateStr = origDate || createdDate || viewDate;
 
+    // Tasks created on today are NOT carried tasks on today
+    if (viewDate === todayDateStr && (createdDate === todayDateStr || (!createdDate && origDate === todayDateStr))) {
+      return false;
+    }
+
     // Single-day tasks created and due on the same day are NOT carried tasks
     if (startDateStr && dueDateStr && startDateStr === dueDateStr && !Boolean(task.carriedOver || task.carried_over || task.wasCarried || task.isCarried)) {
       return false;

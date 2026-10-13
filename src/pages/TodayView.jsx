@@ -436,6 +436,11 @@ export default function TodayView() {
 
     const startDateStr = origDate || createdDate || taskDate;
 
+    // Tasks created on today are NOT carried tasks on today
+    if (taskDate === todayStr && (createdDate === todayStr || (!createdDate && origDate === todayStr))) {
+      return false;
+    }
+
     // Single-day tasks created and due on the same day are NOT carried tasks
     if (startDateStr && dueDateStr && startDateStr === dueDateStr && !Boolean(t.carriedOver || t.carried_over || t.wasCarried || t.isCarried)) {
       return false;
@@ -448,7 +453,7 @@ export default function TodayView() {
     if (origDate && taskDate && origDate < taskDate) return true;
     if (createdDate && taskDate && createdDate < taskDate) return true;
     return false;
-  }, [currentDateStr]);
+  }, [currentDateStr, todayStr]);
 
   // --- Automated Background Carry-Over Toast Notification State ---
   const initialCarriedCount = useMemo(() => {
@@ -1116,8 +1121,8 @@ export default function TodayView() {
             if (due) {
               const dueDateObj = new Date(due);
 
-              if (targetDueDateStr > arc.date && targetDueDateStr >= todayStr && dueDateObj >= now) {
-                // Ongoing multi-day task: advance to Today
+              if (arc.date < todayStr && targetDueDateStr > arc.date && targetDueDateStr >= todayStr && dueDateObj >= now) {
+                // Ongoing multi-day task from past date: advance to Today
                 await store.updateTask(arc.date, task.id || task._id, {
                   date: todayStr,
                   status: 'pending',
@@ -1126,6 +1131,17 @@ export default function TodayView() {
                   originalDate: task.originalDate || task.original_date || arc.date
                 });
                 updated = true;
+              } else if (arc.date === todayStr && (task.carriedOver || task.carried_over)) {
+                // Tasks created today must not be marked as carried on today; sanitize if previously tagged
+                const createdDateStr = getLocalDateStr(task.createdAt || task.created_at);
+                const origDateStr = getLocalDateStr(task.originalDate || task.original_date);
+                if ((createdDateStr === todayStr || !createdDateStr) && (origDateStr === todayStr || !origDateStr)) {
+                  await store.updateTask(todayStr, task.id || task._id, {
+                    carriedOver: false,
+                    carried_over: 0
+                  });
+                  updated = true;
+                }
               } else if (dueDateObj < now || (targetDueDateStr && targetDueDateStr <= arc.date && arc.date < todayStr)) {
                 // Task reached deadline on this date: finalize it
                 const finalStatus = isDoneWithNote ? 'done' : 'missed';
