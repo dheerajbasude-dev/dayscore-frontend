@@ -217,6 +217,16 @@ function TaskCard({
     });
   }, [notesList, todayDateStr]);
 
+  const isCurrentDateNoteRated = useMemo(() => {
+    if (!notesList || notesList.length === 0) return false;
+    const checkDateStr = effectiveIsToday ? todayDateStr : (getLocalDateStr(task?.date) || todayDateStr);
+    return notesList.some(n => {
+      if (!n || !n.date) return false;
+      const r = parseFloat(n.rating != null ? n.rating : 0);
+      return getLocalDateStr(n.date) === checkDateStr && !isNaN(r) && r > 0 && !n.isAutoMissed;
+    });
+  }, [notesList, effectiveIsToday, todayDateStr, task?.date]);
+
   const effectiveIsToday = useMemo(() => {
     if (isToday === false) return false;
     const taskDateClean = getLocalDateStr(task?.date);
@@ -609,9 +619,12 @@ function TaskCard({
                 type="button"
                 className={`task-note-toggle-btn ${showNotesInput ? 'active' : ''} ${effectiveNotesList.length > 0 ? 'has-notes' : ''}`}
                 onClick={() => setShowNotesInput(prev => !prev)}
-                title={showNotesInput ? "Hide Daily Notes" : "View / Add Daily Notes"}
+                title={showNotesInput ? "Hide Daily Notes" : (isCurrentDateNoteRated ? "Today's note rated ✓ · View Daily Notes" : "View / Add Daily Notes")}
               >
                 <FileText size={14} />
+                {isCurrentDateNoteRated && (
+                  <Check size={11} strokeWidth={3.5} color="#10b981" style={{ flexShrink: 0, filter: 'drop-shadow(0 0 3px rgba(16, 185, 129, 0.45))' }} />
+                )}
                 {effectiveNotesList.length > 0 && <span>{effectiveNotesList.length}</span>}
               </button>
             )}
