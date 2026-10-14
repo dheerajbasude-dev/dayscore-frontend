@@ -209,6 +209,15 @@ function TaskCard({
     return filled.sort((a, b) => (getLocalDateStr(a.date) || '').localeCompare(getLocalDateStr(b.date) || ''));
   }, [notesList, task, todayDateStr]);
 
+  const effectiveIsToday = useMemo(() => {
+    if (isToday === false) return false;
+    const taskDateClean = getLocalDateStr(task?.date);
+    if (taskDateClean && taskDateClean < todayDateStr) {
+      return false;
+    }
+    return Boolean(isToday);
+  }, [isToday, task?.date, todayDateStr]);
+
   const hasNoteForToday = useMemo(() => {
     if (!notesList || notesList.length === 0) return false;
     return notesList.some(n => {
@@ -226,15 +235,6 @@ function TaskCard({
       return getLocalDateStr(n.date) === checkDateStr && !isNaN(r) && r > 0 && !n.isAutoMissed;
     });
   }, [notesList, effectiveIsToday, todayDateStr, task?.date]);
-
-  const effectiveIsToday = useMemo(() => {
-    if (isToday === false) return false;
-    const taskDateClean = getLocalDateStr(task?.date);
-    if (taskDateClean && taskDateClean < todayDateStr) {
-      return false;
-    }
-    return Boolean(isToday);
-  }, [isToday, task?.date, todayDateStr]);
 
   const effectiveRating = useMemo(() => {
     if (!effectiveNotesList || effectiveNotesList.length === 0) {
