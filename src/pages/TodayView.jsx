@@ -349,7 +349,8 @@ export default function TodayView() {
   const [streak, setStreak] = useState(() => {
     if (!user) return { current: 0, isActive: false };
     const arcs = store.getAllArchives();
-    return scoring.getStreakAsOfDate(arcs, currentDateStr);
+    const initialTasks = store.getTasks(currentDateStr);
+    return scoring.getStreakAsOfDate(arcs, currentDateStr, initialTasks);
   })
   const [averages, setAverages] = useState(() => {
     if (!user) return { week: 0, month: 0, allTime: 0 };
@@ -1082,7 +1083,7 @@ export default function TodayView() {
     const updatedArchives = store.getAllArchives();
     setArchives(updatedArchives);
 
-    const updatedStreak = scoring.getStreakAsOfDate(updatedArchives, currentDateStr);
+    const updatedStreak = scoring.getStreakAsOfDate(updatedArchives, currentDateStr, tasks);
     setStreak(updatedStreak);
 
     setAverages({

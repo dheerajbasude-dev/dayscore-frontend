@@ -232,119 +232,96 @@ export function getAllValidStreakDates(archives = [], todayTasks = []) {
   const activeDates = new Set();
   const todayStr = format(new Date(), 'yyyy-MM-dd');
 
+  const processTask = (t, defaultDate) => {
+    if (!t) return;
+    // 1. Task completed and rated (> 0)
+    const isRatedTask = (t.status === 'done' || t.completedAt || t.completed_at) &&
+      t.rating != null && !isNaN(Number(t.rating)) && Number(t.rating) > 0;
+    if (isRatedTask) {
+      const compDate = getCleanDateStr(t.completedAt || t.completed_at || t.date || defaultDate);
+      if (compDate) activeDates.add(compDate);
+    }
+
+    // 2. Task note rated (> 0 and not auto-missed)
+    const notes = Array.isArray(t?.daily_notes || t?.dailyNotes || t?.notes)
+      ? (t.daily_notes || t.dailyNotes || t.notes)
+      : [];
+    notes.forEach(n => {
+      if (!n || !n.date) return;
+      const r = parseFloat(n.rating != null ? n.rating : (n.score != null ? n.score : 0));
+      if (!isNaN(r) && r > 0 && !n.isAutoMissed) {
+        const noteDate = getCleanDateStr(n.date);
+        if (noteDate) activeDates.add(noteDate);
+      }
+    });
+  };
+
   // 1. Process archives
   (archives || []).forEach(arc => {
     if (!arc) return;
     const cleanD = getCleanDateStr(arc.date);
-    let isArcValid = false;
-
     if (Array.isArray(arc.tasks) && arc.tasks.length > 0) {
-      arc.tasks.forEach(t => {
-        if (t && (t.status === 'done' || t.completedAt || t.completed_at)) {
-          isArcValid = true;
-          const tDate = getCleanDateStr(t.completedAt || t.completed_at || t.date || arc.date);
-          if (tDate) activeDates.add(tDate);
-        }
-        // Count rated daily notes for carried / multi-day tasks
-        const notes = Array.isArray(t?.daily_notes || t?.dailyNotes || t?.notes)
-          ? (t.daily_notes || t.dailyNotes || t.notes)
-          : [];
-        notes.forEach(n => {
-          if (!n || !n.date) return;
-          const r = parseFloat(n.rating != null ? n.rating : 0);
-          if (!isNaN(r) && r > 0 && !n.isAutoMissed) {
-            const noteDate = getCleanDateStr(n.date);
-            if (noteDate) {
-              isArcValid = true;
-              activeDates.add(noteDate);
-            }
-          }
-        });
-      });
-    }
-
-    if (isArcValid || arc.hasDone || (arc.score && Number(arc.score) > 0)) {
-      if (cleanD) activeDates.add(cleanD);
+      arc.tasks.forEach(t => processTask(t, cleanD));
     }
   });
 
   // 2. Process today's tasks
   if (Array.isArray(todayTasks) && todayTasks.length > 0) {
-    const hasDoneToday = todayTasks.some(t => t && (t.status === 'done' || t.completedAt || t.completed_at));
-    const todayScoreResult = calculateDailyScore(todayTasks);
-
-    let hasRatedNoteToday = false;
-    todayTasks.forEach(t => {
-      if (!t) return;
-      const notes = Array.isArray(t?.daily_notes || t?.dailyNotes || t?.notes)
-        ? (t.daily_notes || t.dailyNotes || t.notes)
-        : [];
-      notes.forEach(n => {
-        if (!n || !n.date) return;
-        const r = parseFloat(n.rating != null ? n.rating : 0);
-        if (!isNaN(r) && r > 0 && !n.isAutoMissed) {
-          const noteDate = getCleanDateStr(n.date);
-          if (noteDate) {
-            activeDates.add(noteDate);
-            if (noteDate === todayStr) hasRatedNoteToday = true;
-          }
-        }
-      });
-    });
-
-    if (hasDoneToday || todayScoreResult.score > 0 || hasRatedNoteToday) {
-      const sampleTask = todayTasks.find(t => t && (t.completedAt || t.date));
-      const taskDate = sampleTask ? getCleanDateStr(sampleTask.completedAt || sampleTask.date) : todayStr;
-      activeDates.add(taskDate || todayStr);
-    }
+    todayTasks.forEach(t => processTask(t, todayStr));
   }
 
   return Array.from(activeDates).filter(Boolean).sort();
 }
 
-export function getStreakAsOfDate(archives = [], targetDateStr = null) {
+export function getStreakAsOfDate(archives = [], targetDateStr = null, todayTasks = []) {
   const effectiveTarget = targetDateStr
     ? (targetDateStr.includes('T') ? targetDateStr.split('T')[0] : targetDateStr.trim().substring(0, 10))
     : format(new Date(), 'yyyy-MM-dd');
 
   // Collect all active dates <= effectiveTarget
   const activeDatesSet = new Set();
+
+  const processTask = (t, defaultDate) => {
+    if (!t) return;
+    // 1. Task completed and rated (> 0)
+    const isRatedTask = (t.status === 'done' || t.completedAt || t.completed_at) &&
+      t.rating != null && !isNaN(Number(t.rating)) && Number(t.rating) > 0;
+    if (isRatedTask) {
+      const compDate = getCleanDateStr(t.completedAt || t.completed_at || t.date || defaultDate);
+      if (compDate && compDate <= effectiveTarget) {
+        activeDatesSet.add(compDate);
+      }
+    }
+
+    // 2. Task note rated (> 0 and not auto-missed)
+    const notes = Array.isArray(t?.daily_notes || t?.dailyNotes || t?.notes)
+      ? (t.daily_notes || t.dailyNotes || t.notes)
+      : [];
+    notes.forEach(n => {
+      if (!n || !n.date) return;
+      const r = parseFloat(n.rating != null ? n.rating : (n.score != null ? n.score : 0));
+      if (!isNaN(r) && r > 0 && !n.isAutoMissed) {
+        const noteDate = getCleanDateStr(n.date);
+        if (noteDate && noteDate <= effectiveTarget) {
+          activeDatesSet.add(noteDate);
+        }
+      }
+    });
+  };
+
   (archives || []).forEach(arc => {
     if (!arc || !arc.date) return;
     const cleanD = getCleanDateStr(arc.date);
     if (!cleanD || cleanD > effectiveTarget) return;
 
-    let hasDoneTask = false;
     if (Array.isArray(arc.tasks) && arc.tasks.length > 0) {
-      arc.tasks.forEach(t => {
-        if (t && (t.status === 'done' || t.completedAt || t.completed_at)) {
-          hasDoneTask = true;
-          const tDate = getCleanDateStr(t.completedAt || t.completed_at || t.date || arc.date);
-          if (tDate && tDate <= effectiveTarget) activeDatesSet.add(tDate);
-        }
-        // Count rated daily notes for carried / multi-day tasks
-        const notes = Array.isArray(t?.daily_notes || t?.dailyNotes || t?.notes)
-          ? (t.daily_notes || t.dailyNotes || t.notes)
-          : [];
-        notes.forEach(n => {
-          if (!n || !n.date) return;
-          const r = parseFloat(n.rating != null ? n.rating : 0);
-          if (!isNaN(r) && r > 0 && !n.isAutoMissed) {
-            const noteDate = getCleanDateStr(n.date);
-            if (noteDate && noteDate <= effectiveTarget) {
-              hasDoneTask = true;
-              activeDatesSet.add(noteDate);
-            }
-          }
-        });
-      });
-    }
-
-    const arcScore = Number(arc.score || 0);
-    if (hasDoneTask || arc.hasDone || arcScore > 0) {
-      activeDatesSet.add(cleanD);
+      arc.tasks.forEach(t => processTask(t, cleanD));
     }
   });
+
+  if (Array.isArray(todayTasks) && todayTasks.length > 0) {
+    todayTasks.forEach(t => processTask(t, effectiveTarget));
+  }
 
   if (activeDatesSet.size === 0) {
     return { current: 0, isActive: false };
@@ -357,7 +334,7 @@ export function getStreakAsOfDate(archives = [], targetDateStr = null) {
 
   const prevDate = subDays(checkDate, 1);
 
-  // If effectiveTarget (e.g. today) has no completed tasks yet, streak for today is 0
+  // If effectiveTarget (e.g. today) has no rated tasks or rated notes, streak for target date is 0
   if (!activeDatesSet.has(effectiveTarget)) {
     return { current: 0, isActive: false };
   }
@@ -382,7 +359,7 @@ export function getStreakAsOfDate(archives = [], targetDateStr = null) {
 
 export function getStreak(archives = [], todayTasks = []) {
   const todayStr = format(new Date(), 'yyyy-MM-dd');
-  return getStreakAsOfDate(archives, todayStr);
+  return getStreakAsOfDate(archives, todayStr, todayTasks);
 }
 
 export function getBestStreak(archives = [], todayTasks = []) {
