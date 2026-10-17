@@ -56,21 +56,13 @@ export function calculateDailyScore(tasks, targetDateStr = null) {
       totalTaskPoints += (task.rating != null && !isNaN(Number(task.rating))) ? Number(task.rating) : 0;
     } else {
       // In-progress / pending task:
-      // Include in avg ring score ONLY when target date's task note is rated!
-      const notes = Array.isArray(task?.daily_notes || task?.dailyNotes || task?.notes)
-        ? (task.daily_notes || task.dailyNotes || task.notes)
-        : [];
-      const targetNote = notes.find(n => n && getLocalDateStr(n.date) === effectiveTargetDate);
-      const isTargetNoteRated = targetNote && parseFloat(targetNote.rating != null ? targetNote.rating : (targetNote.score != null ? targetNote.score : 0)) > 0 && !targetNote.isAutoMissed;
-
-      if (isTargetNoteRated) {
-        const { hasRatedNote, avgRating } = calculateTaskAutoRating(task, effectiveTargetDate);
-        if (hasRatedNote && avgRating != null && !isNaN(avgRating) && avgRating > 0) {
-          evaluatedCount++;
-          totalTaskPoints += Number(avgRating);
-        }
+      // Include its current in-progress average score (from rated daily notes) in the ring score.
+      // When today's note is rated/updated today, calculateTaskAutoRating automatically reflects today's new rating.
+      const { hasRatedNote, avgRating } = calculateTaskAutoRating(task, effectiveTargetDate);
+      if (hasRatedNote && avgRating != null && !isNaN(avgRating) && avgRating > 0) {
+        evaluatedCount++;
+        totalTaskPoints += Number(avgRating);
       }
-      // If target note is NOT rated: do NOT include in avg ring score (do NOT consider 0 score)!
     }
   }
 
