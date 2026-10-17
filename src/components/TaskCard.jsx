@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { X, Loader2, Check, AlertTriangle, Clock, FileText, Plus, Star, RotateCcw } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useTimer } from '../hooks/useTimer';
@@ -39,6 +39,7 @@ function TaskCard({
   index,
   task,
   isToday = true,
+  currentDateStr,
   onStatusChange,
   onDelete,
   onRequestComplete,
@@ -63,6 +64,15 @@ function TaskCard({
   const [showNotesInput, setShowNotesInput] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isJustCompleted, setIsJustCompleted] = useState(false);
+  const [leaveUpdateTick, setLeaveUpdateTick] = useState(0);
+
+  useEffect(() => {
+    const handleLeavesUpdated = () => {
+      setLeaveUpdateTick(t => t + 1);
+    };
+    window.addEventListener('dayscore_leaves_updated', handleLeavesUpdated);
+    return () => window.removeEventListener('dayscore_leaves_updated', handleLeavesUpdated);
+  }, []);
 
   const notesList = Array.isArray(task?.daily_notes || task?.dailyNotes)
     ? (task.daily_notes || task.dailyNotes)
@@ -208,7 +218,7 @@ function TaskCard({
                 isAutoMissed: true
               });
             }
-          } else if (currStr === todayDateStr && isDateOnLeave(todayDateStr) && !existingDates.has(currStr)) {
+          } else if (currStr <= todayDateStr && isDateOnLeave(currStr) && !existingDates.has(currStr)) {
             filled.push({
               id: `leave-${currStr}`,
               date: currStr,
@@ -225,32 +235,36 @@ function TaskCard({
     }
 
     return filled.sort((a, b) => (getLocalDateStr(a.date) || '').localeCompare(getLocalDateStr(b.date) || ''));
-  }, [notesList, task, todayDateStr]);
+  }, [notesList, task, todayDateStr, leaveUpdateTick]);
 
   const effectiveIsToday = useMemo(() => {
+    if (currentDateStr) return currentDateStr === todayDateStr;
     if (isToday === false) return false;
     const taskDateClean = getLocalDateStr(task?.date);
-    if (taskDateClean && taskDateClean < todayDateStr) {
+    if (taskDateClean && taskDateClean < todayDateStr && !isCarriedOver) {
       return false;
     }
     return Boolean(isToday);
-  }, [isToday, task?.date, todayDateStr]);
+  }, [currentDateStr, isToday, task?.date, todayDateStr, isCarriedOver]);
 
   const currentViewDateStr = useMemo(() => {
+    if (currentDateStr) return currentDateStr;
     return effectiveIsToday ? todayDateStr : (getLocalDateStr(task?.date) || todayDateStr);
-  }, [effectiveIsToday, todayDateStr, task?.date]);
+  }, [currentDateStr, effectiveIsToday, todayDateStr, task?.date]);
 
   const isCurrentDateOnLeave = useMemo(() => {
-    return isDateOnLeave(currentViewDateStr);
-  }, [currentViewDateStr]);
+    if (isDateOnLeave(currentViewDateStr)) return true;
+    if (effectiveNotesList.some(n => n && n.isLeaveApplied && getLocalDateStr(n.date) === currentViewDateStr)) return true;
+    return false;
+  }, [currentViewDateStr, effectiveNotesList, leaveUpdateTick]);
 
   const hasNoteForToday = useMemo(() => {
     if (!notesList || notesList.length === 0) return false;
     return notesList.some(n => {
       if (!n || !n.date) return false;
-      return getLocalDateStr(n.date) === todayDateStr;
+      return getLocalDateStr(n.date) === currentViewDateStr;
     });
-  }, [notesList, todayDateStr]);
+  }, [notesList, currentViewDateStr]);
 
   const isCurrentDateNoteRated = useMemo(() => {
     if (isCurrentDateOnLeave) return false;
@@ -654,15 +668,15 @@ function TaskCard({
             </span>
           </div>
           <div className="task-actions-right">
-            {(isMultiDayOrCarried && (effectiveNotesList.length > 0 || (effectiveIsToday && !isDone && !isMissed))) && (
+            {((isMultiDayOrCarried || effectiveNotesList.length > 0) && (effectiveNotesList.length > 0 || ((effectiveIsToday || isCurrentDateOnLeave) && !isDone && !isMissed))) && (
               <button
                 type="button"
                 className={`task-note-toggle-btn ${showNotesInput ? 'active' : ''} ${effectiveNotesList.length > 0 ? 'has-notes' : ''}`}
                 onClick={() => setShowNotesInput(prev => !prev)}
-                title={showNotesInput ? "Hide Daily Notes" : (isCurrentDateNoteRated ? "Today's note rated ✓ · View Daily Notes" : "View / Add Daily Notes")}
+                title={showNotesInput ? "Hide Daily Notes" : (isCurrentDateOnLeave ? "Leave Applied ✓ · View Daily Notes" : (isCurrentDateNoteRated ? "Today's note rated ✓ · View Daily Notes" : "View / Add Daily Notes"))}
               >
                 <FileText size={14} />
-                {isCurrentDateNoteRated && (
+                {(isCurrentDateNoteRated || isCurrentDateOnLeave) && (
                   <Check size={11} strokeWidth={3.5} color="#10b981" style={{ flexShrink: 0, filter: 'drop-shadow(0 0 3px rgba(16, 185, 129, 0.45))' }} />
                 )}
                 {effectiveNotesList.length > 0 && <span>{effectiveNotesList.length}</span>}
@@ -797,7 +811,7 @@ function TaskCard({
             boxShadow: 'var(--shadow-sm)'
           }}>
             {effectiveNotesList.length > 0 && (
-              <div className="daily-notes-list" style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: (isToday && !isDone && !isMissed) ? '10px' : '0' }}>
+              <div className="daily-notes-list" style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: ((effectiveIsToday || currentViewDateStr === todayDateStr) && !isDone && !isMissed) ? '10px' : '0' }}>
                 {effectiveNotesList.map((n, idx) => {
                   const nDate = getLocalDateStr(n.date);
                   const isLeaveDay = Boolean(n.isLeaveApplied || (nDate && isDateOnLeave(nDate)));
@@ -878,7 +892,7 @@ function TaskCard({
               </div>
             )}
 
-            {isToday && !isDone && !isMissed && (
+            {(effectiveIsToday || currentViewDateStr === todayDateStr) && !isDone && !isMissed && (
               isCurrentDateOnLeave ? (
                 <div style={{
                   display: 'flex',

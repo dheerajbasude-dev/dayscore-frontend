@@ -257,6 +257,11 @@ export default function TodayView() {
       setShowAuthModal(true);
       return;
     }
+    const targetAddDate = currentDateStr < todayStr ? todayStr : currentDateStr;
+    if (store.isDateOnLeave(targetAddDate)) {
+      showToast('🏖️ Leave Applied — You cannot add new tasks on a leave day.', 'warning');
+      return;
+    }
     if (currentDateStr < todayStr) {
       setCurrentDateStr(todayStr);
       try {
@@ -265,7 +270,7 @@ export default function TodayView() {
       } catch {}
     }
     setShowAddModal(true);
-  }, [currentDateStr, todayStr, user]);
+  }, [currentDateStr, todayStr, user, showToast]);
 
   useEffect(() => {
     const handleOpenModalEvent = () => {
@@ -2912,7 +2917,7 @@ export default function TodayView() {
                     <RotateCcw size={14} /> Clear All Filters
                   </button>
                 ) : (
-                  (viewMode === 'all' || currentDateStr === todayStr) && (
+                  (viewMode === 'all' || currentDateStr === todayStr) && !store.isDateOnLeave(currentDateStr) && (
                     <button
                       className="btn btn-primary"
                       onClick={handleOpenAddModal}
@@ -2930,6 +2935,7 @@ export default function TodayView() {
                     index={idx + 1}
                     task={task}
                     isToday={viewMode === 'all' ? ((task.date ? String(task.date).split('T')[0] : todayStr) === todayStr) : (currentDateStr === todayStr)}
+                    currentDateStr={currentDateStr}
                     animDelay={Math.min(idx * 0.04, 0.3)}
                     isDeleting={deletingTaskIds.has(task.id || task._id) || (task.id && deletingTaskIds.has(task.id)) || (task._id && deletingTaskIds.has(task._id))}
                     isClaiming={claimingTaskIds.has(String(task.id)) || claimingTaskIds.has(String(task._id))}
@@ -2952,10 +2958,12 @@ export default function TodayView() {
 
       {/* Floating Action Button */}
       <button
-        className="fab"
+        className={`fab ${store.isDateOnLeave(currentDateStr) ? 'fab-disabled' : ''}`}
         onClick={handleOpenAddModal}
         aria-label="Add Task"
-        title="Add New Task"
+        disabled={store.isDateOnLeave(currentDateStr)}
+        title={store.isDateOnLeave(currentDateStr) ? "Leave Applied — Cannot add new task on leave day" : "Add New Task"}
+        style={store.isDateOnLeave(currentDateStr) ? { opacity: 0.45, cursor: 'not-allowed', filter: 'grayscale(0.6)' } : {}}
       >
         <Plus size={28} />
       </button>

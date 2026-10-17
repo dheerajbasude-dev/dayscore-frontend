@@ -119,6 +119,11 @@ export default function AddTaskModal({ isOpen = true, onClose, onAdd, templates 
       return;
     }
 
+    if (store.isDateOnLeave(selectedDate)) {
+      alert(`⚠️ Leave is applied for ${selectedDate}! You cannot add new tasks on a leave day.`);
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       await onAdd({
