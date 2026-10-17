@@ -176,7 +176,27 @@ function TaskCard({
       notesList.map(n => n && n.date ? getLocalDateStr(n.date) : '').filter(Boolean)
     );
 
-    const filled = [...notesList];
+    const filled = [];
+    const leaveReasonCache = new Map();
+
+    notesList.forEach(n => {
+      const nDate = getLocalDateStr(n?.date);
+      if (nDate && isDateOnLeave(nDate)) {
+        if (!leaveReasonCache.has(nDate)) {
+          leaveReasonCache.set(nDate, getLeaveReasonForDate(nDate));
+        }
+        const reason = leaveReasonCache.get(nDate);
+        filled.push({
+          ...n,
+          isLeaveApplied: true,
+          leaveReason: reason,
+          note: reason ? `Leave Applied: ${reason}` : 'Leave Applied',
+          rating: null
+        });
+      } else {
+        filled.push(n);
+      }
+    });
 
     try {
       const startDate = parseISO(cleanStartStr);
@@ -202,7 +222,10 @@ function TaskCard({
           const currStr = format(curr, 'yyyy-MM-dd');
           if (currStr < todayDateStr && !existingDates.has(currStr)) {
             if (isDateOnLeave(currStr)) {
-              const reason = getLeaveReasonForDate(currStr);
+              if (!leaveReasonCache.has(currStr)) {
+                leaveReasonCache.set(currStr, getLeaveReasonForDate(currStr));
+              }
+              const reason = leaveReasonCache.get(currStr);
               filled.push({
                 id: `leave-${currStr}`,
                 date: currStr,
@@ -221,7 +244,10 @@ function TaskCard({
               });
             }
           } else if (currStr <= todayDateStr && isDateOnLeave(currStr) && !existingDates.has(currStr)) {
-            const reason = getLeaveReasonForDate(currStr);
+            if (!leaveReasonCache.has(currStr)) {
+              leaveReasonCache.set(currStr, getLeaveReasonForDate(currStr));
+            }
+            const reason = leaveReasonCache.get(currStr);
             filled.push({
               id: `leave-${currStr}`,
               date: currStr,
@@ -853,7 +879,7 @@ function TaskCard({
                           wordBreak: 'break-word'
                         }}>
                           {(() => {
-                            const reason = n.leaveReason || n.reason || (n.note && !n.note.startsWith('Leave Applied') ? n.note : '') || getLeaveReasonForDate(nDate);
+                            const reason = getLeaveReasonForDate(nDate) || n.leaveReason || '';
                             return reason ? `Leave Applied: ${reason}` : 'Leave Applied';
                           })()}
                         </span>
