@@ -344,7 +344,7 @@ export default function TodayView() {
   const [scoreResult, setScoreResult] = useState(() => {
     if (!user) return { score: 0, baseScore: 0, bonus1: 0, bonus2: 0, penalty: 0 };
     const initialTasks = store.getTasks(currentDateStr);
-    return scoring.calculateDailyScore(initialTasks);
+    return scoring.calculateDailyScore(initialTasks, currentDateStr);
   })
   const [streak, setStreak] = useState(() => {
     if (!user) return { current: 0, isActive: false };
@@ -1077,7 +1077,7 @@ export default function TodayView() {
       return;
     }
 
-    const result = scoring.calculateDailyScore(tasks);
+    const result = scoring.calculateDailyScore(tasks, currentDateStr);
     setScoreResult(result);
 
     const updatedArchives = store.getAllArchives();

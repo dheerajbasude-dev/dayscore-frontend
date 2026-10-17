@@ -77,7 +77,7 @@ export const calculateTaskAutoRating = (taskOrNotes, todayStrParam) => {
         let curr = new Date(startDate);
         while (curr <= endDate) {
           const currStr = format(curr, 'yyyy-MM-dd');
-          if (!existingDates.has(currStr)) {
+          if (currStr < todayStr && !existingDates.has(currStr)) {
             effectiveNotes.push({
               id: `missed-${currStr}`,
               date: currStr,
@@ -98,22 +98,32 @@ export const calculateTaskAutoRating = (taskOrNotes, todayStrParam) => {
 
   let sumRating = 0;
   let hasRatedNote = false;
+  let validCount = 0;
 
   effectiveNotes.forEach(n => {
     if (!n) return;
+    const nDate = getLocalDateStr(n.date);
     const r = parseFloat(n.rating != null ? n.rating : (n.score != null ? n.score : 0));
-    if (!isNaN(r) && r > 0 && !n.isAutoMissed) {
+    const isRated = !isNaN(r) && r > 0 && !n.isAutoMissed;
+
+    if (isRated) {
       sumRating += r;
       hasRatedNote = true;
+      validCount++;
+    } else if (n.isAutoMissed || (nDate && nDate < todayStr)) {
+      // Past missed days auto-consider 0 score
+      validCount++;
     }
+    // If nDate === todayStr (or future) and NOT rated yet: do NOT count in validCount as 0!
   });
 
-  if (!hasRatedNote) return { hasRatedNote: false, avgRating: 0, sumRating: 0, totalCount: effectiveNotes.length };
+  if (validCount === 0 || !hasRatedNote) {
+    return { hasRatedNote, avgRating: 0, sumRating: 0, totalCount: validCount };
+  }
 
-  const totalCount = effectiveNotes.length;
-  const avgRating = Math.round((sumRating / totalCount) * 10) / 10;
+  const avgRating = Math.round((sumRating / validCount) * 10) / 10;
 
-  return { hasRatedNote: true, avgRating, sumRating, totalCount };
+  return { hasRatedNote: true, avgRating, sumRating, totalCount: validCount };
 };
 
 /**

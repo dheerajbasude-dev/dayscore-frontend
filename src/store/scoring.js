@@ -1,12 +1,14 @@
 import { parseISO, differenceInCalendarDays, format, isAfter, isBefore, startOfDay, subDays } from 'date-fns';
-import { calculateTaskAutoRating } from '../utils/taskUtils';
+import { calculateTaskAutoRating, getLocalDateStr } from '../utils/taskUtils';
 
-export function calculateDailyScore(tasks) {
+export function calculateDailyScore(tasks, targetDateStr = null) {
   if (!tasks || tasks.length === 0) {
     return { score: 0, breakdown: {}, baseScore: 0, bonus1: 0, bonus2: 0, penalty: 0 };
   }
 
-  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const effectiveTargetDate = targetDateStr
+    ? (typeof targetDateStr === 'string' ? targetDateStr.trim().substring(0, 10) : format(new Date(), 'yyyy-MM-dd'))
+    : format(new Date(), 'yyyy-MM-dd');
 
   let totalTaskPoints = 0;
   let hasHighPriority = false;
@@ -28,21 +30,11 @@ export function calculateDailyScore(tasks) {
       }
     }
 
-    // Task date string (default to today if missing)
-    const taskDateStr = task.date
-      ? (typeof task.date === 'string' ? task.date.trim().substring(0, 10) : '')
-      : todayStr;
-
-    // Check if task belongs to a past date (overed day) vs active day (today or future)
-    const isPastDate = taskDateStr < todayStr;
-
     if (task.status === 'done') {
       doneCount++;
-      evaluatedCount++;
-      if (task.rating != null && !isNaN(Number(task.rating))) {
+      if (task.rating != null && !isNaN(Number(task.rating)) && Number(task.rating) > 0) {
+        evaluatedCount++;
         totalTaskPoints += Number(task.rating);
-      } else {
-        totalTaskPoints += 10;
       }
       if (task.dueDateTime && task.completedAt) {
         try {
@@ -59,21 +51,26 @@ export function calculateDailyScore(tasks) {
       missedCount++;
       allDoneOnTime = false;
 
-      // On a past date (overed day), an unrated missed task considers score as 0
-      if (isPastDate) {
-        evaluatedCount++;
-        totalTaskPoints += (task.rating != null && !isNaN(Number(task.rating))) ? Number(task.rating) : 0;
-      }
-      // On Today (active day before EOD), unrated missed task (status === 'missed')
-      // shows clean circle for user to rate, and is NOT factored into daily score until rated or day is overed!
+      // Missed task: auto-considers 0 score (or rating if explicitly rated)
+      evaluatedCount++;
+      totalTaskPoints += (task.rating != null && !isNaN(Number(task.rating))) ? Number(task.rating) : 0;
     } else {
-      // In-progress / pending task: if it has rated daily notes (shows in-progress avg score badge),
-      // include its average score into the ring score!
-      const { hasRatedNote, avgRating } = calculateTaskAutoRating(task, todayStr);
-      if (hasRatedNote && avgRating != null && !isNaN(avgRating) && avgRating > 0) {
-        evaluatedCount++;
-        totalTaskPoints += Number(avgRating);
+      // In-progress / pending task:
+      // Include in avg ring score ONLY when target date's task note is rated!
+      const notes = Array.isArray(task?.daily_notes || task?.dailyNotes || task?.notes)
+        ? (task.daily_notes || task.dailyNotes || task.notes)
+        : [];
+      const targetNote = notes.find(n => n && getLocalDateStr(n.date) === effectiveTargetDate);
+      const isTargetNoteRated = targetNote && parseFloat(targetNote.rating != null ? targetNote.rating : (targetNote.score != null ? targetNote.score : 0)) > 0 && !targetNote.isAutoMissed;
+
+      if (isTargetNoteRated) {
+        const { hasRatedNote, avgRating } = calculateTaskAutoRating(task, effectiveTargetDate);
+        if (hasRatedNote && avgRating != null && !isNaN(avgRating) && avgRating > 0) {
+          evaluatedCount++;
+          totalTaskPoints += Number(avgRating);
+        }
       }
+      // If target note is NOT rated: do NOT include in avg ring score (do NOT consider 0 score)!
     }
   }
 
@@ -127,27 +124,14 @@ export function calculateOverallAverageTaskScore(archives = [], todayTasks = [])
   let evaluatedCount = 0;
 
   for (const task of allTasks) {
-    const taskDateStr = task.date
-      ? (typeof task.date === 'string' ? task.date.trim().substring(0, 10) : '')
-      : todayStr;
-
-    const isPastDate = taskDateStr < todayStr;
-
     if (task.status === 'done') {
-      evaluatedCount++;
-      if (task.rating != null && !isNaN(Number(task.rating))) {
+      if (task.rating != null && !isNaN(Number(task.rating)) && Number(task.rating) > 0) {
+        evaluatedCount++;
         totalTaskPoints += Number(task.rating);
-      } else {
-        totalTaskPoints += 10;
       }
     } else if (task.status === 'missed') {
-      if (isPastDate) {
-        evaluatedCount++;
-        totalTaskPoints += (task.rating != null && !isNaN(Number(task.rating))) ? Number(task.rating) : 0;
-      } else if (task.rating != null && !isNaN(Number(task.rating)) && Number(task.rating) > 0) {
-        evaluatedCount++;
-        totalTaskPoints += Number(task.rating);
-      }
+      evaluatedCount++;
+      totalTaskPoints += (task.rating != null && !isNaN(Number(task.rating))) ? Number(task.rating) : 0;
     } else {
       const { hasRatedNote, avgRating } = calculateTaskAutoRating(task, todayStr);
       if (hasRatedNote && avgRating != null && !isNaN(avgRating) && avgRating > 0) {

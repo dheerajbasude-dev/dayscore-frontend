@@ -242,20 +242,28 @@ function TaskCard({
     }
     let sum = 0;
     let hasUserRating = false;
+    let validCount = 0;
     effectiveNotesList.forEach(n => {
       if (!n) return;
+      const nDate = getLocalDateStr(n.date);
       const r = parseFloat(n.rating != null ? n.rating : 0);
-      if (!isNaN(r) && r > 0 && !n.isAutoMissed) {
+      const isRated = !isNaN(r) && r > 0 && !n.isAutoMissed;
+
+      if (isRated) {
         sum += r;
         hasUserRating = true;
+        validCount++;
+      } else if (n.isAutoMissed || (nDate && nDate < todayDateStr)) {
+        // Past missed day auto-considered as 0
+        validCount++;
       }
+      // If nDate === todayDateStr (or future) and NOT rated: do NOT count in validCount as 0!
     });
-    if (!hasUserRating) {
+    if (!hasUserRating || validCount === 0) {
       return task?.rating != null ? Number(task.rating) : null;
     }
-    const totalDaysCount = effectiveNotesList.length;
-    return Math.round((sum / totalDaysCount) * 10) / 10;
-  }, [effectiveNotesList, task?.rating]);
+    return Math.round((sum / validCount) * 10) / 10;
+  }, [effectiveNotesList, task?.rating, todayDateStr]);
 
   const displayRatingVal = effectiveRating != null ? effectiveRating : (task?.rating != null ? Number(task.rating) : null);
 
