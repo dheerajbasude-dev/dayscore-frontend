@@ -2618,10 +2618,10 @@ export default function TodayView() {
                     setShowLeaveModal(true);
                   }
                 }}
-                title="Annual Leave Balance"
+                title="Annual Leave"
                 aria-label="Annual Leave Balance"
               >
-                {leaveBalance.remaining}/{leaveBalance.total}
+                {(leaveBalance?.used != null ? leaveBalance.used : 0)}/{leaveBalance?.total || 36}
               </button>
 
               <div className="view-mode-toggle" style={{ display: 'flex', gap: '4px', background: 'var(--bg-glass-light)', padding: '2px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-glass)' }}>

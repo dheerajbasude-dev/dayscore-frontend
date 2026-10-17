@@ -1421,23 +1421,29 @@ export function clearLocalUserData(explicitUid = null) {
 export function getLeaveBalance() {
   const token = getToken();
   const currentYear = new Date().getFullYear();
-  if (!token) return { remaining: 36, total: 36, year: currentYear };
+  if (!token) return { used: 0, remaining: 36, total: 36, year: currentYear };
   const uid = getUserId();
-  if (!uid || uid === 'guest') return { remaining: 36, total: 36, year: currentYear };
+  if (!uid || uid === 'guest') return { used: 0, remaining: 36, total: 36, year: currentYear };
 
   try {
     const raw = localStorage.getItem(`dayscore_${uid}_leaves_${currentYear}`);
     if (raw) {
       const data = JSON.parse(raw);
       if (data && typeof data === 'object') {
-        const remaining = typeof data.remainingLeaves === 'number' ? data.remainingLeaves : 36;
         const total = typeof data.annualAllowance === 'number' ? data.annualAllowance : 36;
-        return { remaining, total, year: currentYear };
+        let used = 0;
+        if (typeof data.usedLeaves === 'number') {
+          used = data.usedLeaves;
+        } else if (Array.isArray(data.leaves)) {
+          used = data.leaves.reduce((sum, l) => sum + (l.daysCount || l.days_count || (Array.isArray(l.dates) ? l.dates.length : 1)), 0);
+        }
+        const remaining = typeof data.remainingLeaves === 'number' ? data.remainingLeaves : Math.max(0, total - used);
+        return { used, remaining, total, year: currentYear };
       }
     }
   } catch (e) {}
 
-  return { remaining: 36, total: 36, year: currentYear };
+  return { used: 0, remaining: 36, total: 36, year: currentYear };
 }
 
 export function getUserLeaves() {
@@ -1452,7 +1458,14 @@ export function getUserLeaves() {
     if (raw) {
       const data = JSON.parse(raw);
       if (data && Array.isArray(data.leaves)) {
-        return data.leaves;
+        return data.leaves.map(l => ({
+          ...l,
+          id: l.id || l._id,
+          startDate: l.startDate || l.start_date,
+          endDate: l.endDate || l.end_date,
+          daysCount: l.daysCount || l.days_count || (Array.isArray(l.dates) ? l.dates.length : 1),
+          createdAt: l.createdAt || l.created_at
+        }));
       }
     }
   } catch (e) {}
