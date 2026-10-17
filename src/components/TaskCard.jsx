@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { X, Loader2, Check, AlertTriangle, Clock, FileText, Plus, Star, RotateCcw } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useTimer } from '../hooks/useTimer';
-import { getLocalDateStr, formatTaskMetaDates, isDateOnLeave } from '../utils/taskUtils';
+import { getLocalDateStr, formatTaskMetaDates, isDateOnLeave, getLeaveReasonForDate } from '../utils/taskUtils';
 
 export { getLocalDateStr, formatTaskMetaDates };
 
@@ -202,10 +202,12 @@ function TaskCard({
           const currStr = format(curr, 'yyyy-MM-dd');
           if (currStr < todayDateStr && !existingDates.has(currStr)) {
             if (isDateOnLeave(currStr)) {
+              const reason = getLeaveReasonForDate(currStr);
               filled.push({
                 id: `leave-${currStr}`,
                 date: currStr,
-                note: '',
+                note: reason ? `Leave Applied: ${reason}` : 'Leave Applied',
+                leaveReason: reason,
                 rating: null,
                 isLeaveApplied: true
               });
@@ -219,10 +221,12 @@ function TaskCard({
               });
             }
           } else if (currStr <= todayDateStr && isDateOnLeave(currStr) && !existingDates.has(currStr)) {
+            const reason = getLeaveReasonForDate(currStr);
             filled.push({
               id: `leave-${currStr}`,
               date: currStr,
-              note: '',
+              note: reason ? `Leave Applied: ${reason}` : 'Leave Applied',
+              leaveReason: reason,
               rating: null,
               isLeaveApplied: true
             });
@@ -846,9 +850,12 @@ function TaskCard({
                           border: '1px solid rgba(139, 92, 246, 0.3)',
                           borderRadius: '4px',
                           padding: '1px 6px',
-                          flexShrink: 0
+                          wordBreak: 'break-word'
                         }}>
-                          Leave Applied
+                          {(() => {
+                            const reason = n.leaveReason || n.reason || (n.note && !n.note.startsWith('Leave Applied') ? n.note : '') || getLeaveReasonForDate(nDate);
+                            return reason ? `Leave Applied: ${reason}` : 'Leave Applied';
+                          })()}
                         </span>
                       ) : isMissedDay ? (
                         <span style={{
@@ -907,7 +914,12 @@ function TaskCard({
                   border: '1px solid rgba(139, 92, 246, 0.2)',
                   borderRadius: '6px'
                 }}>
-                  <span>🏖️ Leave Applied — Task Notes are paused for this day.</span>
+                  <span>
+                    🏖️ {(() => {
+                      const reason = getLeaveReasonForDate(currentViewDateStr);
+                      return reason ? `Leave Applied: ${reason}` : 'Leave Applied';
+                    })()} — Task Notes are paused for this day.
+                  </span>
                 </div>
               ) : hasNoteForToday ? (
                 <div style={{

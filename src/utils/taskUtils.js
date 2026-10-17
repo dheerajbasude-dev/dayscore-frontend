@@ -61,6 +61,46 @@ export const isDateOnLeave = (dateStr) => {
 };
 
 /**
+ * Retrieves the leave record (including reason) for a specific date if leave is applied.
+ */
+export const getLeaveForDate = (dateStr) => {
+  if (!dateStr || typeof window === 'undefined') return null;
+  try {
+    const token = localStorage.getItem('dayscore_token');
+    if (!token) return null;
+    let uid = 'guest';
+    try {
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+      uid = JSON.parse(jsonPayload).id || 'guest';
+    } catch (e) {}
+    if (!uid || uid === 'guest') return null;
+
+    const currentYear = new Date().getFullYear();
+    const raw = localStorage.getItem(`dayscore_${uid}_leaves_${currentYear}`);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    const leaves = Array.isArray(data?.leaves) ? data.leaves : [];
+    const cleanD = (typeof dateStr === 'string' ? dateStr.trim().substring(0, 10) : '');
+    return leaves.find(l => {
+      if (!l) return false;
+      if (Array.isArray(l.dates) && l.dates.includes(cleanD)) return true;
+      if (l.start_date && l.end_date && cleanD >= l.start_date && cleanD <= l.end_date) return true;
+      if (l.startDate && l.endDate && cleanD >= l.startDate && cleanD <= l.endDate) return true;
+      return false;
+    }) || null;
+  } catch (e) {
+    return null;
+  }
+};
+
+export const getLeaveReasonForDate = (dateStr) => {
+  const leave = getLeaveForDate(dateStr);
+  return (leave && leave.reason && String(leave.reason).trim()) ? String(leave.reason).trim() : '';
+};
+
+/**
  * Calculates automated rating metrics for a multi-day or single task based on its daily notes.
  * Automatically backfills missed past days with 0 ratings, while excluding leave days.
  */
@@ -114,10 +154,12 @@ export const calculateTaskAutoRating = (taskOrNotes, todayStrParam) => {
           const currStr = format(curr, 'yyyy-MM-dd');
           if (!existingDates.has(currStr)) {
             if (isDateOnLeave(currStr)) {
+              const reason = getLeaveReasonForDate(currStr);
               effectiveNotes.push({
                 id: `leave-${currStr}`,
                 date: currStr,
-                note: 'Leave Applied',
+                note: reason ? `Leave Applied: ${reason}` : 'Leave Applied',
+                leaveReason: reason,
                 rating: null,
                 isLeaveApplied: true
               });

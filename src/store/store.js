@@ -1473,6 +1473,28 @@ export function getUserLeaves() {
   return [];
 }
 
+export function getLeaveForDate(dateStr) {
+  if (!dateStr) return null;
+  const cleanD = getLocalDateStr(dateStr) || (typeof dateStr === 'string' ? dateStr.trim().substring(0, 10) : '');
+  if (!cleanD) return null;
+
+  const leaves = getUserLeaves();
+  if (!Array.isArray(leaves) || leaves.length === 0) return null;
+
+  return leaves.find(l => {
+    if (!l) return false;
+    if (Array.isArray(l.dates) && l.dates.includes(cleanD)) return true;
+    if (l.start_date && l.end_date && cleanD >= l.start_date && cleanD <= l.end_date) return true;
+    if (l.startDate && l.endDate && cleanD >= l.startDate && cleanD <= l.endDate) return true;
+    return false;
+  }) || null;
+}
+
+export function getLeaveReasonForDate(dateStr) {
+  const leave = getLeaveForDate(dateStr);
+  return (leave && leave.reason && String(leave.reason).trim()) ? String(leave.reason).trim() : '';
+}
+
 export function isDateOnLeave(dateStr) {
   if (!dateStr) return false;
   const cleanD = getLocalDateStr(dateStr) || (typeof dateStr === 'string' ? dateStr.trim().substring(0, 10) : '');
