@@ -1,5 +1,5 @@
 import { parseISO, differenceInCalendarDays, format, isAfter, isBefore, startOfDay, subDays } from 'date-fns';
-import { calculateTaskAutoRating, getLocalDateStr } from '../utils/taskUtils';
+import { calculateTaskAutoRating, getLocalDateStr, isDateOnLeave } from '../utils/taskUtils';
 
 export function calculateDailyScore(tasks, targetDateStr = null) {
   if (!tasks || tasks.length === 0) {
@@ -215,7 +215,7 @@ export function getAllValidStreakDates(archives = [], todayTasks = []) {
       t.rating != null && !isNaN(Number(t.rating)) && Number(t.rating) > 0;
     if (isRatedTask) {
       const compDate = getCleanDateStr(t.completedAt || t.completed_at || t.date || defaultDate);
-      if (compDate) activeDates.add(compDate);
+      if (compDate && !isDateOnLeave(compDate)) activeDates.add(compDate);
     }
 
     // 2. Task note rated (> 0 and not auto-missed)
@@ -227,7 +227,7 @@ export function getAllValidStreakDates(archives = [], todayTasks = []) {
       const r = parseFloat(n.rating != null ? n.rating : (n.score != null ? n.score : 0));
       if (!isNaN(r) && r > 0 && !n.isAutoMissed) {
         const noteDate = getCleanDateStr(n.date);
-        if (noteDate) activeDates.add(noteDate);
+        if (noteDate && !isDateOnLeave(noteDate)) activeDates.add(noteDate);
       }
     });
   };
@@ -254,6 +254,11 @@ export function getStreakAsOfDate(archives = [], targetDateStr = null, todayTask
     ? (targetDateStr.includes('T') ? targetDateStr.split('T')[0] : targetDateStr.trim().substring(0, 10))
     : format(new Date(), 'yyyy-MM-dd');
 
+  // If effectiveTarget is a leave date, streak breaks completely
+  if (isDateOnLeave(effectiveTarget)) {
+    return { current: 0, isActive: false };
+  }
+
   // Collect all active dates <= effectiveTarget
   const activeDatesSet = new Set();
 
@@ -264,7 +269,7 @@ export function getStreakAsOfDate(archives = [], targetDateStr = null, todayTask
       t.rating != null && !isNaN(Number(t.rating)) && Number(t.rating) > 0;
     if (isRatedTask) {
       const compDate = getCleanDateStr(t.completedAt || t.completed_at || t.date || defaultDate);
-      if (compDate && compDate <= effectiveTarget) {
+      if (compDate && compDate <= effectiveTarget && !isDateOnLeave(compDate)) {
         activeDatesSet.add(compDate);
       }
     }
@@ -278,7 +283,7 @@ export function getStreakAsOfDate(archives = [], targetDateStr = null, todayTask
       const r = parseFloat(n.rating != null ? n.rating : (n.score != null ? n.score : 0));
       if (!isNaN(r) && r > 0 && !n.isAutoMissed) {
         const noteDate = getCleanDateStr(n.date);
-        if (noteDate && noteDate <= effectiveTarget) {
+        if (noteDate && noteDate <= effectiveTarget && !isDateOnLeave(noteDate)) {
           activeDatesSet.add(noteDate);
         }
       }
@@ -319,9 +324,13 @@ export function getStreakAsOfDate(archives = [], targetDateStr = null, todayTask
   let isActive = true;
   let currCheckDate = prevDate;
 
-  // Count backwards for consecutive active days prior to effectiveTarget
+  // Count backwards for consecutive active days prior to effectiveTarget.
+  // Encountering a leave date breaks the streak completely.
   while (true) {
     const dStr = format(currCheckDate, 'yyyy-MM-dd');
+    if (isDateOnLeave(dStr)) {
+      break;
+    }
     if (activeDatesSet.has(dStr)) {
       streakCount++;
       currCheckDate = subDays(currCheckDate, 1);

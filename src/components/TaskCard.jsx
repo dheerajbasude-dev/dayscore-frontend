@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { X, Loader2, Check, AlertTriangle, Clock, FileText, Plus, Star, RotateCcw } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useTimer } from '../hooks/useTimer';
-import { getLocalDateStr, formatTaskMetaDates } from '../utils/taskUtils';
+import { getLocalDateStr, formatTaskMetaDates, isDateOnLeave } from '../utils/taskUtils';
 
 export { getLocalDateStr, formatTaskMetaDates };
 
@@ -191,12 +191,30 @@ function TaskCard({
         while (curr <= endDate && curr <= todayDate) {
           const currStr = format(curr, 'yyyy-MM-dd');
           if (currStr < todayDateStr && !existingDates.has(currStr)) {
+            if (isDateOnLeave(currStr)) {
+              filled.push({
+                id: `leave-${currStr}`,
+                date: currStr,
+                note: '',
+                rating: null,
+                isLeaveApplied: true
+              });
+            } else {
+              filled.push({
+                id: `missed-${currStr}`,
+                date: currStr,
+                note: '',
+                rating: 0,
+                isAutoMissed: true
+              });
+            }
+          } else if (currStr === todayDateStr && isDateOnLeave(todayDateStr) && !existingDates.has(currStr)) {
             filled.push({
-              id: `missed-${currStr}`,
+              id: `leave-${currStr}`,
               date: currStr,
               note: '',
-              rating: 0,
-              isAutoMissed: true
+              rating: null,
+              isLeaveApplied: true
             });
           }
           curr.setDate(curr.getDate() + 1);
@@ -218,6 +236,14 @@ function TaskCard({
     return Boolean(isToday);
   }, [isToday, task?.date, todayDateStr]);
 
+  const currentViewDateStr = useMemo(() => {
+    return effectiveIsToday ? todayDateStr : (getLocalDateStr(task?.date) || todayDateStr);
+  }, [effectiveIsToday, todayDateStr, task?.date]);
+
+  const isCurrentDateOnLeave = useMemo(() => {
+    return isDateOnLeave(currentViewDateStr);
+  }, [currentViewDateStr]);
+
   const hasNoteForToday = useMemo(() => {
     if (!notesList || notesList.length === 0) return false;
     return notesList.some(n => {
@@ -227,14 +253,15 @@ function TaskCard({
   }, [notesList, todayDateStr]);
 
   const isCurrentDateNoteRated = useMemo(() => {
+    if (isCurrentDateOnLeave) return false;
     if (!notesList || notesList.length === 0) return false;
-    const checkDateStr = effectiveIsToday ? todayDateStr : (getLocalDateStr(task?.date) || todayDateStr);
+    const checkDateStr = currentViewDateStr;
     return notesList.some(n => {
       if (!n || !n.date) return false;
       const r = parseFloat(n.rating != null ? n.rating : 0);
-      return getLocalDateStr(n.date) === checkDateStr && !isNaN(r) && r > 0 && !n.isAutoMissed;
+      return getLocalDateStr(n.date) === checkDateStr && !isNaN(r) && r > 0 && !n.isAutoMissed && !n.isLeaveApplied && !isDateOnLeave(checkDateStr);
     });
-  }, [notesList, effectiveIsToday, todayDateStr, task?.date]);
+  }, [notesList, currentViewDateStr, isCurrentDateOnLeave]);
 
   const effectiveRating = useMemo(() => {
     if (!effectiveNotesList || effectiveNotesList.length === 0) {
@@ -246,6 +273,11 @@ function TaskCard({
     effectiveNotesList.forEach(n => {
       if (!n) return;
       const nDate = getLocalDateStr(n.date);
+      const isLeave = Boolean(n.isLeaveApplied || (nDate && isDateOnLeave(nDate)));
+      if (isLeave) {
+        // Exclude entries marked Leave Applied and retain existing calculation behavior for all other entries
+        return;
+      }
       const r = parseFloat(n.rating != null ? n.rating : 0);
       const isRated = !isNaN(r) && r > 0 && !n.isAutoMissed;
 
@@ -767,9 +799,11 @@ function TaskCard({
             {effectiveNotesList.length > 0 && (
               <div className="daily-notes-list" style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: (isToday && !isDone && !isMissed) ? '10px' : '0' }}>
                 {effectiveNotesList.map((n, idx) => {
+                  const nDate = getLocalDateStr(n.date);
+                  const isLeaveDay = Boolean(n.isLeaveApplied || (nDate && isDateOnLeave(nDate)));
                   const ratingVal = n.rating != null && !isNaN(Number(n.rating)) ? Number(n.rating) : 0;
                   const itemTheme = getRatingTheme(ratingVal);
-                  const isMissedDay = n.isAutoMissed || ratingVal === 0;
+                  const isMissedDay = !isLeaveDay && (n.isAutoMissed || ratingVal === 0);
 
                   return (
                     <div key={n.id || idx} style={{
@@ -789,7 +823,20 @@ function TaskCard({
                         {formatNoteDate(n.date)}:
                       </span>
 
-                      {isMissedDay ? (
+                      {isLeaveDay ? (
+                        <span style={{
+                          fontSize: '0.70rem',
+                          fontWeight: 700,
+                          color: '#8b5cf6',
+                          background: 'rgba(139, 92, 246, 0.12)',
+                          border: '1px solid rgba(139, 92, 246, 0.3)',
+                          borderRadius: '4px',
+                          padding: '1px 6px',
+                          flexShrink: 0
+                        }}>
+                          Leave Applied
+                        </span>
+                      ) : isMissedDay ? (
                         <span style={{
                           fontSize: '0.74rem',
                           fontWeight: 600,
@@ -816,13 +863,15 @@ function TaskCard({
                         </span>
                       )}
 
-                      <span style={{
-                        wordBreak: 'break-word',
-                        color: isMissedDay ? '#ef4444' : 'var(--text-primary)',
-                        fontStyle: isMissedDay ? 'italic' : 'normal'
-                      }}>
-                        {n.note || n.text}
-                      </span>
+                      {!isLeaveDay && (
+                        <span style={{
+                          wordBreak: 'break-word',
+                          color: isMissedDay ? '#ef4444' : 'var(--text-primary)',
+                          fontStyle: isMissedDay ? 'italic' : 'normal'
+                        }}>
+                          {n.note || n.text}
+                        </span>
+                      )}
                     </div>
                   );
                 })}
@@ -830,7 +879,23 @@ function TaskCard({
             )}
 
             {isToday && !isDone && !isMissed && (
-              hasNoteForToday ? (
+              isCurrentDateOnLeave ? (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontSize: '0.72rem',
+                  color: '#8b5cf6',
+                  fontWeight: 600,
+                  marginTop: effectiveNotesList.length > 0 ? '4px' : '0',
+                  padding: '5px 8px',
+                  background: 'rgba(139, 92, 246, 0.08)',
+                  border: '1px solid rgba(139, 92, 246, 0.2)',
+                  borderRadius: '6px'
+                }}>
+                  <span>🏖️ Leave Applied — Task Notes are paused for this day.</span>
+                </div>
+              ) : hasNoteForToday ? (
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',

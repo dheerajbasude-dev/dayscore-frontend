@@ -26,8 +26,43 @@ export const getLocalDateStr = (val) => {
 };
 
 /**
+ * Checks if a specific date has an approved leave applied for the active authenticated user.
+ */
+export const isDateOnLeave = (dateStr) => {
+  if (!dateStr || typeof window === 'undefined') return false;
+  try {
+    const token = localStorage.getItem('dayscore_token');
+    if (!token) return false;
+    let uid = 'guest';
+    try {
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+      uid = JSON.parse(jsonPayload).id || 'guest';
+    } catch (e) {}
+    if (!uid || uid === 'guest') return false;
+
+    const currentYear = new Date().getFullYear();
+    const raw = localStorage.getItem(`dayscore_${uid}_leaves_${currentYear}`);
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    const leaves = Array.isArray(data?.leaves) ? data.leaves : [];
+    const cleanD = (typeof dateStr === 'string' ? dateStr.trim().substring(0, 10) : '');
+    return leaves.some(l => {
+      if (!l) return false;
+      if (Array.isArray(l.dates) && l.dates.includes(cleanD)) return true;
+      if (l.start_date && l.end_date && cleanD >= l.start_date && cleanD <= l.end_date) return true;
+      if (l.startDate && l.endDate && cleanD >= l.startDate && cleanD <= l.endDate) return true;
+      return false;
+    });
+  } catch (e) {
+    return false;
+  }
+};
+
+/**
  * Calculates automated rating metrics for a multi-day or single task based on its daily notes.
- * Automatically backfills missed past days with 0 ratings.
+ * Automatically backfills missed past days with 0 ratings, while excluding leave days.
  */
 export const calculateTaskAutoRating = (taskOrNotes, todayStrParam) => {
   let taskObj = null;
@@ -77,14 +112,24 @@ export const calculateTaskAutoRating = (taskOrNotes, todayStrParam) => {
         let curr = new Date(startDate);
         while (curr <= endDate) {
           const currStr = format(curr, 'yyyy-MM-dd');
-          if (currStr < todayStr && !existingDates.has(currStr)) {
-            effectiveNotes.push({
-              id: `missed-${currStr}`,
-              date: currStr,
-              note: 'Missed',
-              rating: 0,
-              isAutoMissed: true
-            });
+          if (!existingDates.has(currStr)) {
+            if (isDateOnLeave(currStr)) {
+              effectiveNotes.push({
+                id: `leave-${currStr}`,
+                date: currStr,
+                note: 'Leave Applied',
+                rating: null,
+                isLeaveApplied: true
+              });
+            } else if (currStr < todayStr) {
+              effectiveNotes.push({
+                id: `missed-${currStr}`,
+                date: currStr,
+                note: 'Missed',
+                rating: 0,
+                isAutoMissed: true
+              });
+            }
           }
           curr.setDate(curr.getDate() + 1);
         }
@@ -103,6 +148,10 @@ export const calculateTaskAutoRating = (taskOrNotes, todayStrParam) => {
   effectiveNotes.forEach(n => {
     if (!n) return;
     const nDate = getLocalDateStr(n.date);
+    if (n.isLeaveApplied || isDateOnLeave(nDate)) {
+      // Exclude entries marked Leave Applied from average calculation!
+      return;
+    }
     const r = parseFloat(n.rating != null ? n.rating : (n.score != null ? n.score : 0));
     const isRated = !isNaN(r) && r > 0 && !n.isAutoMissed;
 

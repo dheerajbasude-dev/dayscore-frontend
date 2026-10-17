@@ -14,6 +14,7 @@ import ConfettiCelebration from '../components/ConfettiCelebration'
 import PenaltyCelebration from '../components/PenaltyCelebration'
 import AuthModal from '../components/AuthModal'
 import RewardsBookModal, { calculateRewardsBookPendingCount } from '../components/RewardsBookModal'
+import LeaveModal from '../components/LeaveModal'
 import { Plus, AlertTriangle, Gift, PenLine, ChevronLeft, ChevronRight, ChevronUp, Calendar, Layers, Search, SlidersHorizontal, Filter, RotateCcw, X, Clock, Zap, Check, BookOpen } from 'lucide-react'
 import * as store from '../store/store'
 import * as scoring from '../store/scoring'
@@ -142,10 +143,37 @@ export default function TodayView() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [showReflectionModal, setShowReflectionModal] = useState(false)
+  const [showLeaveModal, setShowLeaveModal] = useState(false)
+  const [leaveBalance, setLeaveBalance] = useState(() => store.getLeaveBalance())
   const [showConfetti, setShowConfetti] = useState(false)
   const [deletingTaskIds, setDeletingTaskIds] = useState(new Set())
   const [claimingTaskIds, setClaimingTaskIds] = useState(new Set())
   const [acceptingTaskIds, setAcceptingTaskIds] = useState(new Set())
+
+  // Sync leave balance on user change and event notifications
+  useEffect(() => {
+    setLeaveBalance(store.getLeaveBalance());
+    if (user) {
+      store.fetchUserLeavesApi()
+        .then(() => setLeaveBalance(store.getLeaveBalance()))
+        .catch(() => {});
+    }
+  }, [user]);
+
+  useEffect(() => {
+    const handleLeavesUpdated = () => {
+      setLeaveBalance(store.getLeaveBalance());
+    };
+    const handleLogout = () => {
+      setLeaveBalance(store.getLeaveBalance());
+    };
+    window.addEventListener('dayscore_leaves_updated', handleLeavesUpdated);
+    window.addEventListener('dayscore_user_logout', handleLogout);
+    return () => {
+      window.removeEventListener('dayscore_leaves_updated', handleLeavesUpdated);
+      window.removeEventListener('dayscore_user_logout', handleLogout);
+    };
+  }, []);
 
   // Persistent Filter, Sort & Search States (persists across F5 reloads)
   const [searchQuery, setSearchQuery] = useState(() => {
@@ -271,14 +299,14 @@ export default function TodayView() {
 
   // Lock body scroll when any modal is open
   useEffect(() => {
-    const anyModalOpen = showAddModal || showAuthModal || showReflectionModal || showFilterModal || !!ratingTask
+    const anyModalOpen = showAddModal || showAuthModal || showReflectionModal || showFilterModal || showLeaveModal || !!ratingTask
     if (anyModalOpen) {
       document.body.classList.add('modal-open')
     } else {
       document.body.classList.remove('modal-open')
     }
     return () => document.body.classList.remove('modal-open')
-  }, [showAddModal, showAuthModal, showReflectionModal, showFilterModal, ratingTask])
+  }, [showAddModal, showAuthModal, showReflectionModal, showFilterModal, showLeaveModal, ratingTask])
 
   // --- Dual-Container Scroll Management (Window & .main-content) ---
   const [showScrollTopBtn, setShowScrollTopBtn] = useState(false);
@@ -2172,6 +2200,13 @@ export default function TodayView() {
     }
   };
 
+  const handleLeaveApplied = (result) => {
+    setLeaveBalance(store.getLeaveBalance());
+    setTasks(store.getTasks(currentDateStr));
+    setArchives(store.getAllArchives());
+    showToast('Annual leave successfully applied', 'success');
+  };
+
   const sortTasksByDefaultHierarchy = (a, b) => {
     // Status Group Tier Hierarchy (Top to Bottom):
     // Tier 1: 🔴 Missed Tasks (Non-Carried)
@@ -2572,23 +2607,41 @@ export default function TodayView() {
               </div>
             )}
 
-            <div className="view-mode-toggle" style={{ display: 'flex', gap: '4px', background: 'var(--bg-glass-light)', padding: '2px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-glass)' }}>
+            <div className="date-nav-right" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <button
                 type="button"
-                className={`btn btn-sm ${viewMode === 'date' ? 'btn-primary' : 'btn-secondary'}`}
-                onClick={() => handleSetViewMode('date')}
-                style={{ padding: '4px 10px', height: '28px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                className="leave-balance-pill"
+                onClick={() => {
+                  if (!user) {
+                    setShowAuthModal(true);
+                  } else {
+                    setShowLeaveModal(true);
+                  }
+                }}
+                title="Annual Leave Balance"
+                aria-label="Annual Leave Balance"
               >
-                <Calendar size={13} /> Date View ({user ? tasks.length : 0})
+                {leaveBalance.remaining}/{leaveBalance.total}
               </button>
-              <button
-                type="button"
-                className={`btn btn-sm ${viewMode === 'all' ? 'btn-primary' : 'btn-secondary'}`}
-                onClick={() => handleSetViewMode('all')}
-                style={{ padding: '4px 10px', height: '28px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
-              >
-                <Layers size={13} /> All Tasks ({user ? allTasksAcrossDates.length : 0})
-              </button>
+
+              <div className="view-mode-toggle" style={{ display: 'flex', gap: '4px', background: 'var(--bg-glass-light)', padding: '2px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-glass)' }}>
+                <button
+                  type="button"
+                  className={`btn btn-sm ${viewMode === 'date' ? 'btn-primary' : 'btn-secondary'}`}
+                  onClick={() => handleSetViewMode('date')}
+                  style={{ padding: '4px 10px', height: '28px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                >
+                  <Calendar size={13} /> Date View ({user ? tasks.length : 0})
+                </button>
+                <button
+                  type="button"
+                  className={`btn btn-sm ${viewMode === 'all' ? 'btn-primary' : 'btn-secondary'}`}
+                  onClick={() => handleSetViewMode('all')}
+                  style={{ padding: '4px 10px', height: '28px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                >
+                  <Layers size={13} /> All Tasks ({user ? allTasksAcrossDates.length : 0})
+                </button>
+              </div>
             </div>
           </div>
 
@@ -3241,6 +3294,14 @@ export default function TodayView() {
           const taskId = task.id || task._id;
           highlightAndScrollToTask(taskId);
         }}
+      />
+
+      <LeaveModal
+        isOpen={showLeaveModal}
+        onClose={() => setShowLeaveModal(false)}
+        archives={archives}
+        todayTasks={tasks}
+        onLeaveApplied={handleLeaveApplied}
       />
     </div>
   )

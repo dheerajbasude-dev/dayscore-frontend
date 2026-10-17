@@ -1414,6 +1414,120 @@ export function clearLocalUserData(explicitUid = null) {
   }
 }
 
+// ==========================================
+// Annual Leave System Storage & API
+// ==========================================
+
+export function getLeaveBalance() {
+  const token = getToken();
+  const currentYear = new Date().getFullYear();
+  if (!token) return { remaining: 36, total: 36, year: currentYear };
+  const uid = getUserId();
+  if (!uid || uid === 'guest') return { remaining: 36, total: 36, year: currentYear };
+
+  try {
+    const raw = localStorage.getItem(`dayscore_${uid}_leaves_${currentYear}`);
+    if (raw) {
+      const data = JSON.parse(raw);
+      if (data && typeof data === 'object') {
+        const remaining = typeof data.remainingLeaves === 'number' ? data.remainingLeaves : 36;
+        const total = typeof data.annualAllowance === 'number' ? data.annualAllowance : 36;
+        return { remaining, total, year: currentYear };
+      }
+    }
+  } catch (e) {}
+
+  return { remaining: 36, total: 36, year: currentYear };
+}
+
+export function getUserLeaves() {
+  const token = getToken();
+  const currentYear = new Date().getFullYear();
+  if (!token) return [];
+  const uid = getUserId();
+  if (!uid || uid === 'guest') return [];
+
+  try {
+    const raw = localStorage.getItem(`dayscore_${uid}_leaves_${currentYear}`);
+    if (raw) {
+      const data = JSON.parse(raw);
+      if (data && Array.isArray(data.leaves)) {
+        return data.leaves;
+      }
+    }
+  } catch (e) {}
+
+  return [];
+}
+
+export function isDateOnLeave(dateStr) {
+  if (!dateStr) return false;
+  const cleanD = getLocalDateStr(dateStr) || (typeof dateStr === 'string' ? dateStr.trim().substring(0, 10) : '');
+  if (!cleanD) return false;
+
+  const leaves = getUserLeaves();
+  if (!Array.isArray(leaves) || leaves.length === 0) return false;
+
+  return leaves.some(l => {
+    if (!l) return false;
+    if (Array.isArray(l.dates) && l.dates.includes(cleanD)) return true;
+    if (l.start_date && l.end_date && cleanD >= l.start_date && cleanD <= l.end_date) return true;
+    if (l.startDate && l.endDate && cleanD >= l.startDate && cleanD <= l.endDate) return true;
+    return false;
+  });
+}
+
+export async function fetchUserLeavesApi() {
+  const token = getToken();
+  const currentYear = new Date().getFullYear();
+  if (!token) {
+    return { leaves: [], annualAllowance: 36, usedLeaves: 0, remainingLeaves: 36, year: currentYear };
+  }
+  const uid = getUserId();
+
+  try {
+    const res = await authFetch(`/api/leaves?year=${currentYear}`);
+    if (res.ok) {
+      const data = await safeJsonParse(res);
+      if (data && typeof data === 'object') {
+        if (uid && uid !== 'guest') {
+          localStorage.setItem(`dayscore_${uid}_leaves_${currentYear}`, JSON.stringify(data));
+        }
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('dayscore_leaves_updated', { detail: data }));
+        }
+        return data;
+      }
+    }
+  } catch (e) {
+    console.warn('Fetch user leaves error:', e);
+  }
+
+  return {
+    leaves: getUserLeaves(),
+    ...getLeaveBalance()
+  };
+}
+
+export async function applyUserLeaveApi({ startDate, endDate, reason }) {
+  const token = getToken();
+  if (!token) throw new Error('Authentication required to apply for leave.');
+
+  const res = await authFetch('/api/leaves', {
+    method: 'POST',
+    body: JSON.stringify({ startDate, endDate, reason })
+  });
+
+  const data = await safeJsonParse(res);
+  if (!res.ok) {
+    throw new Error(data.error || data.message || 'Failed to apply for leave.');
+  }
+
+  // Refetch leaves to update local cache and broadcast update
+  await fetchUserLeavesApi();
+  return data;
+}
+
 
 
 
