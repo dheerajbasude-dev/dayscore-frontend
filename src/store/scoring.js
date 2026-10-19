@@ -1,5 +1,5 @@
-import { parseISO, differenceInCalendarDays, format, isAfter, isBefore, startOfDay, subDays } from 'date-fns';
-import { calculateTaskAutoRating, getLocalDateStr, isDateOnLeave } from '../utils/taskUtils';
+import { parseISO, differenceInCalendarDays, format, isAfter, isBefore, startOfDay, subDays, addDays } from 'date-fns';
+import { calculateTaskAutoRating, getLocalDateStr, isDateOnLeave } from '../utils/taskUtils.js';
 
 export function calculateDailyScore(tasks, targetDateStr = null) {
   if (!tasks || tasks.length === 0) {
@@ -204,30 +204,156 @@ function getCleanDateStr(rawDate) {
   }
 }
 
+export function getMissedDatesSet(archives = [], todayTasks = [], effectiveTarget = null) {
+  const missedDates = new Set();
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const targetStr = effectiveTarget || todayStr;
+  const now = new Date();
+
+  const isTaskOverdue = (t) => {
+    if (!t) return false;
+    const dueDateStr = t.dueDateTime || t.due_date_time;
+    if (dueDateStr) {
+      const dueObj = new Date(dueDateStr);
+      if (!isNaN(dueObj.getTime())) {
+        return dueObj <= now;
+      }
+    }
+    const taskDate = getCleanDateStr(t.date || t.dateLabel);
+    if (taskDate) {
+      return taskDate < todayStr;
+    }
+    return false;
+  };
+
+  const processTask = (t, defaultDate) => {
+    if (!t) return;
+    const taskDate = getCleanDateStr(t.date || defaultDate);
+    const isDone = t.status === 'done' || t.completed === true;
+
+    // 1. Normal task marked missed or overdue
+    if (!isDone) {
+      if (t.status === 'missed' || t.missed === true || t.wasMissed === true || t.was_missed === true) {
+        if (taskDate && taskDate <= targetStr) missedDates.add(taskDate);
+      } else if (taskDate && taskDate < todayStr && taskDate <= targetStr) {
+        // Any past scheduled task not completed is missed
+        missedDates.add(taskDate);
+      } else if (taskDate === todayStr && isTaskOverdue(t)) {
+        // Overdue today task not completed
+        missedDates.add(taskDate);
+      }
+    }
+
+    // 2. Task notes explicitly marked isAutoMissed
+    const notes = Array.isArray(t?.daily_notes || t?.dailyNotes || t?.notes)
+      ? (t.daily_notes || t.dailyNotes || t.notes)
+      : [];
+    notes.forEach(n => {
+      if (!n || !n.date) return;
+      if (n.isAutoMissed) {
+        const d = getCleanDateStr(n.date);
+        if (d && d <= targetStr) missedDates.add(d);
+      }
+    });
+
+    // 3. Multi-day / carried tasks spanning past days without a submitted note
+    const createdClean = getCleanDateStr(t.createdAt || t.created_at);
+    const origClean = getCleanDateStr(t.originalDate || t.original_date);
+    const dateClean = getCleanDateStr(t.date);
+    const dueDateClean = getCleanDateStr(t.dueDateTime || t.due_date_time);
+
+    const startDates = [createdClean, origClean, dateClean].filter(Boolean).sort();
+    const cleanStartStr = startDates.length > 0 ? startDates[0] : null;
+
+    const isCarried = Boolean(t.carriedOver || t.carried_over || t.wasCarried || t.isCarried || (origClean && dateClean && origClean < dateClean));
+    const isMultiDay = Boolean((dueDateClean && cleanStartStr && dueDateClean > cleanStartStr) || isCarried || (notes.length > 0));
+
+    if (isMultiDay && cleanStartStr) {
+      const existingNoteDates = new Set(
+        notes.map(n => (n && n.date ? getCleanDateStr(n.date) : '')).filter(Boolean)
+      );
+
+      let maxEndStr = todayStr;
+      const completedClean = getCleanDateStr(t.completedAt || t.completed_at);
+      if (dueDateClean && dueDateClean < maxEndStr) {
+        maxEndStr = dueDateClean;
+      }
+      if (completedClean && (t.status === 'done' || t.completed === true) && completedClean < maxEndStr) {
+        maxEndStr = completedClean;
+      } else if (dateClean && (t.status === 'missed' || t.status === 'done') && dateClean < maxEndStr) {
+        maxEndStr = dateClean;
+      }
+
+      try {
+        const startDateObj = parseISO(cleanStartStr);
+        const endDateObj = parseISO(maxEndStr);
+        const todayDateObj = parseISO(todayStr);
+
+        if (!isNaN(startDateObj.getTime()) && !isNaN(endDateObj.getTime()) && startDateObj <= endDateObj) {
+          let curr = new Date(startDateObj);
+          while (curr <= endDateObj && curr <= todayDateObj) {
+            const currStr = format(curr, 'yyyy-MM-dd');
+            if (currStr <= targetStr) {
+              if (currStr < todayStr && !existingNoteDates.has(currStr)) {
+                if (!isDateOnLeave(currStr)) {
+                  // This past day had no note submitted and was not on leave -> shows [★ 0] Missed!
+                  missedDates.add(currStr);
+                }
+              } else if (currStr === todayStr && isTaskOverdue(t) && !existingNoteDates.has(currStr)) {
+                if (!isDateOnLeave(currStr)) {
+                  missedDates.add(currStr);
+                }
+              }
+            }
+            curr = addDays(curr, 1);
+          }
+        }
+      } catch (e) {
+        // ignore date parse error
+      }
+    }
+  };
+
+  // Process archives
+  (archives || []).forEach(arc => {
+    if (!arc) return;
+    const cleanD = getCleanDateStr(arc.date);
+    if (Array.isArray(arc.tasks)) {
+      arc.tasks.forEach(t => processTask(t, cleanD));
+    }
+  });
+
+  // Process today's tasks
+  (todayTasks || []).forEach(t => processTask(t, todayStr));
+
+  return missedDates;
+}
+
 export function getAllValidStreakDates(archives = [], todayTasks = []) {
+  const missedDates = getMissedDatesSet(archives, todayTasks);
   const activeDates = new Set();
   const todayStr = format(new Date(), 'yyyy-MM-dd');
 
   const processTask = (t, defaultDate) => {
     if (!t) return;
-    // 1. Task completed and rated (> 0)
+    // 1. Task completed and rated (>= 0)
     const isRatedTask = (t.status === 'done' || t.completedAt || t.completed_at) &&
-      t.rating != null && !isNaN(Number(t.rating)) && Number(t.rating) > 0;
+      t.rating != null && !isNaN(Number(t.rating)) && Number(t.rating) >= 0;
     if (isRatedTask) {
       const compDate = getCleanDateStr(t.completedAt || t.completed_at || t.date || defaultDate);
-      if (compDate && !isDateOnLeave(compDate)) activeDates.add(compDate);
+      if (compDate && !isDateOnLeave(compDate) && !missedDates.has(compDate)) activeDates.add(compDate);
     }
 
-    // 2. Task note rated (> 0 and not auto-missed)
+    // 2. Task note rated (not auto-missed)
     const notes = Array.isArray(t?.daily_notes || t?.dailyNotes || t?.notes)
       ? (t.daily_notes || t.dailyNotes || t.notes)
       : [];
     notes.forEach(n => {
       if (!n || !n.date) return;
       const r = parseFloat(n.rating != null ? n.rating : (n.score != null ? n.score : 0));
-      if (!isNaN(r) && r > 0 && !n.isAutoMissed) {
+      if (!isNaN(r) && r >= 0 && !n.isAutoMissed && n.rating != null) {
         const noteDate = getCleanDateStr(n.date);
-        if (noteDate && !isDateOnLeave(noteDate)) activeDates.add(noteDate);
+        if (noteDate && !isDateOnLeave(noteDate) && !missedDates.has(noteDate)) activeDates.add(noteDate);
       }
     });
   };
@@ -246,7 +372,7 @@ export function getAllValidStreakDates(archives = [], todayTasks = []) {
     todayTasks.forEach(t => processTask(t, todayStr));
   }
 
-  return Array.from(activeDates).filter(Boolean).sort();
+  return Array.from(activeDates).filter(d => Boolean(d) && !missedDates.has(d) && !isDateOnLeave(d)).sort();
 }
 
 export function getStreakAsOfDate(archives = [], targetDateStr = null, todayTasks = []) {
@@ -259,31 +385,38 @@ export function getStreakAsOfDate(archives = [], targetDateStr = null, todayTask
     return { current: 0, isActive: false };
   }
 
-  // Collect all active dates <= effectiveTarget
+  const missedDatesSet = getMissedDatesSet(archives, todayTasks, effectiveTarget);
+
+  // If effectiveTarget has any missed task or missed task note, streak breaks completely
+  if (missedDatesSet.has(effectiveTarget)) {
+    return { current: 0, isActive: false };
+  }
+
+  // Collect all active dates <= effectiveTarget (excluding any missed dates or leave dates)
   const activeDatesSet = new Set();
 
   const processTask = (t, defaultDate) => {
     if (!t) return;
-    // 1. Task completed and rated (> 0)
+    // 1. Task completed and rated
     const isRatedTask = (t.status === 'done' || t.completedAt || t.completed_at) &&
-      t.rating != null && !isNaN(Number(t.rating)) && Number(t.rating) > 0;
+      t.rating != null && !isNaN(Number(t.rating)) && Number(t.rating) >= 0;
     if (isRatedTask) {
       const compDate = getCleanDateStr(t.completedAt || t.completed_at || t.date || defaultDate);
-      if (compDate && compDate <= effectiveTarget && !isDateOnLeave(compDate)) {
+      if (compDate && compDate <= effectiveTarget && !isDateOnLeave(compDate) && !missedDatesSet.has(compDate)) {
         activeDatesSet.add(compDate);
       }
     }
 
-    // 2. Task note rated (> 0 and not auto-missed)
+    // 2. Task note rated
     const notes = Array.isArray(t?.daily_notes || t?.dailyNotes || t?.notes)
       ? (t.daily_notes || t.dailyNotes || t.notes)
       : [];
     notes.forEach(n => {
       if (!n || !n.date) return;
       const r = parseFloat(n.rating != null ? n.rating : (n.score != null ? n.score : 0));
-      if (!isNaN(r) && r > 0 && !n.isAutoMissed) {
+      if (!isNaN(r) && r >= 0 && !n.isAutoMissed && n.rating != null) {
         const noteDate = getCleanDateStr(n.date);
-        if (noteDate && noteDate <= effectiveTarget && !isDateOnLeave(noteDate)) {
+        if (noteDate && noteDate <= effectiveTarget && !isDateOnLeave(noteDate) && !missedDatesSet.has(noteDate)) {
           activeDatesSet.add(noteDate);
         }
       }
@@ -325,10 +458,13 @@ export function getStreakAsOfDate(archives = [], targetDateStr = null, todayTask
   let currCheckDate = prevDate;
 
   // Count backwards for consecutive active days prior to effectiveTarget.
-  // Encountering a leave date breaks the streak completely.
+  // Encountering a leave date OR a missed date breaks the streak completely.
   while (true) {
     const dStr = format(currCheckDate, 'yyyy-MM-dd');
     if (isDateOnLeave(dStr)) {
+      break;
+    }
+    if (missedDatesSet.has(dStr)) {
       break;
     }
     if (activeDatesSet.has(dStr)) {
