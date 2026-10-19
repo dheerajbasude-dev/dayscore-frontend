@@ -883,31 +883,34 @@ function TaskCard({
                             return reason ? `Leave Applied: ${reason}` : 'Leave Applied';
                           })()}
                         </span>
-                      ) : isMissedDay ? (
-                        <span style={{
-                          fontSize: '0.74rem',
-                          fontWeight: 600,
-                          color: '#ef4444',
-                          flexShrink: 0
-                        }}>
-                          Missed
-                        </span>
                       ) : (
-                        <span style={{
-                          fontSize: '0.68rem',
-                          fontWeight: 700,
-                          color: itemTheme.color,
-                          background: itemTheme.bg,
-                          border: `1px solid ${itemTheme.border}`,
-                          borderRadius: '4px',
-                          padding: '1px 6px',
-                          flexShrink: 0,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '3px'
-                        }}>
-                          ★ {Number.isInteger(ratingVal) ? ratingVal : ratingVal.toFixed(1)}
-                        </span>
+                        <>
+                          <span style={{
+                            fontSize: '0.68rem',
+                            fontWeight: 700,
+                            color: itemTheme.color,
+                            background: itemTheme.bg,
+                            border: `1px solid ${itemTheme.border}`,
+                            borderRadius: '4px',
+                            padding: '1px 6px',
+                            flexShrink: 0,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '3px'
+                          }}>
+                            ★ {Number.isInteger(ratingVal) ? ratingVal : ratingVal.toFixed(1)}
+                          </span>
+                          {isMissedDay && (
+                            <span style={{
+                              fontSize: '0.74rem',
+                              fontWeight: 600,
+                              color: '#ef4444',
+                              flexShrink: 0
+                            }}>
+                              Missed
+                            </span>
+                          )}
+                        </>
                       )}
 
                       {!isLeaveDay && (
@@ -1052,9 +1055,9 @@ function TaskCard({
                       </span>
                     </div>
 
-                    {/* 1 to 10 Quick Tap Pill Row */}
+                    {/* 0 to 10 Quick Tap Pill Row */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '3px', overflowX: 'auto', padding: '2px 0' }}>
-                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(val => {
+                      {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(val => {
                         const btnTheme = getRatingTheme(val);
                         const isSelected = Math.floor(dailyRating) === val;
                         return (
