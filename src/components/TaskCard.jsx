@@ -92,7 +92,7 @@ function TaskCard({
     const list = Array.isArray(task?.daily_notes || task?.dailyNotes || task?.notes)
       ? (task.daily_notes || task.dailyNotes || task.notes)
       : [];
-    return list.some(n => n && n.rating != null && Number(n.rating) > 0 && !n.isAutoMissed);
+    return list.some(n => n && n.rating != null && !isNaN(Number(n.rating)) && Number(n.rating) >= 0 && !n.isAutoMissed);
   }, [task?.daily_notes, task?.dailyNotes, task?.notes]);
 
   const isDone = Boolean(task?.status === 'done' || task?.completed === true || isJustCompleted);
@@ -303,7 +303,7 @@ function TaskCard({
     return notesList.some(n => {
       if (!n || !n.date) return false;
       const r = parseFloat(n.rating != null ? n.rating : 0);
-      return getLocalDateStr(n.date) === checkDateStr && !isNaN(r) && r > 0 && !n.isAutoMissed && !n.isLeaveApplied && !isDateOnLeave(checkDateStr);
+      return getLocalDateStr(n.date) === checkDateStr && !isNaN(r) && r >= 0 && !n.isAutoMissed && !n.isLeaveApplied && !isDateOnLeave(checkDateStr);
     });
   }, [notesList, currentViewDateStr, isCurrentDateOnLeave]);
 
@@ -323,7 +323,7 @@ function TaskCard({
         return;
       }
       const r = parseFloat(n.rating != null ? n.rating : 0);
-      const isRated = !isNaN(r) && r > 0 && !n.isAutoMissed;
+      const isRated = !isNaN(r) && r >= 0 && !n.isAutoMissed && n.rating != null;
 
       if (isRated) {
         sum += r;
@@ -591,7 +591,7 @@ function TaskCard({
         listToUse.forEach(n => {
           if (!n) return;
           const r = parseFloat(n.rating != null ? n.rating : (n.score != null ? n.score : 0));
-          if (!isNaN(r) && r > 0 && !n.isAutoMissed) {
+          if (!isNaN(r) && r >= 0 && !n.isAutoMissed && n.rating != null) {
             sumRating += r;
             hasRated = true;
           }
@@ -847,7 +847,7 @@ function TaskCard({
                   const isLeaveDay = Boolean(n.isLeaveApplied || (nDate && isDateOnLeave(nDate)));
                   const ratingVal = n.rating != null && !isNaN(Number(n.rating)) ? Number(n.rating) : 0;
                   const itemTheme = getRatingTheme(ratingVal);
-                  const isMissedDay = !isLeaveDay && (n.isAutoMissed || ratingVal === 0);
+                  const isAutoMissedDay = !isLeaveDay && Boolean(n.isAutoMissed);
 
                   return (
                     <div key={n.id || idx} style={{
@@ -900,7 +900,7 @@ function TaskCard({
                           }}>
                             ★ {Number.isInteger(ratingVal) ? ratingVal : ratingVal.toFixed(1)}
                           </span>
-                          {isMissedDay && (
+                          {isAutoMissedDay && (
                             <span style={{
                               fontSize: '0.74rem',
                               fontWeight: 600,
@@ -916,8 +916,8 @@ function TaskCard({
                       {!isLeaveDay && (
                         <span style={{
                           wordBreak: 'break-word',
-                          color: isMissedDay ? '#ef4444' : 'var(--text-primary)',
-                          fontStyle: isMissedDay ? 'italic' : 'normal'
+                          color: isAutoMissedDay ? '#ef4444' : 'var(--text-primary)',
+                          fontStyle: isAutoMissedDay ? 'italic' : 'normal'
                         }}>
                           {n.note || n.text}
                         </span>

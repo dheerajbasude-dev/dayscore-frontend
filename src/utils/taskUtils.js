@@ -195,7 +195,7 @@ export const calculateTaskAutoRating = (taskOrNotes, todayStrParam) => {
       return;
     }
     const r = parseFloat(n.rating != null ? n.rating : (n.score != null ? n.score : 0));
-    const isRated = !isNaN(r) && r > 0 && !n.isAutoMissed;
+    const isRated = !isNaN(r) && r >= 0 && !n.isAutoMissed && n.rating != null;
 
     if (isRated) {
       sumRating += r;
