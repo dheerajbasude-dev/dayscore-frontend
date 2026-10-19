@@ -705,14 +705,14 @@ function TaskCard({
                 onClick={() => setShowNotesInput(prev => !prev)}
                 title={showNotesInput ? "Hide Daily Notes" : (isCurrentDateOnLeave ? "Leave Applied ✓ · View Daily Notes" : (isCurrentDateNoteRated ? "Today's note rated ✓ · View Daily Notes" : "View / Add Daily Notes"))}
               >
-                <FileText size={13} className="note-icon-svg" />
+                <FileText size={14} />
                 {(isCurrentDateNoteRated || isCurrentDateOnLeave) && (
                   <Check size={11} strokeWidth={3.5} color="#10b981" style={{ flexShrink: 0, filter: 'drop-shadow(0 0 3px rgba(16, 185, 129, 0.45))' }} />
                 )}
-                {effectiveNotesList.length > 0 && <span className="note-count-num">{effectiveNotesList.length}</span>}
+                {effectiveNotesList.length > 0 && <span>{effectiveNotesList.length}</span>}
               </button>
             )}
-            <div className={`countdown countdown-desktop ${urgencyClass}`}>
+            <div className={`countdown ${urgencyClass}`}>
               {isDone ? (
                 wasOriginallyMissed ? <span style={{ color: '#f87171' }}>✓ Late</span> : <span className="text-success">✓ Done</span>
               ) : isMissed ? (
@@ -728,45 +728,32 @@ function TaskCard({
         </div>
 
         <div className="task-meta-row">
-          <div className="task-meta-chips">
-            <span className={`badge badge-${task.category.toLowerCase()}`}>{task.category}</span>
-            <span className="meta-dot">·</span>
-            <span className={`priority-text priority-${task.priority.toLowerCase()}`}>{task.priority}</span>
-            {ratingDisplay ? (
-              <>
-                <span className="meta-dot">·</span>
-                <span className={`rating-badge ${getRatingBadgeClass()}`}>★ {displayRatingVal}/{maxR}</span>
-              </>
-            ) : (!isDone && !isMissed && hasRatingNote && effectiveRating != null) ? (
-              <>
-                <span className="meta-dot">·</span>
-                <span className={`rating-badge ${getRatingBadgeClass(effectiveRating)}`} title={`In-progress average score: ${Number.isInteger(effectiveRating) ? effectiveRating : effectiveRating.toFixed(1)}`}>
-                  ★ {Number.isInteger(effectiveRating) ? effectiveRating : effectiveRating.toFixed(1)}
-                </span>
-              </>
-            ) : (isMissed && !effectiveIsToday) ? (
-              <>
-                <span className="meta-dot">·</span>
-                <span className="rating-badge rating-badge-low zero-score-badge-anim" title="Overred missed task final score: 0">
-                  ★ 0
-                </span>
-              </>
-            ) : null}
-            <div className={`countdown countdown-mobile ${urgencyClass}`}>
-              {isDone ? (
-                wasOriginallyMissed ? <span style={{ color: '#f87171' }}>✓ Late</span> : <span className="text-success">✓ Done</span>
-              ) : isMissed ? (
-                <span className="text-danger">Missed</span>
-              ) : (!task?.dueDateTime && !task?.due_date_time) ? (
-                <span>No due date</span>
-              ) : (
-                timeLeft
-              )}
-            </div>
-          </div>
-
-          {(createdFormatted || dueFormatted || completedFormatted) && (
-            <div className="task-dates-row">
+          <span className={`badge badge-${task.category.toLowerCase()}`}>{task.category}</span>
+          <span className="meta-dot">·</span>
+          <span className={`priority-text priority-${task.priority.toLowerCase()}`}>{task.priority}</span>
+          {ratingDisplay ? (
+            <>
+              <span className="meta-dot">·</span>
+              <span className={`rating-badge ${getRatingBadgeClass()}`}>★ {displayRatingVal}/{maxR}</span>
+            </>
+          ) : (!isDone && !isMissed && hasRatingNote && effectiveRating != null) ? (
+            <>
+              <span className="meta-dot">·</span>
+              <span className={`rating-badge ${getRatingBadgeClass(effectiveRating)}`} title={`In-progress average score: ${Number.isInteger(effectiveRating) ? effectiveRating : effectiveRating.toFixed(1)}`}>
+                ★ {Number.isInteger(effectiveRating) ? effectiveRating : effectiveRating.toFixed(1)}
+              </span>
+            </>
+          ) : (isMissed && !effectiveIsToday) ? (
+            <>
+              <span className="meta-dot">·</span>
+              <span className="rating-badge rating-badge-low zero-score-badge-anim" title="Overred missed task final score: 0">
+                ★ 0
+              </span>
+            </>
+          ) : null}
+          {(createdFormatted || dueFormatted) && (
+            <>
+              <span className="meta-dot">·</span>
               <span className="task-dates-inline">
                 {createdFormatted ? <span>{createdFormatted}</span> : <span>{task.date || 'Today'}</span>}
                 {dueFormatted && (
@@ -776,12 +763,15 @@ function TaskCard({
                   </>
                 )}
               </span>
-              {completedFormatted && (
-                <span className="task-date-completed">
-                  ✓ {completedFormatted}
-                </span>
-              )}
-            </div>
+            </>
+          )}
+          {completedFormatted && (
+            <>
+              <span className="meta-dot">·</span>
+              <span className="task-date-completed">
+                ✓ {completedFormatted}
+              </span>
+            </>
           )}
         </div>
 
