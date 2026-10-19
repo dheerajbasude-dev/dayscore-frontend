@@ -19,7 +19,7 @@ export default function CalendarHeatmap({ archives = [] }) {
 
   const getLevel = (record, dateStr) => {
     if (!record) return 0;
-    if (record.isLeave || isDateOnLeave(dateStr)) return 0;
+    if (record.isLeave || isDateOnLeave(dateStr)) return 1;
 
     const score = Number(record.score || 0);
     const hasTasks = Boolean(record.hasTasks || (record.tasks && record.tasks.length > 0));

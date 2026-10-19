@@ -95,10 +95,13 @@ export default function AnalyticsView() {
       const arc = mergedArchives.find(a => a.date === dStr);
 
       let score = null;
-      if (arc && arc.hasTasks && !arc.isLeave) {
+      const isLeave = Boolean(arc?.isLeave || scoring.isDateOnLeave(dStr));
+      if (isLeave) {
+        score = 0;
+      } else if (arc && arc.hasTasks) {
         score = typeof arc.score === 'number' ? arc.score : Number(arc.score || 0);
       }
-      last30.push({ label, score, dateStr: dStr, isLeave: Boolean(arc?.isLeave) });
+      last30.push({ label, score, dateStr: dStr, isLeave });
     }
 
     return {
@@ -112,10 +115,10 @@ export default function AnalyticsView() {
         fill: true,
         tension: 0.35,
         spanGaps: true,
-        pointRadius: last30.map(d => d.score !== null ? 4 : 0),
+        pointRadius: last30.map(d => d.score !== null ? 4.5 : 0),
         pointHoverRadius: 7,
-        pointBackgroundColor: '#818cf8',
-        pointBorderColor: '#ffffff',
+        pointBackgroundColor: last30.map(d => d.isLeave ? '#ef4444' : '#818cf8'),
+        pointBorderColor: last30.map(d => d.isLeave ? '#ef4444' : '#ffffff'),
         pointBorderWidth: 2,
         borderWidth: 2.5,
       }]
@@ -168,7 +171,10 @@ export default function AnalyticsView() {
         callbacks: {
           label: (context) => {
             const item = lineChartData.items ? lineChartData.items[context.dataIndex] : null;
-            if (item && item.isLeave) return 'Leave Applied';
+            if (item && item.isLeave) {
+              const reason = scoring.getLeaveReasonForDate(item.dateStr);
+              return `Leave Applied${reason ? `: ${reason}` : ''} (Score: 0/10)`;
+            }
             if (context.raw !== null && context.raw !== undefined) {
               return `Daily Score: ${context.raw}/10`;
             }

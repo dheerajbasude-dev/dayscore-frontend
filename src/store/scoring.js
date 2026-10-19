@@ -1,5 +1,7 @@
 import { parseISO, differenceInCalendarDays, format, isAfter, isBefore, startOfDay, subDays, addDays } from 'date-fns';
-import { calculateTaskAutoRating, getLocalDateStr, isDateOnLeave } from '../utils/taskUtils.js';
+import { calculateTaskAutoRating, getLocalDateStr, isDateOnLeave, getLeaveReasonForDate } from '../utils/taskUtils.js';
+
+export { isDateOnLeave, getLeaveReasonForDate };
 
 export function calculateDailyScore(tasks, targetDateStr = null) {
   if (!tasks || tasks.length === 0) {
@@ -869,58 +871,20 @@ export function buildHistoricalDailyArchives(archives = [], todayTasks = []) {
   map.forEach((dayRec, dStr) => {
     if (isDateOnLeave(dStr)) {
       dayRec.isLeave = true;
+      dayRec.score = 0;
+      return;
     }
     if (dStr === todayStr) {
       // Today is handled by calculateDailyScore above
       return;
     }
     if (dayRec.hasTasks && dayRec.tasks.length > 0) {
-      let totalPts = 0;
-      let evaluatedCount = 0;
-      let hasDone = false;
-
-      dayRec.tasks.forEach(t => {
-        const isDone = t.status === 'done' || t.completed === true;
-        if (isDone) hasDone = true;
-
-        const tNotes = Array.isArray(t.daily_notes || t.dailyNotes || t.notes)
-          ? (t.daily_notes || t.dailyNotes || t.notes)
-          : [];
-        const noteForDay = tNotes.find(n => n && getLocalDateStr(n.date) === dStr);
-
-        if (noteForDay) {
-          if (noteForDay.isLeaveApplied || isDateOnLeave(dStr)) {
-            return;
-          }
-          const r = parseFloat(noteForDay.rating != null ? noteForDay.rating : (noteForDay.score != null ? noteForDay.score : 0));
-          if (!isNaN(r) && r >= 0) {
-            evaluatedCount++;
-            totalPts += r;
-          }
-        } else if (isDone && (getLocalDateStr(t.completedAt || t.completed_at || t.date) === dStr)) {
-          const r = parseFloat(t.rating != null ? t.rating : 0);
-          if (!isNaN(r) && r > 0) {
-            evaluatedCount++;
-            totalPts += r;
-          }
-        } else if (t.status === 'missed' && getLocalDateStr(t.date) === dStr) {
-          evaluatedCount++;
-          totalPts += 0;
-        } else if (dStr < todayStr && !isDateOnLeave(dStr)) {
-          // Missed note on past day
-          evaluatedCount++;
-          totalPts += 0;
-        }
-      });
-
-      if (evaluatedCount > 0) {
-        dayRec.score = Number((totalPts / evaluatedCount).toFixed(1));
-      } else {
-        dayRec.score = Number(dayRec.score || 0);
-      }
-      dayRec.hasDone = hasDone || Boolean(dayRec.hasDone);
+      const dayScoreRes = calculateDailyScore(dayRec.tasks, dStr);
+      dayRec.score = dayScoreRes.score;
+      dayRec.hasDone = dayScoreRes.breakdown.doneCount > 0 || Boolean(dayRec.hasDone);
     }
   });
+
 
   return Array.from(map.values()).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
 }
