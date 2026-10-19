@@ -532,9 +532,6 @@ export function getCategoryCounts(archives = [], todayTasks = []) {
     if (taskId && countedTaskIds.has(taskId)) return;
     if (taskId) countedTaskIds.add(taskId);
 
-    const isDone = t.status === 'done';
-    if (!isDone) return;
-
     const rawCat = (t.category || '').trim();
     if (!rawCat) {
       cats['Personal'] = (cats['Personal'] || 0) + 1;
@@ -558,28 +555,6 @@ export function getCategoryCounts(archives = [], todayTasks = []) {
 
   (todayTasks || []).forEach(processTask);
 
-  // Fallback: If no completed tasks exist yet, process ALL tasks regardless of status
-  if (Object.values(cats).reduce((a, b) => a + b, 0) === 0) {
-    const processAnyTask = (t) => {
-      if (!t) return;
-      const rawCat = (t.category || '').trim();
-      const standardMatch = Object.keys(cats).find(c => c.toLowerCase() === rawCat.toLowerCase());
-      if (standardMatch) {
-        cats[standardMatch] = (cats[standardMatch] || 0) + 1;
-      } else if (rawCat) {
-        const formattedCat = rawCat.charAt(0).toUpperCase() + rawCat.slice(1).toLowerCase();
-        cats[formattedCat] = (cats[formattedCat] || 0) + 1;
-      } else {
-        cats['Work'] = (cats['Work'] || 0) + 1;
-      }
-    };
-
-    (archives || []).forEach(arc => {
-      if (arc && Array.isArray(arc.tasks)) arc.tasks.forEach(processAnyTask);
-    });
-    (todayTasks || []).forEach(processAnyTask);
-  }
-
   return cats;
 }
 
@@ -598,26 +573,103 @@ export function getMostProductiveCategory(archives = [], todayTasks = []) {
   return bestCategory;
 }
 
-export function getMostMissedTimeOfDay(archives) {
-  if (!archives || archives.length === 0) return 'N/A';
-  
+export function getMostMissedTimeOfDay(archives = [], todayTasks = []) {
   const hourCounts = {};
-  for (const archive of archives) {
-    if (archive.tasks) {
-      for (const task of archive.tasks) {
-        if (task.status === 'missed' && task.dueDateTime) {
-          try {
-            const date = parseISO(task.dueDateTime);
-            if (!isNaN(date.getTime())) {
-              const hour = date.getHours();
-              hourCounts[hour] = (hourCounts[hour] || 0) + 1;
-            }
-          } catch (e) {}
+  const processedMissedKeys = new Set();
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+
+  const recordMissedHour = (task, key) => {
+    if (!task) return;
+    if (key && processedMissedKeys.has(key)) return;
+    if (key) processedMissedKeys.add(key);
+
+    const dueStr = task.dueDateTime || task.due_date_time;
+    if (dueStr) {
+      try {
+        const date = parseISO(dueStr);
+        if (!isNaN(date.getTime())) {
+          const hour = date.getHours();
+          hourCounts[hour] = (hourCounts[hour] || 0) + 1;
+          return;
         }
-      }
+      } catch (e) {}
     }
-  }
-  
+
+    const createdStr = task.createdAt || task.created_at;
+    if (createdStr) {
+      try {
+        const date = parseISO(createdStr);
+        if (!isNaN(date.getTime())) {
+          const hour = date.getHours();
+          hourCounts[hour] = (hourCounts[hour] || 0) + 1;
+        }
+      } catch (e) {}
+    }
+  };
+
+  const processTask = (task) => {
+    if (!task) return;
+    const taskId = String(task.id || task._id || Math.random());
+
+    // 1. Whole task marked missed
+    if (task.status === 'missed' || task.missed === true || task.wasMissed === true || task.was_missed === true) {
+      recordMissedHour(task, `whole_${taskId}`);
+    }
+
+    // 2. Missed daily task notes
+    const notes = Array.isArray(task.daily_notes || task.dailyNotes || task.notes)
+      ? (task.daily_notes || task.dailyNotes || task.notes)
+      : [];
+
+    notes.forEach(n => {
+      if (!n) return;
+      const nDate = getLocalDateStr(n.date);
+      if (!nDate) return;
+      if (n.isLeaveApplied || isDateOnLeave(nDate)) return;
+
+      if (n.isAutoMissed || (n.rating === 0 && String(n.note || '').toLowerCase() === 'missed')) {
+        recordMissedHour(task, `note_${taskId}_${nDate}`);
+      }
+    });
+
+    // 3. Past days within multi-day task span without notes and not on leave
+    const dates = [];
+    const cClean = getLocalDateStr(task.createdAt || task.created_at);
+    if (cClean) dates.push(cClean);
+    const oClean = getLocalDateStr(task.originalDate || task.original_date);
+    if (oClean) dates.push(oClean);
+    const tClean = getLocalDateStr(task.date);
+    if (tClean) dates.push(tClean);
+    dates.sort();
+
+    if (dates.length > 0) {
+      const cleanStartStr = dates[0];
+      const existingDates = new Set(notes.map(n => getLocalDateStr(n && n.date)).filter(Boolean));
+      try {
+        const startDate = parseISO(cleanStartStr);
+        const todayDate = parseISO(todayStr);
+        if (!isNaN(startDate.getTime()) && !isNaN(todayDate.getTime()) && startDate < todayDate) {
+          let curr = new Date(startDate);
+          while (curr < todayDate) {
+            const currStr = format(curr, 'yyyy-MM-dd');
+            if (!existingDates.has(currStr) && !isDateOnLeave(currStr)) {
+              recordMissedHour(task, `unsubmitted_${taskId}_${currStr}`);
+            }
+            curr.setDate(curr.getDate() + 1);
+          }
+        }
+      } catch (e) {}
+    }
+  };
+
+  (archives || []).forEach(arc => {
+    if (arc && Array.isArray(arc.tasks)) {
+      arc.tasks.forEach(processTask);
+    }
+  });
+
+  (todayTasks || []).forEach(processTask);
+
   let bestHour = -1;
   let maxCount = 0;
   for (const [hourStr, count] of Object.entries(hourCounts)) {
@@ -626,37 +678,250 @@ export function getMostMissedTimeOfDay(archives) {
       bestHour = parseInt(hourStr, 10);
     }
   }
-  
+
   if (bestHour === -1) return 'N/A';
-  
+
   const period = bestHour >= 12 ? 'PM' : 'AM';
   const displayHour1 = bestHour % 12 === 0 ? 12 : bestHour % 12;
   const nextHour = (bestHour + 1) % 24;
   const nextPeriod = nextHour >= 12 ? 'PM' : 'AM';
   const displayHour2 = nextHour % 12 === 0 ? 12 : nextHour % 12;
-  
+
   return `${displayHour1} ${period} - ${displayHour2} ${nextPeriod}`;
 }
 
-export function getTotalTasksDone(archives) {
-  if (!archives || archives.length === 0) return 0;
-  
+export function getTotalTasksDone(archives = [], todayTasks = []) {
   const completedTaskIds = new Set();
+  const countedNoteKeys = new Set();
   let total = 0;
-  for (const archive of archives) {
-    if (archive.tasks) {
-      for (const t of archive.tasks) {
-        if (t.status === 'done') {
-          const taskId = t.id || t._id;
-          if (taskId && !completedTaskIds.has(taskId)) {
-            completedTaskIds.add(taskId);
-            total++;
-          } else if (!taskId) {
-            total++;
-          }
-        }
+
+  const processTask = (t) => {
+    if (!t) return;
+    const taskId = String(t.id || t._id || Math.random());
+
+    // 1. Whole completed task
+    if (t.status === 'done' || t.completed === true) {
+      if (!completedTaskIds.has(taskId)) {
+        completedTaskIds.add(taskId);
+        total++;
       }
     }
-  }
+
+    // 2. Rated daily task notes from multi-day/carried tasks
+    const notes = Array.isArray(t.daily_notes || t.dailyNotes || t.notes)
+      ? (t.daily_notes || t.dailyNotes || t.notes)
+      : [];
+
+    notes.forEach(n => {
+      if (!n) return;
+      const nDate = getLocalDateStr(n.date);
+      if (!nDate) return;
+
+      if (n.isLeaveApplied || isDateOnLeave(nDate) || n.isAutoMissed) return;
+
+      const r = parseFloat(n.rating != null ? n.rating : (n.score != null ? n.score : null));
+      const isRated = !isNaN(r) && r !== null && (r > 0 || (r === 0 && !n.isAutoMissed && String(n.note || '').toLowerCase() !== 'missed'));
+
+      if (isRated) {
+        const noteKey = `${taskId}_${nDate}`;
+        if (!countedNoteKeys.has(noteKey)) {
+          countedNoteKeys.add(noteKey);
+          total++;
+        }
+      }
+    });
+  };
+
+  (archives || []).forEach(arc => {
+    if (arc && Array.isArray(arc.tasks)) {
+      arc.tasks.forEach(processTask);
+    }
+  });
+
+  (todayTasks || []).forEach(processTask);
+
   return total;
 }
+
+export function buildHistoricalDailyArchives(archives = [], todayTasks = []) {
+  const map = new Map();
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+
+  // 1. Index all unique tasks
+  const allTasksMap = new Map();
+  (archives || []).forEach(arc => {
+    if (arc && Array.isArray(arc.tasks)) {
+      arc.tasks.forEach(t => {
+        if (!t) return;
+        const tid = String(t.id || t._id);
+        if (tid && !allTasksMap.has(tid)) allTasksMap.set(tid, t);
+      });
+    }
+  });
+  (todayTasks || []).forEach(t => {
+    if (!t) return;
+    const tid = String(t.id || t._id);
+    if (tid && !allTasksMap.has(tid)) allTasksMap.set(tid, t);
+  });
+
+  const allTasks = Array.from(allTasksMap.values());
+
+  // 2. Base mapping from existing archives
+  (archives || []).forEach(arc => {
+    if (!arc || !arc.date) return;
+    const cleanD = getLocalDateStr(arc.date);
+    if (!cleanD) return;
+    const taskList = Array.isArray(arc.tasks) ? arc.tasks : [];
+    const hasDone = taskList.some(t => t && (t.status === 'done' || t.completedAt || t.completed_at)) || Boolean(arc.hasDone);
+    const scoreRes = taskList.length > 0 ? calculateDailyScore(taskList, cleanD) : { score: Number(arc.score || 0) };
+    map.set(cleanD, {
+      ...arc,
+      date: cleanD,
+      score: Math.max(scoreRes.score, Number(arc.score || 0)),
+      tasks: [...taskList],
+      hasTasks: taskList.length > 0,
+      hasDone,
+      isLeave: isDateOnLeave(cleanD)
+    });
+  });
+
+  // 3. For multi-day and carried tasks, populate days they span across
+  allTasks.forEach(task => {
+    const notes = Array.isArray(task.daily_notes || task.dailyNotes || task.notes)
+      ? (task.daily_notes || task.dailyNotes || task.notes)
+      : [];
+
+    const isMultiDay = notes.length > 0 || task.carriedOver || task.carried_over ||
+      (task.originalDate && task.originalDate !== task.date) ||
+      (task.original_date && task.original_date !== task.date);
+
+    if (!isMultiDay && notes.length === 0) return;
+
+    const dates = [];
+    const cClean = getLocalDateStr(task.createdAt || task.created_at);
+    if (cClean) dates.push(cClean);
+    const oClean = getLocalDateStr(task.originalDate || task.original_date);
+    if (oClean) dates.push(oClean);
+    const tClean = getLocalDateStr(task.date);
+    if (tClean) dates.push(tClean);
+    notes.forEach(n => {
+      const nD = getLocalDateStr(n && n.date);
+      if (nD) dates.push(nD);
+    });
+    dates.sort();
+
+    const startStr = dates.length > 0 ? dates[0] : todayStr;
+    const endStr = dates.length > 0 ? dates[dates.length - 1] : todayStr;
+    const maxEndStr = endStr > todayStr ? todayStr : endStr;
+
+    try {
+      const sObj = parseISO(startStr);
+      const eObj = parseISO(maxEndStr);
+      if (!isNaN(sObj.getTime()) && !isNaN(eObj.getTime()) && sObj <= eObj) {
+        let curr = new Date(sObj);
+        while (curr <= eObj) {
+          const dStr = format(curr, 'yyyy-MM-dd');
+          if (!map.has(dStr)) {
+            map.set(dStr, {
+              date: dStr,
+              score: 0,
+              tasks: [],
+              hasTasks: false,
+              hasDone: false,
+              isLeave: isDateOnLeave(dStr)
+            });
+          }
+          const dayRec = map.get(dStr);
+          const alreadyHasTask = dayRec.tasks.some(t => String(t.id || t._id) === String(task.id || task._id));
+          if (!alreadyHasTask) {
+            dayRec.tasks.push(task);
+            dayRec.hasTasks = true;
+          }
+          curr.setDate(curr.getDate() + 1);
+        }
+      }
+    } catch (e) {}
+  });
+
+  // 4. Ensure today has todayTasks and accurate score
+  if (!map.has(todayStr) || (todayTasks && todayTasks.length > 0)) {
+    const existing = map.get(todayStr) || { date: todayStr, tasks: [], hasTasks: false, hasDone: false };
+    const mergedTodayTasks = [...(todayTasks || [])];
+    existing.tasks.forEach(t => {
+      if (!mergedTodayTasks.some(mt => String(mt.id || mt._id) === String(t.id || t._id))) {
+        mergedTodayTasks.push(t);
+      }
+    });
+    const res = calculateDailyScore(mergedTodayTasks, todayStr);
+    const hasDone = mergedTodayTasks.some(t => t && (t.status === 'done' || t.completedAt || t.completed_at));
+    map.set(todayStr, {
+      ...existing,
+      date: todayStr,
+      score: Math.max(res.score, Number(existing.score || 0)),
+      tasks: mergedTodayTasks,
+      hasTasks: mergedTodayTasks.length > 0,
+      hasDone: hasDone || Boolean(existing.hasDone),
+      isLeave: isDateOnLeave(todayStr)
+    });
+  }
+
+  // 5. Calculate composite daily scores for all days
+  map.forEach((dayRec, dStr) => {
+    if (isDateOnLeave(dStr)) {
+      dayRec.isLeave = true;
+    }
+    if (dStr === todayStr) {
+      // Today is handled by calculateDailyScore above
+      return;
+    }
+    if (dayRec.hasTasks && dayRec.tasks.length > 0) {
+      let totalPts = 0;
+      let evaluatedCount = 0;
+      let hasDone = false;
+
+      dayRec.tasks.forEach(t => {
+        const isDone = t.status === 'done' || t.completed === true;
+        if (isDone) hasDone = true;
+
+        const tNotes = Array.isArray(t.daily_notes || t.dailyNotes || t.notes)
+          ? (t.daily_notes || t.dailyNotes || t.notes)
+          : [];
+        const noteForDay = tNotes.find(n => n && getLocalDateStr(n.date) === dStr);
+
+        if (noteForDay) {
+          if (noteForDay.isLeaveApplied || isDateOnLeave(dStr)) {
+            return;
+          }
+          const r = parseFloat(noteForDay.rating != null ? noteForDay.rating : (noteForDay.score != null ? noteForDay.score : 0));
+          if (!isNaN(r) && r >= 0) {
+            evaluatedCount++;
+            totalPts += r;
+          }
+        } else if (isDone && (getLocalDateStr(t.completedAt || t.completed_at || t.date) === dStr)) {
+          const r = parseFloat(t.rating != null ? t.rating : 0);
+          if (!isNaN(r) && r > 0) {
+            evaluatedCount++;
+            totalPts += r;
+          }
+        } else if (t.status === 'missed' && getLocalDateStr(t.date) === dStr) {
+          evaluatedCount++;
+          totalPts += 0;
+        } else if (dStr < todayStr && !isDateOnLeave(dStr)) {
+          // Missed note on past day
+          evaluatedCount++;
+          totalPts += 0;
+        }
+      });
+
+      if (evaluatedCount > 0) {
+        dayRec.score = Number((totalPts / evaluatedCount).toFixed(1));
+      } else {
+        dayRec.score = Number(dayRec.score || 0);
+      }
+      dayRec.hasDone = hasDone || Boolean(dayRec.hasDone);
+    }
+  });
+
+  return Array.from(map.values()).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+}
+

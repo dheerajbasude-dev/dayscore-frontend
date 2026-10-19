@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { format, subDays, startOfWeek, endOfWeek, addDays, parseISO } from 'date-fns';
 import { Calendar, Info } from 'lucide-react';
+import { isDateOnLeave, getLeaveReasonForDate } from '../utils/taskUtils';
 
 export default function CalendarHeatmap({ archives = [] }) {
   const [activeDay, setActiveDay] = useState(null);
@@ -16,14 +17,14 @@ export default function CalendarHeatmap({ archives = [] }) {
     return acc;
   }, {});
 
-  const getLevel = (record) => {
+  const getLevel = (record, dateStr) => {
     if (!record) return 0;
+    if (record.isLeave || isDateOnLeave(dateStr)) return 0;
+
     const score = Number(record.score || 0);
     const hasTasks = Boolean(record.hasTasks || (record.tasks && record.tasks.length > 0));
-    const hasDone = Boolean(record.hasDone || (record.tasks && record.tasks.some(t => t.status === 'done' || t.completedAt || t.completed_at)));
 
     if (!hasTasks && score === 0) return 0;
-    if (hasTasks && !hasDone && score === 0) return 1;
 
     if (score < 3) return 1;
     if (score < 5) return 2;
@@ -40,14 +41,16 @@ export default function CalendarHeatmap({ archives = [] }) {
   while (currDate <= endDate) {
     const dateStr = format(currDate, 'yyyy-MM-dd');
     const record = archiveMap[dateStr] ?? null;
+    const isLeave = Boolean(record?.isLeave || isDateOnLeave(dateStr));
     days.push({
       date: currDate,
       dateStr,
       formattedDate: format(currDate, 'MMM dd, yyyy'),
       record,
       score: record ? Number(record.score || 0) : null,
-      level: getLevel(record),
-      isToday: dateStr === todayStr
+      level: getLevel(record, dateStr),
+      isToday: dateStr === todayStr,
+      isLeave
     });
     currDate = addDays(currDate, 1);
   }
@@ -69,6 +72,10 @@ export default function CalendarHeatmap({ archives = [] }) {
 
   const getTooltip = (day) => {
     const dateText = day.formattedDate;
+    if (day.isLeave) {
+      const reason = getLeaveReasonForDate(day.dateStr);
+      return `${dateText}: Leave Applied${reason ? `: ${reason}` : ''}`;
+    }
     if (day.isToday) {
       if (day.score !== null && day.record?.hasTasks) {
         return `Today (${dateText}): Score ${day.score.toFixed(1)}/10`;
@@ -89,7 +96,9 @@ export default function CalendarHeatmap({ archives = [] }) {
         {activeDay ? (
           <span>
             <strong>{activeDay.formattedDate}</strong> {activeDay.isToday ? '(Today)' : ''}: {' '}
-            {activeDay.score !== null && activeDay.record?.hasTasks
+            {activeDay.isLeave
+              ? `Leave Applied${getLeaveReasonForDate(activeDay.dateStr) ? `: ${getLeaveReasonForDate(activeDay.dateStr)}` : ''}`
+              : activeDay.score !== null && activeDay.record?.hasTasks
               ? `Score ${activeDay.score.toFixed(1)}/10`
               : activeDay.isToday
               ? 'Ongoing Day'

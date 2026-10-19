@@ -75,54 +75,15 @@ export default function AnalyticsView() {
   }, []);
 
   const mergedArchives = useMemo(() => {
-    const todayStr = format(new Date(), 'yyyy-MM-dd');
-    const map = new Map();
-    const safeArchives = Array.isArray(archives) ? archives : [];
-    const safeTodayTasks = Array.isArray(todayTasks) ? todayTasks : [];
-
-    // 1. Process all archives
-    safeArchives.forEach(a => {
-      if (a && a.date) {
-        const cleanDate = a.date.includes('T') ? a.date.split('T')[0] : a.date.trim().substring(0, 10);
-        const taskList = Array.isArray(a.tasks) ? a.tasks : [];
-        const res = taskList.length > 0 ? scoring.calculateDailyScore(taskList) : { score: Number(a.score || 0) };
-        const hasDone = taskList.some(t => t && (t.status === 'done' || t.completedAt || t.completed_at)) || Boolean(a.hasDone);
-
-        map.set(cleanDate, {
-          ...a,
-          date: cleanDate,
-          score: Math.max(res.score, Number(a.score || 0)),
-          tasks: taskList,
-          hasTasks: taskList.length > 0,
-          hasDone
-        });
-      }
-    });
-
-    // 2. Ensure today's date is updated with safeTodayTasks
-    if (safeTodayTasks.length > 0 || !map.has(todayStr)) {
-      const existing = map.get(todayStr) || {};
-      const res = scoring.calculateDailyScore(safeTodayTasks);
-      const hasDone = safeTodayTasks.some(t => t && (t.status === 'done' || t.completedAt || t.completed_at));
-      map.set(todayStr, {
-        ...existing,
-        date: todayStr,
-        score: Math.max(res.score, Number(existing.score || 0)),
-        tasks: safeTodayTasks,
-        hasTasks: safeTodayTasks.length > 0,
-        hasDone: hasDone || Boolean(existing.hasDone)
-      });
-    }
-
-    return Array.from(map.values()).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+    return scoring.buildHistoricalDailyArchives(archives, todayTasks);
   }, [archives, todayTasks]);
 
   const streakData = useMemo(() => scoring.getStreak(mergedArchives, todayTasks), [mergedArchives, todayTasks])
   const bestStreak = useMemo(() => scoring.getBestStreak(mergedArchives, todayTasks), [mergedArchives, todayTasks])
   const avgScore = useMemo(() => scoring.getRollingAverage(mergedArchives, 0, todayTasks), [mergedArchives, todayTasks])
-  const totalDone = useMemo(() => scoring.getTotalTasksDone(mergedArchives), [mergedArchives])
+  const totalDone = useMemo(() => scoring.getTotalTasksDone(mergedArchives, todayTasks), [mergedArchives, todayTasks])
   const bestCategory = useMemo(() => scoring.getMostProductiveCategory(mergedArchives, todayTasks), [mergedArchives, todayTasks]);
-  const missedTime = useMemo(() => scoring.getMostMissedTimeOfDay(mergedArchives), [mergedArchives]);
+  const missedTime = useMemo(() => scoring.getMostMissedTimeOfDay(mergedArchives, todayTasks), [mergedArchives, todayTasks]);
 
   const lineChartData = useMemo(() => {
     const last30 = [];
@@ -133,12 +94,16 @@ export default function AnalyticsView() {
       const label = format(dDate, 'MMM dd');
       const arc = mergedArchives.find(a => a.date === dStr);
 
-      const score = (arc && arc.hasTasks && arc.score > 0) ? arc.score : (arc && arc.score > 0 ? arc.score : null);
-      last30.push({ label, score, dateStr: dStr });
+      let score = null;
+      if (arc && arc.hasTasks && !arc.isLeave) {
+        score = typeof arc.score === 'number' ? arc.score : Number(arc.score || 0);
+      }
+      last30.push({ label, score, dateStr: dStr, isLeave: Boolean(arc?.isLeave) });
     }
 
     return {
       labels: last30.map(d => d.label),
+      items: last30,
       datasets: [{
         label: 'Daily Score',
         data: last30.map(d => d.score),
@@ -147,12 +112,12 @@ export default function AnalyticsView() {
         fill: true,
         tension: 0.35,
         spanGaps: true,
-        pointRadius: last30.map(d => d.score !== null ? 6 : 0),
-        pointHoverRadius: 8,
+        pointRadius: last30.map(d => d.score !== null ? 4 : 0),
+        pointHoverRadius: 7,
         pointBackgroundColor: '#818cf8',
         pointBorderColor: '#ffffff',
         pointBorderWidth: 2,
-        borderWidth: 3,
+        borderWidth: 2.5,
       }]
     };
   }, [mergedArchives]);
@@ -201,7 +166,14 @@ export default function AnalyticsView() {
         padding: 10,
         displayColors: false,
         callbacks: {
-          label: (context) => `Daily Score: ${context.raw !== null ? `${context.raw}/10` : 'No activity'}`
+          label: (context) => {
+            const item = lineChartData.items ? lineChartData.items[context.dataIndex] : null;
+            if (item && item.isLeave) return 'Leave Applied';
+            if (context.raw !== null && context.raw !== undefined) {
+              return `Daily Score: ${context.raw}/10`;
+            }
+            return 'No activity';
+          }
         }
       }
     }

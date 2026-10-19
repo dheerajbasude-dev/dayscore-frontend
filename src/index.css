@@ -3337,12 +3337,21 @@ body {
 }
 
 .analytics-chart-wrapper {
-  height: 200px;
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  height: 220px;
 }
 
 @media (min-width: 480px) {
   .analytics-chart-wrapper {
-    height: 240px;
+    height: 260px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .analytics-chart-wrapper {
+    height: 280px;
   }
 }
 
