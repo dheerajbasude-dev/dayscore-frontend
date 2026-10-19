@@ -96,32 +96,57 @@ export default function AnalyticsView() {
 
       let score = null;
       const isLeave = Boolean(arc?.isLeave || scoring.isDateOnLeave(dStr));
-      if (isLeave) {
-        score = 0;
-      } else if (arc && arc.hasTasks) {
+      if (!isLeave && arc && arc.hasTasks) {
         score = typeof arc.score === 'number' ? arc.score : Number(arc.score || 0);
       }
       last30.push({ label, score, dateStr: dStr, isLeave });
     }
 
+    const leavePoints = last30.map((d, idx) => {
+      if (!d.isLeave) return null;
+      let prev = null;
+      for (let p = idx - 1; p >= 0; p--) {
+        if (last30[p].score !== null) { prev = last30[p].score; break; }
+      }
+      let next = null;
+      for (let n = idx + 1; n < last30.length; n++) {
+        if (last30[n].score !== null) { next = last30[n].score; break; }
+      }
+      if (prev !== null && next !== null) return Number(((prev + next) / 2).toFixed(1));
+      return prev !== null ? prev : (next !== null ? next : 5);
+    });
+
     return {
       labels: last30.map(d => d.label),
       items: last30,
-      datasets: [{
-        label: 'Daily Score',
-        data: last30.map(d => d.score),
-        borderColor: '#818cf8',
-        backgroundColor: 'rgba(129, 140, 248, 0.15)',
-        fill: true,
-        tension: 0.35,
-        spanGaps: true,
-        pointRadius: last30.map(d => d.score !== null ? 4.5 : 0),
-        pointHoverRadius: 7,
-        pointBackgroundColor: last30.map(d => d.isLeave ? '#ef4444' : '#818cf8'),
-        pointBorderColor: last30.map(d => d.isLeave ? '#ef4444' : '#ffffff'),
-        pointBorderWidth: 2,
-        borderWidth: 2.5,
-      }]
+      datasets: [
+        {
+          label: 'Daily Score',
+          data: last30.map(d => d.score),
+          borderColor: '#818cf8',
+          backgroundColor: 'rgba(129, 140, 248, 0.15)',
+          fill: true,
+          tension: 0.35,
+          spanGaps: true,
+          pointRadius: last30.map(d => d.score !== null ? 4.5 : 0),
+          pointHoverRadius: 7,
+          pointBackgroundColor: '#818cf8',
+          pointBorderColor: '#ffffff',
+          pointBorderWidth: 2,
+          borderWidth: 2.5,
+        },
+        {
+          label: 'Leave',
+          data: leavePoints,
+          showLine: false,
+          pointRadius: last30.map(d => d.isLeave ? 6 : 0),
+          pointHoverRadius: 8,
+          pointBackgroundColor: '#ef4444',
+          pointBorderColor: '#ffffff',
+          pointBorderWidth: 2,
+          pointStyle: 'circle',
+        }
+      ]
     };
   }, [mergedArchives]);
 
@@ -130,10 +155,10 @@ export default function AnalyticsView() {
     maintainAspectRatio: false,
     layout: {
       padding: {
-        left: 10,
-        right: 25,
-        top: 25,
-        bottom: 10
+        left: 6,
+        right: 18,
+        top: 20,
+        bottom: 8
       }
     },
     interaction: { intersect: false, mode: 'index' },
@@ -152,7 +177,7 @@ export default function AnalyticsView() {
       x: {
         ticks: {
           color: themeTextColor,
-          maxTicksLimit: 8,
+          maxTicksLimit: 7,
           maxRotation: 0,
           font: { size: 10, weight: '500' }
         },
@@ -173,12 +198,12 @@ export default function AnalyticsView() {
             const item = lineChartData.items ? lineChartData.items[context.dataIndex] : null;
             if (item && item.isLeave) {
               const reason = scoring.getLeaveReasonForDate(item.dateStr);
-              return `Leave Applied${reason ? `: ${reason}` : ''} (Score: 0/10)`;
+              return `Leave Applied${reason ? `: ${reason}` : ''}`;
             }
-            if (context.raw !== null && context.raw !== undefined) {
+            if (context.datasetIndex === 0 && context.raw !== null && context.raw !== undefined) {
               return `Daily Score: ${context.raw}/10`;
             }
-            return 'No activity';
+            return null;
           }
         }
       }

@@ -129,7 +129,7 @@ export default function CalendarHeatmap({ archives = [] }) {
                 {week.map((day, dIndex) => (
                   <div 
                     key={dIndex} 
-                    className={`heatmap-cell heatmap-level-${day.level} ${day.isToday ? 'heatmap-cell-today' : ''} ${activeDay?.dateStr === day.dateStr ? 'heatmap-cell-selected' : ''}`}
+                    className={`heatmap-cell ${day.isLeave ? 'heatmap-cell-leave' : `heatmap-level-${day.level}`} ${day.isToday ? 'heatmap-cell-today' : ''} ${activeDay?.dateStr === day.dateStr ? 'heatmap-cell-selected' : ''}`}
                     title={getTooltip(day)}
                     onClick={() => setActiveDay(day)}
                     onTouchStart={() => setActiveDay(day)}
@@ -143,7 +143,7 @@ export default function CalendarHeatmap({ archives = [] }) {
       </div>
 
       {/* Heatmap Legend */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px', marginTop: '12px', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+      <div className="heatmap-legend" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap', gap: '6px', marginTop: '12px', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
         <span>Less</span>
         <div className="heatmap-cell heatmap-level-0" style={{ width: '10px', height: '10px' }} title="No Activity" />
         <div className="heatmap-cell heatmap-level-1" style={{ width: '10px', height: '10px' }} title="Score 0.0 - 2.9" />
@@ -152,7 +152,11 @@ export default function CalendarHeatmap({ archives = [] }) {
         <div className="heatmap-cell heatmap-level-4" style={{ width: '10px', height: '10px' }} title="Score 7.0 - 8.9" />
         <div className="heatmap-cell heatmap-level-5" style={{ width: '10px', height: '10px' }} title="Score 9.0 - 10" />
         <span>More</span>
+        <span style={{ margin: '0 4px', opacity: 0.3 }}>|</span>
+        <div className="heatmap-cell heatmap-cell-leave" style={{ width: '10px', height: '10px' }} title="Leave Applied" />
+        <span style={{ color: '#ef4444', fontWeight: '600' }}>Leave</span>
       </div>
     </div>
+
   );
 }

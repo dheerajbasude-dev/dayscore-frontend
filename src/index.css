@@ -2563,6 +2563,13 @@ body {
   background: var(--accent-success);
 }
 
+.heatmap-cell-leave {
+  background: #ef4444 !important;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.75);
+  border: 1px solid #f87171 !important;
+  position: relative;
+}
+
 .heatmap-cell-today {
   outline: 2px solid var(--accent-primary);
   outline-offset: 1px;

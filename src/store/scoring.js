@@ -871,7 +871,7 @@ export function buildHistoricalDailyArchives(archives = [], todayTasks = []) {
   map.forEach((dayRec, dStr) => {
     if (isDateOnLeave(dStr)) {
       dayRec.isLeave = true;
-      dayRec.score = 0;
+      dayRec.score = null;
       return;
     }
     if (dStr === todayStr) {
