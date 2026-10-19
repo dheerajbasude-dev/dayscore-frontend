@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { X, Loader2, Check, AlertTriangle, Clock, FileText, Plus, Star, RotateCcw } from 'lucide-react';
+import { X, Loader2, Check, AlertTriangle, Clock, FileText, Plus, Star, RotateCcw, Calendar } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useTimer } from '../hooks/useTimer';
 import { getLocalDateStr, formatTaskMetaDates, isDateOnLeave, getLeaveReasonForDate } from '../utils/taskUtils';
@@ -632,6 +632,40 @@ function TaskCard({
   const isTransitioningState = isUpdatingStatus;
   const effectiveCardStatus = isDone ? 'done' : (isMissed ? 'missed' : task.status);
 
+  const renderNoteToggleBtn = (extraClass = '') => {
+    if (!((isMultiDayOrCarried || effectiveNotesList.length > 0) && (effectiveNotesList.length > 0 || ((effectiveIsToday || isCurrentDateOnLeave) && !isDone && !isMissed)))) {
+      return null;
+    }
+    return (
+      <button
+        type="button"
+        className={`task-note-toggle-btn ${showNotesInput ? 'active' : ''} ${effectiveNotesList.length > 0 ? 'has-notes' : ''} ${extraClass}`}
+        onClick={() => setShowNotesInput(prev => !prev)}
+        title={showNotesInput ? "Hide Daily Notes" : (isCurrentDateOnLeave ? "Leave Applied ✓ · View Daily Notes" : (isCurrentDateNoteRated ? "Today's note rated ✓ · View Daily Notes" : "View / Add Daily Notes"))}
+      >
+        <FileText size={14} />
+        {(isCurrentDateNoteRated || isCurrentDateOnLeave) && (
+          <Check size={11} strokeWidth={3.5} color="#10b981" style={{ flexShrink: 0, filter: 'drop-shadow(0 0 3px rgba(16, 185, 129, 0.45))' }} />
+        )}
+        {effectiveNotesList.length > 0 && <span>{effectiveNotesList.length}</span>}
+      </button>
+    );
+  };
+
+  const renderCountdown = (extraClass = '') => (
+    <div className={`countdown ${urgencyClass} ${extraClass}`}>
+      {isDone ? (
+        wasOriginallyMissed ? <span style={{ color: '#f87171' }}>✓ Late</span> : <span className="text-success">✓ Done</span>
+      ) : isMissed ? (
+        <span className="text-danger">Missed</span>
+      ) : (!task?.dueDateTime && !task?.due_date_time) ? (
+        <span>No due date</span>
+      ) : (
+        timeLeft
+      )}
+    </div>
+  );
+
   return (
     <div 
       id={`task-card-${task.id || task._id}`}
@@ -698,63 +732,47 @@ function TaskCard({
             </span>
           </div>
           <div className="task-actions-right">
-            {((isMultiDayOrCarried || effectiveNotesList.length > 0) && (effectiveNotesList.length > 0 || ((effectiveIsToday || isCurrentDateOnLeave) && !isDone && !isMissed))) && (
-              <button
-                type="button"
-                className={`task-note-toggle-btn ${showNotesInput ? 'active' : ''} ${effectiveNotesList.length > 0 ? 'has-notes' : ''}`}
-                onClick={() => setShowNotesInput(prev => !prev)}
-                title={showNotesInput ? "Hide Daily Notes" : (isCurrentDateOnLeave ? "Leave Applied ✓ · View Daily Notes" : (isCurrentDateNoteRated ? "Today's note rated ✓ · View Daily Notes" : "View / Add Daily Notes"))}
-              >
-                <FileText size={14} />
-                {(isCurrentDateNoteRated || isCurrentDateOnLeave) && (
-                  <Check size={11} strokeWidth={3.5} color="#10b981" style={{ flexShrink: 0, filter: 'drop-shadow(0 0 3px rgba(16, 185, 129, 0.45))' }} />
-                )}
-                {effectiveNotesList.length > 0 && <span>{effectiveNotesList.length}</span>}
-              </button>
-            )}
-            <div className={`countdown ${urgencyClass}`}>
-              {isDone ? (
-                wasOriginallyMissed ? <span style={{ color: '#f87171' }}>✓ Late</span> : <span className="text-success">✓ Done</span>
-              ) : isMissed ? (
-                <span className="text-danger">Missed</span>
-              ) : (!task?.dueDateTime && !task?.due_date_time) ? (
-                <span>No due date</span>
-              ) : (
-                timeLeft
-              )}
-            </div>
+            {renderNoteToggleBtn('desktop-only-action')}
+            {renderCountdown('desktop-only-action')}
             <button className="delete-btn" onClick={() => onDelete(task)} title="Delete Task"><X size={14} /></button>
           </div>
         </div>
 
         <div className="task-meta-row">
-          <span className={`badge badge-${task.category.toLowerCase()}`}>{task.category}</span>
-          <span className="meta-dot">·</span>
-          <span className={`priority-text priority-${task.priority.toLowerCase()}`}>{task.priority}</span>
-          {ratingDisplay ? (
-            <>
-              <span className="meta-dot">·</span>
-              <span className={`rating-badge ${getRatingBadgeClass()}`}>★ {displayRatingVal}/{maxR}</span>
-            </>
-          ) : (!isDone && !isMissed && hasRatingNote && effectiveRating != null) ? (
-            <>
-              <span className="meta-dot">·</span>
-              <span className={`rating-badge ${getRatingBadgeClass(effectiveRating)}`} title={`In-progress average score: ${Number.isInteger(effectiveRating) ? effectiveRating : effectiveRating.toFixed(1)}`}>
-                ★ {Number.isInteger(effectiveRating) ? effectiveRating : effectiveRating.toFixed(1)}
-              </span>
-            </>
-          ) : (isMissed && !effectiveIsToday) ? (
-            <>
-              <span className="meta-dot">·</span>
-              <span className="rating-badge rating-badge-low zero-score-badge-anim" title="Overred missed task final score: 0">
-                ★ 0
-              </span>
-            </>
-          ) : null}
+          <div className="task-meta-badges">
+            <span className={`badge badge-${task.category.toLowerCase()}`}>{task.category}</span>
+            <span className="meta-dot">·</span>
+            <span className={`priority-text priority-${task.priority.toLowerCase()}`}>{task.priority}</span>
+            {ratingDisplay ? (
+              <>
+                <span className="meta-dot">·</span>
+                <span className={`rating-badge ${getRatingBadgeClass()}`}>★ {displayRatingVal}/{maxR}</span>
+              </>
+            ) : (!isDone && !isMissed && hasRatingNote && effectiveRating != null) ? (
+              <>
+                <span className="meta-dot">·</span>
+                <span className={`rating-badge ${getRatingBadgeClass(effectiveRating)}`} title={`In-progress average score: ${Number.isInteger(effectiveRating) ? effectiveRating : effectiveRating.toFixed(1)}`}>
+                  ★ {Number.isInteger(effectiveRating) ? effectiveRating : effectiveRating.toFixed(1)}
+                </span>
+              </>
+            ) : (isMissed && !effectiveIsToday) ? (
+              <>
+                <span className="meta-dot">·</span>
+                <span className="rating-badge rating-badge-low zero-score-badge-anim" title="Overred missed task final score: 0">
+                  ★ 0
+                </span>
+              </>
+            ) : null}
+
+            {renderNoteToggleBtn('mobile-only-action')}
+            {renderCountdown('mobile-only-action')}
+          </div>
+
           {(createdFormatted || dueFormatted) && (
-            <>
-              <span className="meta-dot">·</span>
+            <div className="task-dates-container">
+              <span className="meta-dot desktop-only-dot">·</span>
               <span className="task-dates-inline">
+                <Calendar size={12} className="mobile-only-calendar-icon" style={{ flexShrink: 0, opacity: 0.7 }} />
                 {createdFormatted ? <span>{createdFormatted}</span> : <span>{task.date || 'Today'}</span>}
                 {dueFormatted && (
                   <>
@@ -763,15 +781,15 @@ function TaskCard({
                   </>
                 )}
               </span>
-            </>
+            </div>
           )}
           {completedFormatted && (
-            <>
-              <span className="meta-dot">·</span>
+            <div className="task-completed-container">
+              <span className="meta-dot desktop-only-dot">·</span>
               <span className="task-date-completed">
                 ✓ {completedFormatted}
               </span>
-            </>
+            </div>
           )}
         </div>
 
