@@ -1303,7 +1303,7 @@ body {
 /* Header Row: Title + Actions */
 .task-header-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
   width: 100%;
@@ -1311,7 +1311,7 @@ body {
 
 .task-title-group {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 6px;
   flex: 1;
   min-width: 0;
@@ -1321,9 +1321,11 @@ body {
   font-size: 0.88rem;
   font-weight: 600;
   color: var(--text-primary);
-  line-height: 1.3;
+  line-height: 1.35;
   word-break: break-word;
   transition: color 0.2s;
+  flex: 1;
+  min-width: 0;
 }
 
 .task-index-num {
@@ -1336,6 +1338,15 @@ body {
   padding: 0px 5px;
   flex-shrink: 0;
   line-height: 1.4;
+  margin-top: 1.5px;
+}
+
+.carried-over-blinking-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2.5px;
 }
 
 .task-card:hover .task-index-num {
@@ -1351,24 +1362,70 @@ body {
 
 .task-actions-right {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 6px;
   flex-shrink: 0;
+  margin-top: 0px;
 }
 
-/* Meta Row: badges + dates inline */
+/* Countdown responsive placement */
+.countdown-desktop {
+  display: inline-flex;
+  align-items: center;
+}
+
+.countdown-mobile {
+  display: none !important;
+}
+
+@media (max-width: 640px) {
+  .countdown-desktop {
+    display: none !important;
+  }
+
+  .countdown-mobile {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 3px;
+    padding: 1px 7px;
+    border-radius: 6px;
+    font-size: 0.68rem;
+    font-weight: 600;
+    line-height: 1.35;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* Meta Row: chips + dates */
 .task-meta-row {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 2px 6px;
+  flex-direction: column;
+  gap: 3px;
   font-size: 0.72rem;
   color: var(--text-muted);
   line-height: 1.4;
+  margin-top: 2px;
+}
+
+.task-meta-chips {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+}
+
+.task-dates-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  font-size: 0.7rem;
+  color: var(--text-muted);
 }
 
 .meta-dot {
-  color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.25);
   font-weight: 400;
   font-size: 0.65rem;
   flex-shrink: 0;
@@ -1423,14 +1480,16 @@ body {
   align-items: center;
   justify-content: center;
   transition: all 0.15s;
-  opacity: 0.5;
+  opacity: 0.65;
+  flex-shrink: 0;
+  margin-top: -1px;
 }
 .task-card:hover .delete-btn {
   opacity: 1;
 }
 .delete-btn:hover {
   color: #f87171;
-  background: rgba(248, 113, 113, 0.1);
+  background: rgba(248, 113, 113, 0.12);
 }
 
 /* Reward & Penalty Row */
@@ -1492,10 +1551,10 @@ body {
 /* Mobile */
 @media (max-width: 480px) {
   .task-card {
-    padding: 8px 10px;
+    padding: 9px 12px;
     gap: 10px;
-    align-items: center;
-    border-radius: 12px;
+    align-items: flex-start;
+    border-radius: 14px;
   }
 
   .task-checkbox {
@@ -1504,34 +1563,68 @@ body {
     min-width: 20px;
     min-height: 20px;
     font-size: 0.6rem;
+    margin-top: 2px;
   }
 
   .task-header-row {
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  .task-title-group {
+    align-items: flex-start;
     gap: 6px;
   }
 
   .task-title {
-    font-size: 0.82rem;
-    line-height: 1.25;
+    font-size: 0.84rem;
+    line-height: 1.32;
+    font-weight: 600;
   }
 
   .task-index-num {
-    font-size: 0.62rem;
-    padding: 0px 4px;
+    font-size: 0.65rem;
+    padding: 1px 5px;
+    margin-top: 1px;
+    border-radius: 4px;
+  }
+
+  .carried-over-blinking-badge {
+    margin-top: 2px;
   }
 
   .task-actions-right {
+    gap: 5px;
+    align-items: flex-start;
+    margin-top: 0px;
+  }
+
+  .task-note-toggle-btn {
+    padding: 2.5px 7px;
+    border-radius: 6px;
+    font-size: 0.68rem;
     gap: 4px;
   }
 
   .countdown {
-    font-size: 0.68rem;
+    font-size: 0.66rem;
   }
 
   .task-meta-row {
-    gap: 2px 5px;
-    font-size: 0.66rem;
+    gap: 3px;
+    font-size: 0.68rem;
+    margin-top: 2px;
+  }
+
+  .task-meta-chips {
+    gap: 4px 6px;
+    align-items: center;
+  }
+
+  .task-dates-row {
     margin-top: 1px;
+    font-size: 0.66rem;
+    gap: 4px;
   }
 
   .meta-dot {
@@ -1571,7 +1664,11 @@ body {
   }
 
   .delete-btn {
-    padding: 3px;
+    padding: 4px;
+    min-width: 26px;
+    min-height: 26px;
+    opacity: 0.75;
+    margin-top: -1px;
   }
 }
 
@@ -6453,34 +6550,55 @@ body {
 }
 
 .task-note-toggle-btn {
-  background: transparent;
-  border: 1px solid transparent;
-  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text-secondary);
   cursor: pointer;
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: 2.5px 7px;
+  border-radius: 6px;
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  transition: all 0.2s ease-in-out;
+  gap: 4px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  user-select: none;
+}
+
+.task-note-toggle-btn .note-icon-svg {
+  color: var(--text-muted);
+  transition: color 0.2s;
+  flex-shrink: 0;
+}
+
+.task-note-toggle-btn .note-count-num {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  line-height: 1;
 }
 
 .task-note-toggle-btn.has-notes,
 .task-note-toggle-btn.active {
-  color: #ffffff;
+  background: rgba(99, 102, 241, 0.16) !important;
+  border-color: rgba(99, 102, 241, 0.38) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.2) !important;
 }
 
-.task-note-toggle-btn.active {
-    border-radius: 8px;
-    background: #ffffff1f !important;
+.task-note-toggle-btn.has-notes .note-icon-svg,
+.task-note-toggle-btn.active .note-icon-svg {
+  color: #a5b4fc !important;
 }
 
 .task-note-toggle-btn:hover {
+  background: rgba(99, 102, 241, 0.24) !important;
+  border-color: rgba(99, 102, 241, 0.55) !important;
   color: #ffffff !important;
-  border-radius: 8px;
-  background: #ffffff1f !important;
+  transform: translateY(-0.5px);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3) !important;
 }
 
+.task-note-toggle-btn:hover .note-icon-svg,
 .task-note-toggle-btn:hover span {
   color: #ffffff !important;
 }
@@ -7657,6 +7775,10 @@ body::after {
   color: #475569 !important;
 }
 
+[data-theme='light'] .task-note-toggle-btn .note-count-num {
+  color: #1e293b !important;
+}
+
 [data-theme='light'] .task-note-toggle-btn:hover {
   background: #e2e8f0 !important;
   color: #0f172a !important;
@@ -7668,6 +7790,11 @@ body::after {
   background: rgba(99, 102, 241, 0.1) !important;
   border-color: rgba(99, 102, 241, 0.35) !important;
   color: #4f46e5 !important;
+}
+
+[data-theme='light'] .task-note-toggle-btn.active .note-count-num,
+[data-theme='light'] .task-note-toggle-btn.has-notes .note-count-num {
+  color: #4338ca !important;
 }
 
 /* Light Mode DayScore Brand Logo */
