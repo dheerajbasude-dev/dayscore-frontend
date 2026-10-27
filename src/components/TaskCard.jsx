@@ -264,7 +264,7 @@ function TaskCard({
       console.error('Error computing missed dates:', e);
     }
 
-    return filled.sort((a, b) => (getLocalDateStr(a.date) || '').localeCompare(getLocalDateStr(b.date) || ''));
+    return filled.sort((a, b) => (getLocalDateStr(b.date) || '').localeCompare(getLocalDateStr(a.date) || ''));
   }, [notesList, task, todayDateStr, leaveUpdateTick]);
 
   const effectiveIsToday = useMemo(() => {
@@ -858,94 +858,6 @@ function TaskCard({
             border: '1px solid var(--border-glass)',
             boxShadow: 'var(--shadow-sm)'
           }}>
-            {effectiveNotesList.length > 0 && (
-              <div className="daily-notes-list" style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: ((effectiveIsToday || currentViewDateStr === todayDateStr) && !isDone && !isMissed) ? '10px' : '0' }}>
-                {effectiveNotesList.map((n, idx) => {
-                  const nDate = getLocalDateStr(n.date);
-                  const isLeaveDay = Boolean(n.isLeaveApplied || (nDate && isDateOnLeave(nDate)));
-                  const ratingVal = n.rating != null && !isNaN(Number(n.rating)) ? Number(n.rating) : 0;
-                  const itemTheme = getRatingTheme(ratingVal);
-                  const isAutoMissedDay = !isLeaveDay && Boolean(n.isAutoMissed);
-
-                  return (
-                    <div key={n.id || idx} style={{
-                      fontSize: '0.76rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      color: 'var(--text-primary)',
-                      lineHeight: '1.4'
-                    }}>
-                      <span style={{
-                        fontWeight: 600,
-                        color: 'var(--text-muted)',
-                        fontSize: '0.74rem',
-                        flexShrink: 0
-                      }}>
-                        {formatNoteDate(n.date)}:
-                      </span>
-
-                      {isLeaveDay ? (
-                        <span style={{
-                          fontSize: '0.70rem',
-                          fontWeight: 700,
-                          color: '#8b5cf6',
-                          background: 'rgba(139, 92, 246, 0.12)',
-                          border: '1px solid rgba(139, 92, 246, 0.3)',
-                          borderRadius: '4px',
-                          padding: '1px 6px',
-                          wordBreak: 'break-word'
-                        }}>
-                          {(() => {
-                            const reason = getLeaveReasonForDate(nDate) || n.leaveReason || '';
-                            return reason ? `Leave Applied: ${reason}` : 'Leave Applied';
-                          })()}
-                        </span>
-                      ) : (
-                        <>
-                          <span style={{
-                            fontSize: '0.68rem',
-                            fontWeight: 700,
-                            color: itemTheme.color,
-                            background: itemTheme.bg,
-                            border: `1px solid ${itemTheme.border}`,
-                            borderRadius: '4px',
-                            padding: '1px 6px',
-                            flexShrink: 0,
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '3px'
-                          }}>
-                            ★ {Number.isInteger(ratingVal) ? ratingVal : ratingVal.toFixed(1)}
-                          </span>
-                          {isAutoMissedDay && (
-                            <span style={{
-                              fontSize: '0.74rem',
-                              fontWeight: 600,
-                              color: '#ef4444',
-                              flexShrink: 0
-                            }}>
-                              Missed
-                            </span>
-                          )}
-                        </>
-                      )}
-
-                      {!isLeaveDay && (
-                        <span style={{
-                          wordBreak: 'break-word',
-                          color: isAutoMissedDay ? '#ef4444' : 'var(--text-primary)',
-                          fontStyle: isAutoMissedDay ? 'italic' : 'normal'
-                        }}>
-                          {n.note || n.text}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
             {(effectiveIsToday || currentViewDateStr === todayDateStr) && !isDone && !isMissed && (
               isCurrentDateOnLeave ? (
                 <div style={{
@@ -955,7 +867,7 @@ function TaskCard({
                   fontSize: '0.72rem',
                   color: '#8b5cf6',
                   fontWeight: 600,
-                  marginTop: effectiveNotesList.length > 0 ? '4px' : '0',
+                  marginBottom: effectiveNotesList.length > 0 ? '10px' : '0',
                   padding: '5px 8px',
                   background: 'rgba(139, 92, 246, 0.08)',
                   border: '1px solid rgba(139, 92, 246, 0.2)',
@@ -976,14 +888,14 @@ function TaskCard({
                   fontSize: '0.72rem',
                   color: '#10b981',
                   fontWeight: 600,
-                  marginTop: effectiveNotesList.length > 0 ? '4px' : '0',
+                  marginBottom: effectiveNotesList.length > 0 ? '10px' : '0',
                   padding: '0 2px'
                 }}>
                   <Check size={12} strokeWidth={2.5} style={{ color: '#10b981' }} />
                   <span>Today's note & rating submitted</span>
                 </div>
               ) : (
-                <form onSubmit={handleNoteSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <form onSubmit={handleNoteSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: effectiveNotesList.length > 0 ? '10px' : '0' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center' }}>
                       <FileText size={13} style={{ position: 'absolute', left: '10px', color: 'var(--text-muted)', pointerEvents: 'none' }} />
@@ -1131,6 +1043,94 @@ function TaskCard({
                   </div>
                 </form>
               )
+            )}
+
+            {effectiveNotesList.length > 0 && (
+              <div className="daily-notes-list" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {effectiveNotesList.map((n, idx) => {
+                  const nDate = getLocalDateStr(n.date);
+                  const isLeaveDay = Boolean(n.isLeaveApplied || (nDate && isDateOnLeave(nDate)));
+                  const ratingVal = n.rating != null && !isNaN(Number(n.rating)) ? Number(n.rating) : 0;
+                  const itemTheme = getRatingTheme(ratingVal);
+                  const isAutoMissedDay = !isLeaveDay && Boolean(n.isAutoMissed);
+
+                  return (
+                    <div key={n.id || idx} style={{
+                      fontSize: '0.76rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      color: 'var(--text-primary)',
+                      lineHeight: '1.4'
+                    }}>
+                      <span style={{
+                        fontWeight: 600,
+                        color: 'var(--text-muted)',
+                        fontSize: '0.74rem',
+                        flexShrink: 0
+                      }}>
+                        {formatNoteDate(n.date)}:
+                      </span>
+
+                      {isLeaveDay ? (
+                        <span style={{
+                          fontSize: '0.70rem',
+                          fontWeight: 700,
+                          color: '#8b5cf6',
+                          background: 'rgba(139, 92, 246, 0.12)',
+                          border: '1px solid rgba(139, 92, 246, 0.3)',
+                          borderRadius: '4px',
+                          padding: '1px 6px',
+                          wordBreak: 'break-word'
+                        }}>
+                          {(() => {
+                            const reason = getLeaveReasonForDate(nDate) || n.leaveReason || '';
+                            return reason ? `Leave Applied: ${reason}` : 'Leave Applied';
+                          })()}
+                        </span>
+                      ) : (
+                        <>
+                          <span style={{
+                            fontSize: '0.68rem',
+                            fontWeight: 700,
+                            color: itemTheme.color,
+                            background: itemTheme.bg,
+                            border: `1px solid ${itemTheme.border}`,
+                            borderRadius: '4px',
+                            padding: '1px 6px',
+                            flexShrink: 0,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '3px'
+                          }}>
+                            ★ {Number.isInteger(ratingVal) ? ratingVal : ratingVal.toFixed(1)}
+                          </span>
+                          {isAutoMissedDay && (
+                            <span style={{
+                              fontSize: '0.74rem',
+                              fontWeight: 600,
+                              color: '#ef4444',
+                              flexShrink: 0
+                            }}>
+                              Missed
+                            </span>
+                          )}
+                        </>
+                      )}
+
+                      {!isLeaveDay && (
+                        <span style={{
+                          wordBreak: 'break-word',
+                          color: isAutoMissedDay ? '#ef4444' : 'var(--text-primary)',
+                          fontStyle: isAutoMissedDay ? 'italic' : 'normal'
+                        }}>
+                          {n.note || n.text}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
         )}
