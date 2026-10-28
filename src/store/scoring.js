@@ -49,7 +49,7 @@ export function calculateDailyScore(tasks, targetDateStr = null) {
           }
         } catch (e) {}
       }
-    } else if (task.status === 'missed') {
+    } else if (task.status === 'missed' || task.missed === true || task.wasMissed === true || task.was_missed === true) {
       missedCount++;
       allDoneOnTime = false;
 
@@ -58,21 +58,15 @@ export function calculateDailyScore(tasks, targetDateStr = null) {
       totalTaskPoints += (task.rating != null && !isNaN(Number(task.rating))) ? Number(task.rating) : 0;
     } else {
       // In-progress / pending task:
-      // Include ONLY if this task has a daily note rated SPECIFICALLY on effectiveTargetDate
-      const notes = Array.isArray(task?.daily_notes || task?.dailyNotes || task?.notes)
-        ? (task.daily_notes || task.dailyNotes || task.notes)
-        : [];
-      const targetNote = notes.find(n => n && getLocalDateStr(n.date) === effectiveTargetDate);
-
-      if (targetNote && !targetNote.isLeaveApplied && !isDateOnLeave(effectiveTargetDate)) {
-        const r = parseFloat(targetNote.rating != null ? targetNote.rating : (targetNote.score != null ? targetNote.score : 0));
-        if (!isNaN(r) && r >= 0 && !targetNote.isAutoMissed && targetNote.rating != null) {
-          evaluatedCount++;
-          totalTaskPoints += r;
-        } else if (targetNote.isAutoMissed && effectiveTargetDate < todayStr) {
-          evaluatedCount++;
-          totalTaskPoints += 0;
-        }
+      // Include its current in-progress average score (from rated daily notes) in the ring score.
+      // When today's note is rated/updated today, calculateTaskAutoRating automatically reflects today's new rating.
+      const { hasRatedNote, avgRating } = calculateTaskAutoRating(task, effectiveTargetDate);
+      if (hasRatedNote && avgRating != null && !isNaN(avgRating) && avgRating > 0) {
+        evaluatedCount++;
+        totalTaskPoints += Number(avgRating);
+      } else if (task.rating != null && !isNaN(Number(task.rating)) && Number(task.rating) > 0) {
+        evaluatedCount++;
+        totalTaskPoints += Number(task.rating);
       }
     }
   }
@@ -132,9 +126,18 @@ export function calculateOverallAverageTaskScore(archives = [], todayTasks = [])
         evaluatedCount++;
         totalTaskPoints += Number(task.rating);
       }
-    } else if (task.status === 'missed') {
+    } else if (task.status === 'missed' || task.missed === true || task.wasMissed === true || task.was_missed === true) {
       evaluatedCount++;
       totalTaskPoints += (task.rating != null && !isNaN(Number(task.rating))) ? Number(task.rating) : 0;
+    } else {
+      const { hasRatedNote, avgRating } = calculateTaskAutoRating(task, todayStr);
+      if (hasRatedNote && avgRating != null && !isNaN(avgRating) && avgRating > 0) {
+        evaluatedCount++;
+        totalTaskPoints += Number(avgRating);
+      } else if (task.rating != null && !isNaN(Number(task.rating)) && Number(task.rating) > 0) {
+        evaluatedCount++;
+        totalTaskPoints += Number(task.rating);
+      }
     }
   }
 
@@ -157,16 +160,16 @@ export function getRollingAverage(archives = [], days = 0, todayTasks = []) {
     const cleanDate = a.date.includes('T') ? a.date.split('T')[0] : a.date.trim().substring(0, 10);
     let scoreVal = a.score !== undefined && a.score !== null ? Number(a.score) : null;
     if (scoreVal === null && Array.isArray(a.tasks) && a.tasks.length > 0) {
-      scoreVal = calculateDailyScore(a.tasks, cleanDate).score;
+      scoreVal = calculateDailyScore(a.tasks).score;
     }
-    if (scoreVal !== null && !isNaN(scoreVal) && scoreVal > 0) {
+    if (scoreVal !== null && !isNaN(scoreVal)) {
       archiveMap.set(cleanDate, scoreVal);
     }
   });
 
   if (Array.isArray(todayTasks) && todayTasks.length > 0) {
-    const todayResult = calculateDailyScore(todayTasks, todayStr);
-    if (todayResult.score > 0) {
+    const todayResult = calculateDailyScore(todayTasks);
+    if (todayResult.breakdown.doneCount > 0 || todayResult.breakdown.missedCount > 0) {
       archiveMap.set(todayStr, todayResult.score);
     }
   }
@@ -180,7 +183,6 @@ export function getRollingAverage(archives = [], days = 0, todayTasks = []) {
   let count = 0;
 
   for (const [dateStr, score] of archiveMap.entries()) {
-    if (!score || score <= 0) continue;
     try {
       const archiveDate = parseISO(dateStr);
       if (isNaN(archiveDate.getTime())) continue;
@@ -752,44 +754,143 @@ export function getTotalTasksDone(archives = [], todayTasks = []) {
 export function buildHistoricalDailyArchives(archives = [], todayTasks = []) {
   const map = new Map();
   const todayStr = format(new Date(), 'yyyy-MM-dd');
-  const safeArchives = Array.isArray(archives) ? archives : [];
-  const safeTodayTasks = Array.isArray(todayTasks) ? todayTasks : [];
 
-  // 1. Process all archives
-  safeArchives.forEach(a => {
-    if (a && a.date) {
-      const cleanDate = a.date.includes('T') ? a.date.split('T')[0] : a.date.trim().substring(0, 10);
-      const taskList = Array.isArray(a.tasks) ? a.tasks : [];
-      const res = taskList.length > 0 ? calculateDailyScore(taskList, cleanDate) : { score: Number(a.score || 0) };
-      const hasDone = taskList.some(t => t && (t.status === 'done' || t.completedAt || t.completed_at)) || Boolean(a.hasDone);
-
-      map.set(cleanDate, {
-        ...a,
-        date: cleanDate,
-        score: Math.max(res.score, Number(a.score || 0)),
-        tasks: taskList,
-        hasTasks: taskList.length > 0,
-        hasDone,
-        isLeave: Boolean(a.isLeave || isDateOnLeave(cleanDate))
+  // 1. Index all unique tasks
+  const allTasksMap = new Map();
+  (archives || []).forEach(arc => {
+    if (arc && Array.isArray(arc.tasks)) {
+      arc.tasks.forEach(t => {
+        if (!t) return;
+        const tid = String(t.id || t._id);
+        if (tid && !allTasksMap.has(tid)) allTasksMap.set(tid, t);
       });
     }
   });
+  (todayTasks || []).forEach(t => {
+    if (!t) return;
+    const tid = String(t.id || t._id);
+    if (tid && !allTasksMap.has(tid)) allTasksMap.set(tid, t);
+  });
 
-  // 2. Ensure today's date is updated with safeTodayTasks
-  if (safeTodayTasks.length > 0 || !map.has(todayStr)) {
-    const existing = map.get(todayStr) || {};
-    const res = calculateDailyScore(safeTodayTasks, todayStr);
-    const hasDone = safeTodayTasks.some(t => t && (t.status === 'done' || t.completedAt || t.completed_at));
+  const allTasks = Array.from(allTasksMap.values());
+
+  // 2. Base mapping from existing archives
+  (archives || []).forEach(arc => {
+    if (!arc || !arc.date) return;
+    const cleanD = getLocalDateStr(arc.date);
+    if (!cleanD) return;
+    const taskList = Array.isArray(arc.tasks) ? arc.tasks : [];
+    const hasDone = taskList.some(t => t && (t.status === 'done' || t.completedAt || t.completed_at)) || Boolean(arc.hasDone);
+    const scoreRes = taskList.length > 0 ? calculateDailyScore(taskList, cleanD) : { score: Number(arc.score || 0) };
+    map.set(cleanD, {
+      ...arc,
+      date: cleanD,
+      score: Math.max(scoreRes.score, Number(arc.score || 0)),
+      tasks: [...taskList],
+      hasTasks: taskList.length > 0,
+      hasDone,
+      isLeave: isDateOnLeave(cleanD)
+    });
+  });
+
+  // 3. For multi-day and carried tasks, populate days they span across
+  allTasks.forEach(task => {
+    const notes = Array.isArray(task.daily_notes || task.dailyNotes || task.notes)
+      ? (task.daily_notes || task.dailyNotes || task.notes)
+      : [];
+
+    const isMultiDay = notes.length > 0 || task.carriedOver || task.carried_over ||
+      (task.originalDate && task.originalDate !== task.date) ||
+      (task.original_date && task.original_date !== task.date);
+
+    if (!isMultiDay && notes.length === 0) return;
+
+    const dates = [];
+    const cClean = getLocalDateStr(task.createdAt || task.created_at);
+    if (cClean) dates.push(cClean);
+    const oClean = getLocalDateStr(task.originalDate || task.original_date);
+    if (oClean) dates.push(oClean);
+    const tClean = getLocalDateStr(task.date);
+    if (tClean) dates.push(tClean);
+    notes.forEach(n => {
+      const nD = getLocalDateStr(n && n.date);
+      if (nD) dates.push(nD);
+    });
+    dates.sort();
+
+    const startStr = dates.length > 0 ? dates[0] : todayStr;
+    const endStr = dates.length > 0 ? dates[dates.length - 1] : todayStr;
+    const maxEndStr = endStr > todayStr ? todayStr : endStr;
+
+    try {
+      const sObj = parseISO(startStr);
+      const eObj = parseISO(maxEndStr);
+      if (!isNaN(sObj.getTime()) && !isNaN(eObj.getTime()) && sObj <= eObj) {
+        let curr = new Date(sObj);
+        while (curr <= eObj) {
+          const dStr = format(curr, 'yyyy-MM-dd');
+          if (!map.has(dStr)) {
+            map.set(dStr, {
+              date: dStr,
+              score: 0,
+              tasks: [],
+              hasTasks: false,
+              hasDone: false,
+              isLeave: isDateOnLeave(dStr)
+            });
+          }
+          const dayRec = map.get(dStr);
+          const alreadyHasTask = dayRec.tasks.some(t => String(t.id || t._id) === String(task.id || task._id));
+          if (!alreadyHasTask) {
+            dayRec.tasks.push(task);
+            dayRec.hasTasks = true;
+          }
+          curr.setDate(curr.getDate() + 1);
+        }
+      }
+    } catch (e) {}
+  });
+
+  // 4. Ensure today has todayTasks and accurate score
+  if (!map.has(todayStr) || (todayTasks && todayTasks.length > 0)) {
+    const existing = map.get(todayStr) || { date: todayStr, tasks: [], hasTasks: false, hasDone: false };
+    const mergedTodayTasks = [...(todayTasks || [])];
+    existing.tasks.forEach(t => {
+      if (!mergedTodayTasks.some(mt => String(mt.id || mt._id) === String(t.id || t._id))) {
+        mergedTodayTasks.push(t);
+      }
+    });
+    const res = calculateDailyScore(mergedTodayTasks, todayStr);
+    const hasDone = mergedTodayTasks.some(t => t && (t.status === 'done' || t.completedAt || t.completed_at));
     map.set(todayStr, {
       ...existing,
       date: todayStr,
       score: Math.max(res.score, Number(existing.score || 0)),
-      tasks: safeTodayTasks,
-      hasTasks: safeTodayTasks.length > 0,
+      tasks: mergedTodayTasks,
+      hasTasks: mergedTodayTasks.length > 0,
       hasDone: hasDone || Boolean(existing.hasDone),
-      isLeave: Boolean(isDateOnLeave(todayStr))
+      isLeave: isDateOnLeave(todayStr)
     });
   }
+
+  // 5. Calculate composite daily scores for all days
+  map.forEach((dayRec, dStr) => {
+    if (isDateOnLeave(dStr)) {
+      dayRec.isLeave = true;
+      dayRec.score = null;
+      return;
+    }
+    if (dStr === todayStr) {
+      // Today is handled by calculateDailyScore above
+      return;
+    }
+    if (dayRec.hasTasks && dayRec.tasks.length > 0) {
+      const dayScoreRes = calculateDailyScore(dayRec.tasks, dStr);
+      dayRec.score = dayScoreRes.score;
+      dayRec.hasDone = dayScoreRes.breakdown.doneCount > 0 || Boolean(dayRec.hasDone);
+    }
+  });
+
 
   return Array.from(map.values()).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
 }
