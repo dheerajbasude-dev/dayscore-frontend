@@ -28,6 +28,52 @@ export const getLocalDateStr = (val) => {
 /**
  * Checks if a specific date has an approved leave applied for the active authenticated user.
  */
+const inMemDailyScores = {};
+
+export const getCurrentUserId = () => {
+  try {
+    const storage = typeof window !== 'undefined' ? window.localStorage : (typeof globalThis !== 'undefined' && globalThis.localStorage ? globalThis.localStorage : null);
+    if (!storage) return 'user_default';
+    const token = storage.getItem('dayscore_token');
+    if (!token) return 'user_default';
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+    return JSON.parse(jsonPayload).id || 'user_default';
+  } catch (e) {
+    return 'user_default';
+  }
+};
+
+export const getDailyRingScores = () => {
+  try {
+    const storage = typeof window !== 'undefined' ? window.localStorage : (typeof globalThis !== 'undefined' && globalThis.localStorage ? globalThis.localStorage : null);
+    if (!storage) return inMemDailyScores;
+    const uid = getCurrentUserId();
+    const raw = storage.getItem(`dayscore_${uid}_daily_scores`);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return { ...inMemDailyScores, ...parsed };
+  } catch (e) {
+    return inMemDailyScores;
+  }
+};
+
+export const saveDailyRingScore = (dateStr, score) => {
+  if (!dateStr || score === null || score === undefined || isNaN(score)) return;
+  try {
+    const cleanD = getLocalDateStr(dateStr);
+    if (!cleanD) return;
+    const num = Number(Number(score).toFixed(1));
+    inMemDailyScores[cleanD] = num;
+    const storage = typeof window !== 'undefined' ? window.localStorage : (typeof globalThis !== 'undefined' && globalThis.localStorage ? globalThis.localStorage : null);
+    if (!storage) return;
+    const uid = getCurrentUserId();
+    const scores = getDailyRingScores();
+    scores[cleanD] = num;
+    storage.setItem(`dayscore_${uid}_daily_scores`, JSON.stringify(scores));
+  } catch (e) {}
+};
+
 export const isDateOnLeave = (dateStr) => {
   if (!dateStr || typeof window === 'undefined') return false;
   try {

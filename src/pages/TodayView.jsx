@@ -377,7 +377,11 @@ export default function TodayView() {
   const [scoreResult, setScoreResult] = useState(() => {
     if (!user) return { score: 0, baseScore: 0, bonus1: 0, bonus2: 0, penalty: 0 };
     const initialTasks = store.getTasks(currentDateStr);
-    return scoring.calculateDailyScore(initialTasks, currentDateStr);
+    const res = scoring.calculateDailyScore(initialTasks, currentDateStr);
+    if (res.score > 0) {
+      scoring.saveDailyRingScore(currentDateStr, res.score);
+    }
+    return res;
   })
   const [streak, setStreak] = useState(() => {
     if (!user) return { current: 0, isActive: false };
@@ -1112,6 +1116,9 @@ export default function TodayView() {
 
     const result = scoring.calculateDailyScore(tasks, currentDateStr);
     setScoreResult(result);
+    if (result.score > 0) {
+      scoring.saveDailyRingScore(currentDateStr, result.score);
+    }
 
     const updatedArchives = store.getAllArchives();
     setArchives(updatedArchives);
@@ -1311,7 +1318,10 @@ export default function TodayView() {
     // Archive current day before rollover
     const currentTasks = store.getTasks(currentDateStr)
     if (currentTasks.length > 0) {
-      const result = scoring.calculateDailyScore(currentTasks)
+      const result = scoring.calculateDailyScore(currentTasks, currentDateStr)
+      if (result.score > 0) {
+        scoring.saveDailyRingScore(currentDateStr, result.score);
+      }
 
       // Apply punishment if score < 5
       if (result.score < 5) {

@@ -96,7 +96,7 @@ export default function AnalyticsView() {
 
       let score = null;
       const isLeave = Boolean(arc?.isLeave || scoring.isDateOnLeave(dStr));
-      if (!isLeave && arc && arc.hasTasks) {
+      if (!isLeave && arc && (arc.hasTasks || (arc.score !== null && arc.score !== undefined && arc.score > 0))) {
         score = typeof arc.score === 'number' ? arc.score : Number(arc.score || 0);
       }
       last30.push({ label, score, dateStr: dStr, isLeave });

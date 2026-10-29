@@ -1,9 +1,9 @@
 import { format, parseISO } from 'date-fns';
 import { calculateDailyScore } from './scoring';
 import { getApiBaseUrl, safeJsonParse } from '../utils/api';
-import { getLocalDateStr } from '../utils/taskUtils';
+import { getLocalDateStr, getDailyRingScores, saveDailyRingScore } from '../utils/taskUtils';
 
-export { getLocalDateStr };
+export { getLocalDateStr, getDailyRingScores, saveDailyRingScore };
 
 export const getDateKey = (date) => getLocalDateStr(date) || format(new Date(), 'yyyy-MM-dd');
 
@@ -576,6 +576,7 @@ export function getArchivesFromTasks() {
 
   const prefix = `dayscore_${uid}_tasks_`;
   const archiveMap = new Map();
+  const persistentScores = getDailyRingScores();
 
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
@@ -589,9 +590,13 @@ export function getArchivesFromTasks() {
 
           const scoreResult = calculateDailyScore(tasks, dateStr);
           const hasDone = tasks.some(t => t && (t.status === 'done' || t.completedAt || t.completed_at));
+          const dayScore = (persistentScores && persistentScores[dateStr] !== undefined && persistentScores[dateStr] > 0)
+            ? persistentScores[dateStr]
+            : scoreResult.score;
+
           archiveMap.set(dateStr, {
             date: dateStr,
-            score: scoreResult.score,
+            score: dayScore,
             hasDone,
             tasks
           });

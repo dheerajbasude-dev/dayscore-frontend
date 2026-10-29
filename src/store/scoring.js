@@ -1,7 +1,7 @@
 import { parseISO, differenceInCalendarDays, format, isAfter, isBefore, startOfDay, subDays, addDays } from 'date-fns';
-import { calculateTaskAutoRating, getLocalDateStr, isDateOnLeave, getLeaveReasonForDate } from '../utils/taskUtils.js';
+import { calculateTaskAutoRating, getLocalDateStr, isDateOnLeave, getLeaveReasonForDate, getDailyRingScores, saveDailyRingScore } from '../utils/taskUtils.js';
 
-export { isDateOnLeave, getLeaveReasonForDate };
+export { isDateOnLeave, getLeaveReasonForDate, getDailyRingScores, saveDailyRingScore };
 
 export function calculateDailyScore(tasks, targetDateStr = null) {
   if (!tasks || tasks.length === 0) {
@@ -754,6 +754,7 @@ export function getTotalTasksDone(archives = [], todayTasks = []) {
 export function buildHistoricalDailyArchives(archives = [], todayTasks = []) {
   const map = new Map();
   const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const persistentScores = getDailyRingScores();
 
   // 1. Index all unique tasks
   const allTasksMap = new Map();
@@ -781,17 +782,47 @@ export function buildHistoricalDailyArchives(archives = [], todayTasks = []) {
     if (!cleanD) return;
     const taskList = Array.isArray(arc.tasks) ? arc.tasks : [];
     const hasDone = taskList.some(t => t && (t.status === 'done' || t.completedAt || t.completed_at)) || Boolean(arc.hasDone);
-    const scoreRes = taskList.length > 0 ? calculateDailyScore(taskList, cleanD) : { score: Number(arc.score || 0) };
+    
+    // Priority: Persisted ring score for this date > arc.score > calculateDailyScore
+    let dayScore = arc.score !== undefined && arc.score !== null ? Number(arc.score) : 0;
+    if (persistentScores && persistentScores[cleanD] !== undefined && persistentScores[cleanD] > 0) {
+      dayScore = persistentScores[cleanD];
+    } else if (!dayScore && taskList.length > 0) {
+      dayScore = calculateDailyScore(taskList, cleanD).score;
+    }
+
     map.set(cleanD, {
       ...arc,
       date: cleanD,
-      score: Math.max(scoreRes.score, Number(arc.score || 0)),
+      score: dayScore,
       tasks: [...taskList],
-      hasTasks: taskList.length > 0,
+      hasTasks: taskList.length > 0 || Boolean(arc.hasTasks),
       hasDone,
       isLeave: isDateOnLeave(cleanD)
     });
   });
+
+  // Seed map with any persisted daily ring scores
+  if (persistentScores) {
+    Object.keys(persistentScores).forEach(cleanD => {
+      const pScore = persistentScores[cleanD];
+      if (pScore !== undefined && pScore > 0) {
+        if (!map.has(cleanD)) {
+          map.set(cleanD, {
+            date: cleanD,
+            score: pScore,
+            tasks: [],
+            hasTasks: true,
+            hasDone: true,
+            isLeave: isDateOnLeave(cleanD)
+          });
+        } else {
+          const existing = map.get(cleanD);
+          existing.score = pScore;
+        }
+      }
+    });
+  }
 
   // 3. For multi-day and carried tasks, populate days they span across
   allTasks.forEach(task => {
@@ -851,7 +882,7 @@ export function buildHistoricalDailyArchives(archives = [], todayTasks = []) {
     } catch (e) {}
   });
 
-  // 4. Ensure today has todayTasks and accurate score
+  // 4. Ensure today has todayTasks and accurate live ring score
   if (!map.has(todayStr) || (todayTasks && todayTasks.length > 0)) {
     const existing = map.get(todayStr) || { date: todayStr, tasks: [], hasTasks: false, hasDone: false };
     const mergedTodayTasks = [...(todayTasks || [])];
@@ -862,10 +893,19 @@ export function buildHistoricalDailyArchives(archives = [], todayTasks = []) {
     });
     const res = calculateDailyScore(mergedTodayTasks, todayStr);
     const hasDone = mergedTodayTasks.some(t => t && (t.status === 'done' || t.completedAt || t.completed_at));
+
+    const todayScore = (persistentScores && persistentScores[todayStr] !== undefined && persistentScores[todayStr] > 0)
+      ? Math.max(res.score, persistentScores[todayStr])
+      : res.score;
+
+    if (todayScore > 0) {
+      saveDailyRingScore(todayStr, todayScore);
+    }
+
     map.set(todayStr, {
       ...existing,
       date: todayStr,
-      score: Math.max(res.score, Number(existing.score || 0)),
+      score: todayScore,
       tasks: mergedTodayTasks,
       hasTasks: mergedTodayTasks.length > 0,
       hasDone: hasDone || Boolean(existing.hasDone),
@@ -873,71 +913,35 @@ export function buildHistoricalDailyArchives(archives = [], todayTasks = []) {
     });
   }
 
-  // 5. Calculate composite daily scores for all days based on confirmed per-day performance
+  // 5. Final pass for all days:
+  // - If leave: score = null, isLeave = true
+  // - If persisted ring score exists: KEEP EXACT PERSISTED RING SCORE!
+  // - For past days without persisted score: use calculateDailyScore(dayRec.tasks, dStr).score
+  // - Never artificially zero out unsubmitted notes on past days!
   map.forEach((dayRec, dStr) => {
     if (isDateOnLeave(dStr)) {
       dayRec.isLeave = true;
       dayRec.score = null;
       return;
     }
+    if (dStr === todayStr) {
+      return;
+    }
+
+    if (persistentScores && persistentScores[dStr] !== undefined && persistentScores[dStr] > 0) {
+      dayRec.score = persistentScores[dStr];
+      return;
+    }
+
     if (dayRec.hasTasks && dayRec.tasks.length > 0) {
-      let totalPts = 0;
-      let evaluatedCount = 0;
-      let hasDone = false;
-
-      dayRec.tasks.forEach(t => {
-        const isDone = t.status === 'done' || t.completed === true;
-        if (isDone) hasDone = true;
-
-        const tNotes = Array.isArray(t.daily_notes || t.dailyNotes || t.notes)
-          ? (t.daily_notes || t.dailyNotes || t.notes)
-          : [];
-        const noteForDay = tNotes.find(n => n && getLocalDateStr(n.date) === dStr);
-
-        if (noteForDay) {
-          if (noteForDay.isLeaveApplied || isDateOnLeave(dStr)) {
-            return;
-          }
-          const r = parseFloat(noteForDay.rating != null ? noteForDay.rating : (noteForDay.score != null ? noteForDay.score : 0));
-          if (!isNaN(r) && r >= 0 && !noteForDay.isAutoMissed) {
-            evaluatedCount++;
-            totalPts += r;
-          } else if (noteForDay.isAutoMissed) {
-            evaluatedCount++;
-            totalPts += 0;
-          }
-        } else if (isDone && (getLocalDateStr(t.completedAt || t.completed_at || t.date) === dStr)) {
-          const r = parseFloat(t.rating != null ? t.rating : 0);
-          if (!isNaN(r) && r > 0) {
-            evaluatedCount++;
-            totalPts += r;
-          }
-        } else if ((t.status === 'missed' || t.missed === true || t.wasMissed === true || t.was_missed === true) && getLocalDateStr(t.date) === dStr) {
-          evaluatedCount++;
-          totalPts += (t.rating != null && !isNaN(Number(t.rating))) ? Number(t.rating) : 0;
-        } else if (dStr < todayStr && !isDateOnLeave(dStr)) {
-          // Multi-day active task had unsubmitted/missed daily note on this past day -> counts as 0!
-          evaluatedCount++;
-          totalPts += 0;
-        }
-      });
-
-      if (dStr === todayStr) {
-        // For today, retain sync with Today View ring score (or highest of live ring score and per-day score)
-        const liveRingScore = calculateDailyScore(dayRec.tasks, todayStr).score;
-        const perDayScore = evaluatedCount > 0 ? Number((totalPts / evaluatedCount).toFixed(1)) : 0;
-        dayRec.score = Math.max(liveRingScore, perDayScore, Number(dayRec.score || 0));
-      } else {
-        if (evaluatedCount > 0) {
-          dayRec.score = Number((totalPts / evaluatedCount).toFixed(1));
-        } else {
-          dayRec.score = Number(dayRec.score || 0);
-        }
+      const dayScoreRes = calculateDailyScore(dayRec.tasks, dStr);
+      dayRec.score = dayScoreRes.score;
+      dayRec.hasDone = dayScoreRes.breakdown.doneCount > 0 || Boolean(dayRec.hasDone);
+      if (dayScoreRes.score > 0) {
+        saveDailyRingScore(dStr, dayScoreRes.score);
       }
-      dayRec.hasDone = hasDone || Boolean(dayRec.hasDone);
     }
   });
-
 
   return Array.from(map.values()).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
 }
