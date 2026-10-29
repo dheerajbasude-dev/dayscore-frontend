@@ -252,7 +252,7 @@ export function getMissedDatesSet(archives = [], todayTasks = [], effectiveTarge
       }
     }
 
-    // 2. Task notes explicitly marked isAutoMissed
+    // 2. Task notes explicitly marked isAutoMissed or red rating badge (<= 4 rating breaks streak)
     const notes = Array.isArray(t?.daily_notes || t?.dailyNotes || t?.notes)
       ? (t.daily_notes || t.dailyNotes || t.notes)
       : [];
@@ -261,8 +261,30 @@ export function getMissedDatesSet(archives = [], todayTasks = [], effectiveTarge
       if (n.isAutoMissed) {
         const d = getCleanDateStr(n.date);
         if (d && d <= targetStr) missedDates.add(d);
+      } else if (!n.isLeaveApplied && !isDateOnLeave(getCleanDateStr(n.date))) {
+        const r = parseFloat(n.rating != null ? n.rating : (n.score != null ? n.score : null));
+        if (!isNaN(r) && r <= 4.0) {
+          // Task note rating is <= 4 (red badge) -> break streak!
+          const d = getCleanDateStr(n.date);
+          if (d && d <= targetStr) missedDates.add(d);
+        }
       }
     });
+
+    // 3. Red color rating badge on completed or rated task (<= 4 rating breaks streak)
+    if (t.rating != null && !isNaN(Number(t.rating)) && Number(t.rating) <= 4.0) {
+      const ratedDate = getCleanDateStr(t.completedAt || t.completed_at || t.date || defaultDate);
+      if (ratedDate && ratedDate <= targetStr) missedDates.add(ratedDate);
+    }
+
+    // 4. Red color rating badge on active/in-progress task (average score <= 4.0 breaks streak)
+    if (!isDone && (t.status === 'inprogress' || t.status === 'pending' || !t.status)) {
+      const { hasRatedNote, avgRating } = calculateTaskAutoRating(t, defaultDate || todayStr);
+      if (hasRatedNote && avgRating != null && !isNaN(avgRating) && avgRating > 0 && avgRating <= 4.0) {
+        const d = getCleanDateStr(defaultDate || taskDate || todayStr);
+        if (d && d <= targetStr) missedDates.add(d);
+      }
+    }
 
     // 3. Multi-day / carried tasks spanning past days without a submitted note
     const createdClean = getCleanDateStr(t.createdAt || t.created_at);
@@ -344,22 +366,22 @@ export function getAllValidStreakDates(archives = [], todayTasks = []) {
 
   const processTask = (t, defaultDate) => {
     if (!t) return;
-    // 1. Task completed and rated (>= 0)
+    // 1. Task completed and rated (> 4.0, avoiding red badge <= 4.0)
     const isRatedTask = (t.status === 'done' || t.completedAt || t.completed_at) &&
-      t.rating != null && !isNaN(Number(t.rating)) && Number(t.rating) >= 0;
+      t.rating != null && !isNaN(Number(t.rating)) && Number(t.rating) > 4.0;
     if (isRatedTask) {
       const compDate = getCleanDateStr(t.completedAt || t.completed_at || t.date || defaultDate);
       if (compDate && !isDateOnLeave(compDate) && !missedDates.has(compDate)) activeDates.add(compDate);
     }
 
-    // 2. Task note rated (not auto-missed)
+    // 2. Task note rated (> 4.0, avoiding red badge <= 4.0)
     const notes = Array.isArray(t?.daily_notes || t?.dailyNotes || t?.notes)
       ? (t.daily_notes || t.dailyNotes || t.notes)
       : [];
     notes.forEach(n => {
       if (!n || !n.date) return;
       const r = parseFloat(n.rating != null ? n.rating : (n.score != null ? n.score : 0));
-      if (!isNaN(r) && r >= 0 && !n.isAutoMissed && n.rating != null) {
+      if (!isNaN(r) && r > 4.0 && !n.isAutoMissed && n.rating != null) {
         const noteDate = getCleanDateStr(n.date);
         if (noteDate && !isDateOnLeave(noteDate) && !missedDates.has(noteDate)) activeDates.add(noteDate);
       }
@@ -405,9 +427,9 @@ export function getStreakAsOfDate(archives = [], targetDateStr = null, todayTask
 
   const processTask = (t, defaultDate) => {
     if (!t) return;
-    // 1. Task completed and rated
+    // 1. Task completed and rated (> 4.0, avoiding red badge <= 4.0)
     const isRatedTask = (t.status === 'done' || t.completedAt || t.completed_at) &&
-      t.rating != null && !isNaN(Number(t.rating)) && Number(t.rating) >= 0;
+      t.rating != null && !isNaN(Number(t.rating)) && Number(t.rating) > 4.0;
     if (isRatedTask) {
       const compDate = getCleanDateStr(t.completedAt || t.completed_at || t.date || defaultDate);
       if (compDate && compDate <= effectiveTarget && !isDateOnLeave(compDate) && !missedDatesSet.has(compDate)) {
@@ -415,14 +437,14 @@ export function getStreakAsOfDate(archives = [], targetDateStr = null, todayTask
       }
     }
 
-    // 2. Task note rated
+    // 2. Task note rated (> 4.0, avoiding red badge <= 4.0)
     const notes = Array.isArray(t?.daily_notes || t?.dailyNotes || t?.notes)
       ? (t.daily_notes || t.dailyNotes || t.notes)
       : [];
     notes.forEach(n => {
       if (!n || !n.date) return;
       const r = parseFloat(n.rating != null ? n.rating : (n.score != null ? n.score : 0));
-      if (!isNaN(r) && r >= 0 && !n.isAutoMissed && n.rating != null) {
+      if (!isNaN(r) && r > 4.0 && !n.isAutoMissed && n.rating != null) {
         const noteDate = getCleanDateStr(n.date);
         if (noteDate && noteDate <= effectiveTarget && !isDateOnLeave(noteDate) && !missedDatesSet.has(noteDate)) {
           activeDatesSet.add(noteDate);
