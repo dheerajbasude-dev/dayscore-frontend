@@ -197,8 +197,11 @@ export default function AnalyticsView() {
           label: (context) => {
             const item = lineChartData.items ? lineChartData.items[context.dataIndex] : null;
             if (item && item.isLeave) {
-              const reason = scoring.getLeaveReasonForDate(item.dateStr);
-              return `Leave Applied${reason ? `: ${reason}` : ''}`;
+              if (context.datasetIndex === 1) {
+                const reason = scoring.getLeaveReasonForDate(item.dateStr);
+                return `Leave Applied${reason ? `: ${reason}` : ''}`;
+              }
+              return null;
             }
             if (context.datasetIndex === 0 && context.raw !== null && context.raw !== undefined) {
               return `Daily Score: ${context.raw}/10`;

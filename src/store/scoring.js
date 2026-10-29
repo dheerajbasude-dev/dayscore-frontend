@@ -873,21 +873,68 @@ export function buildHistoricalDailyArchives(archives = [], todayTasks = []) {
     });
   }
 
-  // 5. Calculate composite daily scores for all days
+  // 5. Calculate composite daily scores for all days based on confirmed per-day performance
   map.forEach((dayRec, dStr) => {
     if (isDateOnLeave(dStr)) {
       dayRec.isLeave = true;
       dayRec.score = null;
       return;
     }
-    if (dStr === todayStr) {
-      // Today is handled by calculateDailyScore above
-      return;
-    }
     if (dayRec.hasTasks && dayRec.tasks.length > 0) {
-      const dayScoreRes = calculateDailyScore(dayRec.tasks, dStr);
-      dayRec.score = dayScoreRes.score;
-      dayRec.hasDone = dayScoreRes.breakdown.doneCount > 0 || Boolean(dayRec.hasDone);
+      let totalPts = 0;
+      let evaluatedCount = 0;
+      let hasDone = false;
+
+      dayRec.tasks.forEach(t => {
+        const isDone = t.status === 'done' || t.completed === true;
+        if (isDone) hasDone = true;
+
+        const tNotes = Array.isArray(t.daily_notes || t.dailyNotes || t.notes)
+          ? (t.daily_notes || t.dailyNotes || t.notes)
+          : [];
+        const noteForDay = tNotes.find(n => n && getLocalDateStr(n.date) === dStr);
+
+        if (noteForDay) {
+          if (noteForDay.isLeaveApplied || isDateOnLeave(dStr)) {
+            return;
+          }
+          const r = parseFloat(noteForDay.rating != null ? noteForDay.rating : (noteForDay.score != null ? noteForDay.score : 0));
+          if (!isNaN(r) && r >= 0 && !noteForDay.isAutoMissed) {
+            evaluatedCount++;
+            totalPts += r;
+          } else if (noteForDay.isAutoMissed) {
+            evaluatedCount++;
+            totalPts += 0;
+          }
+        } else if (isDone && (getLocalDateStr(t.completedAt || t.completed_at || t.date) === dStr)) {
+          const r = parseFloat(t.rating != null ? t.rating : 0);
+          if (!isNaN(r) && r > 0) {
+            evaluatedCount++;
+            totalPts += r;
+          }
+        } else if ((t.status === 'missed' || t.missed === true || t.wasMissed === true || t.was_missed === true) && getLocalDateStr(t.date) === dStr) {
+          evaluatedCount++;
+          totalPts += (t.rating != null && !isNaN(Number(t.rating))) ? Number(t.rating) : 0;
+        } else if (dStr < todayStr && !isDateOnLeave(dStr)) {
+          // Multi-day active task had unsubmitted/missed daily note on this past day -> counts as 0!
+          evaluatedCount++;
+          totalPts += 0;
+        }
+      });
+
+      if (dStr === todayStr) {
+        // For today, retain sync with Today View ring score (or highest of live ring score and per-day score)
+        const liveRingScore = calculateDailyScore(dayRec.tasks, todayStr).score;
+        const perDayScore = evaluatedCount > 0 ? Number((totalPts / evaluatedCount).toFixed(1)) : 0;
+        dayRec.score = Math.max(liveRingScore, perDayScore, Number(dayRec.score || 0));
+      } else {
+        if (evaluatedCount > 0) {
+          dayRec.score = Number((totalPts / evaluatedCount).toFixed(1));
+        } else {
+          dayRec.score = Number(dayRec.score || 0);
+        }
+      }
+      dayRec.hasDone = hasDone || Boolean(dayRec.hasDone);
     }
   });
 

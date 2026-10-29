@@ -587,7 +587,7 @@ export function getArchivesFromTasks() {
           const dateStr = getLocalDateStr(rawDate);
           if (!dateStr) continue;
 
-          const scoreResult = calculateDailyScore(tasks);
+          const scoreResult = calculateDailyScore(tasks, dateStr);
           const hasDone = tasks.some(t => t && (t.status === 'done' || t.completedAt || t.completed_at));
           archiveMap.set(dateStr, {
             date: dateStr,
