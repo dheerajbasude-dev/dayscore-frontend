@@ -634,19 +634,6 @@ export default function SettingsView() {
             <div className="settings-row">
               <div className="settings-row-left">
                 <div className="settings-row-icon">
-                  {theme === 'dark' ? <Moon size={18} color="var(--accent-primary)" /> : <Sun size={18} color="var(--accent-primary)" />}
-                </div>
-                <div>
-                  <div className="settings-row-label">Dark Theme Mode</div>
-                  <div className="settings-row-sublabel">Toggle between sleek dark and vibrant light themes</div>
-                </div>
-              </div>
-              <Toggle active={theme === 'dark'} onClick={toggleTheme} />
-            </div>
-
-            <div className="settings-row settings-row--bordered">
-              <div className="settings-row-left">
-                <div className="settings-row-icon">
                   <Bell size={18} color={settings.notifications ? 'var(--accent-primary)' : 'var(--text-muted)'} />
                 </div>
                 <div>
