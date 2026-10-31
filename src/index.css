@@ -5156,6 +5156,19 @@ body {
   gap: 8px;
 }
 
+.mobile-topbar-actions .leave-balance-pill {
+  height: 32px;
+  padding: 0 10px;
+  font-size: 0.78rem;
+  flex-shrink: 0;
+}
+
+@media (max-width: 1023px) {
+  .date-nav-card .leave-balance-pill {
+    display: none !important;
+  }
+}
+
 .mobile-auth-btn {
   background: var(--bg-glass-light);
   border: 1px solid var(--border-glass);
@@ -5416,6 +5429,10 @@ body {
     gap: 3px !important;
     width: 100% !important;
     flex-wrap: nowrap !important;
+  }
+
+  .date-nav-right {
+    width: 100% !important;
   }
 
   .date-nav-btn {

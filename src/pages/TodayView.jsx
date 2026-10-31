@@ -299,6 +299,32 @@ export default function TodayView() {
     }
   }, [location.state, handleOpenAddModal]);
 
+  // Open LeaveModal via custom event or location/session state
+  useEffect(() => {
+    const handleOpenLeaveModal = () => {
+      setShowLeaveModal(true);
+    };
+    window.addEventListener('open-leave-modal', handleOpenLeaveModal);
+
+    try {
+      if (sessionStorage.getItem('dayscore_open_leave_modal') === 'true') {
+        sessionStorage.removeItem('dayscore_open_leave_modal');
+        setShowLeaveModal(true);
+      }
+    } catch {}
+
+    return () => window.removeEventListener('open-leave-modal', handleOpenLeaveModal);
+  }, []);
+
+  useEffect(() => {
+    if (location.state?.openLeaveModal) {
+      setShowLeaveModal(true);
+      try {
+        window.history.replaceState({}, document.title);
+      } catch {}
+    }
+  }, [location.state]);
+
   const [showPenaltyFlash, setShowPenaltyFlash] = useState(false)
   const [ratingTask, setRatingTask] = useState(null)
 
