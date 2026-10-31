@@ -142,6 +142,16 @@ export default function Navigation() {
           <BrandLogo size="medium" />
         </div>
 
+        <button
+          type="button"
+          className="leave-balance-pill sidebar-leave-pill"
+          onClick={handleLeaveClick}
+          title="Annual Leave"
+          aria-label="Annual Leave Balance"
+        >
+          {(leaveBalance?.used != null ? leaveBalance.used : 0)}/{leaveBalance?.total || 36}
+        </button>
+
         {user ? (
           <div className="sidebar-user-card">
             <div className="user-avatar">{user.name.charAt(0).toUpperCase()}</div>

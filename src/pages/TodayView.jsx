@@ -2649,22 +2649,6 @@ export default function TodayView() {
             )}
 
             <div className="date-nav-right" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <button
-                type="button"
-                className="leave-balance-pill"
-                onClick={() => {
-                  if (!user) {
-                    setShowAuthModal(true);
-                  } else {
-                    setShowLeaveModal(true);
-                  }
-                }}
-                title="Annual Leave"
-                aria-label="Annual Leave Balance"
-              >
-                {(leaveBalance?.used != null ? leaveBalance.used : 0)}/{leaveBalance?.total || 36}
-              </button>
-
               <div className="view-mode-toggle" style={{ display: 'flex', gap: '4px', background: 'var(--bg-glass-light)', padding: '2px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-glass)' }}>
                 <button
                   type="button"
