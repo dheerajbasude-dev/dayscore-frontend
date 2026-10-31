@@ -140,17 +140,16 @@ export default function Navigation() {
       <nav className="sidebar">
         <div className="sidebar-logo">
           <BrandLogo size="medium" />
+          <button
+            type="button"
+            className="leave-balance-pill sidebar-leave-pill"
+            onClick={handleLeaveClick}
+            title="Annual Leave"
+            aria-label="Annual Leave Balance"
+          >
+            {(leaveBalance?.used != null ? leaveBalance.used : 0)}/{leaveBalance?.total || 36}
+          </button>
         </div>
-
-        <button
-          type="button"
-          className="leave-balance-pill sidebar-leave-pill"
-          onClick={handleLeaveClick}
-          title="Annual Leave"
-          aria-label="Annual Leave Balance"
-        >
-          {(leaveBalance?.used != null ? leaveBalance.used : 0)}/{leaveBalance?.total || 36}
-        </button>
 
         {user ? (
           <div className="sidebar-user-card">
