@@ -287,7 +287,7 @@ export function getMissedDatesSet(archives = [], todayTasks = [], effectiveTarge
   });
 
   // Process today's tasks
-  (todayTasks || []).forEach(t => processTask(t, todayStr));
+  (todayTasks || []).forEach(t => processTask(t, targetStr));
 
   return missedDates;
 }
@@ -328,19 +328,11 @@ export function getAllValidStreakDates(archives = [], todayTasks = []) {
     if (Array.isArray(arc.tasks) && arc.tasks.length > 0) {
       arc.tasks.forEach(t => processTask(t, cleanD));
     }
-    const arcScore = Number(arc.score || 0);
-    if ((arcScore > 0 || arc.hasDone) && cleanD && !isDateOnLeave(cleanD) && !missedDates.has(cleanD)) {
-      activeDates.add(cleanD);
-    }
   });
 
   // 2. Process today's tasks
   if (Array.isArray(todayTasks) && todayTasks.length > 0) {
     todayTasks.forEach(t => processTask(t, todayStr));
-    const todayScoreResult = calculateDailyScore(todayTasks, todayStr);
-    if (todayScoreResult.score > 0 && !isDateOnLeave(todayStr) && !missedDates.has(todayStr)) {
-      activeDates.add(todayStr);
-    }
   }
 
   return Array.from(activeDates).filter(d => Boolean(d) && !missedDates.has(d) && !isDateOnLeave(d)).sort();
@@ -402,20 +394,10 @@ export function getStreakAsOfDate(archives = [], targetDateStr = null, todayTask
     if (Array.isArray(arc.tasks) && arc.tasks.length > 0) {
       arc.tasks.forEach(t => processTask(t, cleanD));
     }
-
-    const arcScore = Number(arc.score || 0);
-    if ((arcScore > 0 || arc.hasDone) && !isDateOnLeave(cleanD) && !missedDatesSet.has(cleanD)) {
-      activeDatesSet.add(cleanD);
-    }
   });
 
   if (Array.isArray(todayTasks) && todayTasks.length > 0) {
     todayTasks.forEach(t => processTask(t, effectiveTarget));
-
-    const todayScoreResult = calculateDailyScore(todayTasks, effectiveTarget);
-    if (todayScoreResult.score > 0 && !isDateOnLeave(effectiveTarget) && !missedDatesSet.has(effectiveTarget)) {
-      activeDatesSet.add(effectiveTarget);
-    }
   }
 
   if (activeDatesSet.size === 0) {
@@ -428,18 +410,37 @@ export function getStreakAsOfDate(archives = [], targetDateStr = null, todayTask
   }
 
   const prevDate = subDays(checkDate, 1);
+  const prevDateStr = format(prevDate, 'yyyy-MM-dd');
 
-  // If effectiveTarget (e.g. today) has no rated tasks or rated notes, streak for target date is 0
+  // If effectiveTarget (e.g. today) has no completed task or rated daily note:
+  // Check if yesterday was active (grace period so user maintains active streak before today is completed)
   if (!activeDatesSet.has(effectiveTarget)) {
+    if (activeDatesSet.has(prevDateStr) && !missedDatesSet.has(prevDateStr) && !isDateOnLeave(prevDateStr)) {
+      let streakCount = 1;
+      let curr = subDays(prevDate, 1);
+      while (true) {
+        const dStr = format(curr, 'yyyy-MM-dd');
+        if (isDateOnLeave(dStr) || missedDatesSet.has(dStr)) break;
+        if (activeDatesSet.has(dStr)) {
+          streakCount++;
+          curr = subDays(curr, 1);
+        } else {
+          break;
+        }
+      }
+      return { current: streakCount, isActive: true };
+    }
+    // Yesterday was skipped/missed -> streak broken
     return { current: 0, isActive: false };
   }
 
+  // effectiveTarget has active completed task or rated daily note!
   let streakCount = 1;
   let isActive = true;
   let currCheckDate = prevDate;
 
-  // Count backwards for consecutive active days prior to effectiveTarget.
-  // Encountering a leave date OR a missed date breaks the streak completely.
+  // Count backwards for strictly consecutive active days prior to effectiveTarget.
+  // Encountering a leave date, a missed date, or any skipped day breaks the streak.
   while (true) {
     const dStr = format(currCheckDate, 'yyyy-MM-dd');
     if (isDateOnLeave(dStr)) {
