@@ -425,3 +425,4 @@ export default function StreakFireCelebration({ trigger, streakCount = 1, onComp
     </div>
   );
 }
+
