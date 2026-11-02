@@ -274,58 +274,7 @@ export function getMissedDatesSet(archives = [], todayTasks = [], effectiveTarge
       if (ratedDate && ratedDate <= targetStr) missedDates.add(ratedDate);
     }
 
-    // 3. Multi-day / carried tasks spanning past days without a submitted note
-    const createdClean = getCleanDateStr(t.createdAt || t.created_at);
-    const origClean = getCleanDateStr(t.originalDate || t.original_date);
-    const dateClean = getCleanDateStr(t.date);
-    const dueDateClean = getCleanDateStr(t.dueDateTime || t.due_date_time);
 
-    const startDates = [createdClean, origClean, dateClean].filter(Boolean).sort();
-    const cleanStartStr = startDates.length > 0 ? startDates[0] : null;
-
-    const isCarried = Boolean(t.carriedOver || t.carried_over || t.wasCarried || t.isCarried || (origClean && dateClean && origClean < dateClean));
-    const isMultiDay = Boolean((dueDateClean && cleanStartStr && dueDateClean > cleanStartStr) || isCarried || (notes.length > 0));
-
-    if (isMultiDay && cleanStartStr) {
-      const existingNoteDates = new Set(
-        notes.map(n => (n && n.date ? getCleanDateStr(n.date) : '')).filter(Boolean)
-      );
-
-      let maxEndStr = todayStr;
-      const completedClean = getCleanDateStr(t.completedAt || t.completed_at);
-      if (dueDateClean && dueDateClean < maxEndStr) {
-        maxEndStr = dueDateClean;
-      }
-      if (completedClean && (t.status === 'done' || t.completed === true) && completedClean < maxEndStr) {
-        maxEndStr = completedClean;
-      } else if (dateClean && (t.status === 'missed' || t.status === 'done') && dateClean < maxEndStr) {
-        maxEndStr = dateClean;
-      }
-
-      try {
-        const startDateObj = parseISO(cleanStartStr);
-        const endDateObj = parseISO(maxEndStr);
-        const todayDateObj = parseISO(todayStr);
-
-        if (!isNaN(startDateObj.getTime()) && !isNaN(endDateObj.getTime()) && startDateObj <= endDateObj) {
-          let curr = new Date(startDateObj);
-          while (curr <= endDateObj && curr <= todayDateObj) {
-            const currStr = format(curr, 'yyyy-MM-dd');
-            if (currStr <= targetStr) {
-              if (currStr < todayStr && !existingNoteDates.has(currStr)) {
-                if (!isDateOnLeave(currStr)) {
-                  // This past day had no note submitted and was not on leave -> shows [★ 0] Missed!
-                  missedDates.add(currStr);
-                }
-              }
-            }
-            curr = addDays(curr, 1);
-          }
-        }
-      } catch (e) {
-        // ignore date parse error
-      }
-    }
   };
 
   // Process archives
@@ -379,11 +328,19 @@ export function getAllValidStreakDates(archives = [], todayTasks = []) {
     if (Array.isArray(arc.tasks) && arc.tasks.length > 0) {
       arc.tasks.forEach(t => processTask(t, cleanD));
     }
+    const arcScore = Number(arc.score || 0);
+    if ((arcScore > 0 || arc.hasDone) && cleanD && !isDateOnLeave(cleanD) && !missedDates.has(cleanD)) {
+      activeDates.add(cleanD);
+    }
   });
 
   // 2. Process today's tasks
   if (Array.isArray(todayTasks) && todayTasks.length > 0) {
     todayTasks.forEach(t => processTask(t, todayStr));
+    const todayScoreResult = calculateDailyScore(todayTasks, todayStr);
+    if (todayScoreResult.score > 0 && !isDateOnLeave(todayStr) && !missedDates.has(todayStr)) {
+      activeDates.add(todayStr);
+    }
   }
 
   return Array.from(activeDates).filter(d => Boolean(d) && !missedDates.has(d) && !isDateOnLeave(d)).sort();
@@ -445,10 +402,20 @@ export function getStreakAsOfDate(archives = [], targetDateStr = null, todayTask
     if (Array.isArray(arc.tasks) && arc.tasks.length > 0) {
       arc.tasks.forEach(t => processTask(t, cleanD));
     }
+
+    const arcScore = Number(arc.score || 0);
+    if ((arcScore > 0 || arc.hasDone) && !isDateOnLeave(cleanD) && !missedDatesSet.has(cleanD)) {
+      activeDatesSet.add(cleanD);
+    }
   });
 
   if (Array.isArray(todayTasks) && todayTasks.length > 0) {
     todayTasks.forEach(t => processTask(t, effectiveTarget));
+
+    const todayScoreResult = calculateDailyScore(todayTasks, effectiveTarget);
+    if (todayScoreResult.score > 0 && !isDateOnLeave(effectiveTarget) && !missedDatesSet.has(effectiveTarget)) {
+      activeDatesSet.add(effectiveTarget);
+    }
   }
 
   if (activeDatesSet.size === 0) {
