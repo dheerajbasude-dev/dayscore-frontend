@@ -12,6 +12,7 @@ import CustomSelect from '../components/CustomSelect'
 import ReflectionBox from '../components/ReflectionBox'
 import ConfettiCelebration from '../components/ConfettiCelebration'
 import PenaltyCelebration from '../components/PenaltyCelebration'
+import StreakFireCelebration from '../components/StreakFireCelebration'
 import AuthModal from '../components/AuthModal'
 import RewardsBookModal, { calculateRewardsBookPendingCount } from '../components/RewardsBookModal'
 import LeaveModal from '../components/LeaveModal'
@@ -146,6 +147,7 @@ export default function TodayView() {
   const [showLeaveModal, setShowLeaveModal] = useState(false)
   const [leaveBalance, setLeaveBalance] = useState(() => store.getLeaveBalance())
   const [showConfetti, setShowConfetti] = useState(false)
+  const [streakCelebration, setStreakCelebration] = useState({ trigger: false, count: 0 })
   const [deletingTaskIds, setDeletingTaskIds] = useState(new Set())
   const [claimingTaskIds, setClaimingTaskIds] = useState(new Set())
   const [acceptingTaskIds, setAcceptingTaskIds] = useState(new Set())
@@ -1712,10 +1714,18 @@ export default function TodayView() {
     }
 
     try {
+      const prevStreakCount = streak?.current || 0;
       await store.updateTask(taskDate, targetId, updates);
       await store.fetchAllTasksApi();
-      setTasks(store.getTasks(currentDateStr));
-      setArchives(store.getAllArchives());
+      const updatedTasks = store.getTasks(currentDateStr);
+      const updatedArcs = store.getAllArchives();
+      setTasks(updatedTasks);
+      setArchives(updatedArcs);
+      const updatedStreak = scoring.getStreakAsOfDate(updatedArcs, currentDateStr, updatedTasks);
+      setStreak(updatedStreak);
+      if (updatedStreak && updatedStreak.current > prevStreakCount && updatedStreak.current > 0) {
+        setStreakCelebration({ trigger: true, count: updatedStreak.current });
+      }
     } catch (err) {
       console.error('Failed to save daily note:', err);
       showToast("Couldn't save note — check your connection and try again", 'error');
@@ -1907,13 +1917,22 @@ export default function TodayView() {
     };
 
     try {
+      const prevStreakCount = streak?.current || 0;
       await store.updateTask(taskDate, targetId, updates);
       await store.fetchAllTasksApi();
-      setTasks(store.getTasks(currentDateStr));
-      setArchives(store.getAllArchives());
+      const updatedTasks = store.getTasks(currentDateStr);
+      const updatedArcs = store.getAllArchives();
+      setTasks(updatedTasks);
+      setArchives(updatedArcs);
+      const updatedStreak = scoring.getStreakAsOfDate(updatedArcs, currentDateStr, updatedTasks);
+      setStreak(updatedStreak);
 
       // Close modal on success
       setRatingTask(null);
+
+      if (updatedStreak && updatedStreak.current > prevStreakCount && updatedStreak.current > 0) {
+        setStreakCelebration({ trigger: true, count: updatedStreak.current });
+      }
 
       // After modal closes, trigger rewards/penalties banner & animations
       const pendingPenalty = taskPenalty;
@@ -2538,6 +2557,11 @@ export default function TodayView() {
 
       <ConfettiCelebration trigger={showConfetti} />
       <PenaltyCelebration trigger={showPenaltyFlash} />
+      <StreakFireCelebration
+        trigger={streakCelebration.trigger}
+        streakCount={streakCelebration.count}
+        onComplete={() => setStreakCelebration(prev => ({ ...prev, trigger: false }))}
+      />
 
       {loading ? (
         <div className="today-loading-container">
