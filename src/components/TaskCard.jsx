@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { X, Loader2, Check, AlertTriangle, Clock, FileText, Plus, Star, RotateCcw, Calendar } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, differenceInCalendarDays } from 'date-fns';
 import { useTimer } from '../hooks/useTimer';
 import { getLocalDateStr, formatTaskMetaDates, isDateOnLeave, getLeaveReasonForDate } from '../utils/taskUtils';
 
@@ -267,6 +267,77 @@ function TaskCard({
     return filled.sort((a, b) => (getLocalDateStr(a.date) || '').localeCompare(getLocalDateStr(b.date) || ''));
   }, [notesList, task, todayDateStr, leaveUpdateTick]);
 
+  // Group continuous leave days into a single consolidated display row
+  const displayedNotesList = useMemo(() => {
+    if (!effectiveNotesList || effectiveNotesList.length === 0) return [];
+
+    const result = [];
+    let currentLeaveGroup = null;
+
+    const flushLeaveGroup = () => {
+      if (!currentLeaveGroup) return;
+      if (currentLeaveGroup.items.length === 1) {
+        result.push(currentLeaveGroup.items[0]);
+      } else {
+        const first = currentLeaveGroup.items[0];
+        const last = currentLeaveGroup.items[currentLeaveGroup.items.length - 1];
+
+        const uniqueReasons = [];
+        currentLeaveGroup.items.forEach(item => {
+          const r = (item.leaveReason || getLeaveReasonForDate(getLocalDateStr(item.date)) || '').trim();
+          if (r && !uniqueReasons.includes(r)) {
+            uniqueReasons.push(r);
+          }
+        });
+
+        const combinedReason = uniqueReasons.length > 0 ? uniqueReasons.join(', ') : '';
+
+        result.push({
+          id: `leave-group-${first.date}-${last.date}`,
+          date: first.date,
+          endDate: last.date,
+          isLeaveGroup: true,
+          isLeaveApplied: true,
+          leaveReason: combinedReason,
+          leaveDaysCount: currentLeaveGroup.items.length,
+          note: combinedReason ? `Leave Applied: ${combinedReason}` : 'Leave Applied',
+          items: currentLeaveGroup.items
+        });
+      }
+      currentLeaveGroup = null;
+    };
+
+    effectiveNotesList.forEach(n => {
+      const nDate = getLocalDateStr(n.date);
+      const isLeave = Boolean(n.isLeaveApplied || (nDate && isDateOnLeave(nDate)));
+
+      if (isLeave) {
+        if (!currentLeaveGroup) {
+          currentLeaveGroup = { items: [n], lastDateStr: nDate };
+        } else {
+          const lastDateObj = parseISO(currentLeaveGroup.lastDateStr);
+          const currDateObj = parseISO(nDate);
+          const diff = differenceInCalendarDays(currDateObj, lastDateObj);
+
+          if (diff === 1) {
+            currentLeaveGroup.items.push(n);
+            currentLeaveGroup.lastDateStr = nDate;
+          } else {
+            flushLeaveGroup();
+            currentLeaveGroup = { items: [n], lastDateStr: nDate };
+          }
+        }
+      } else {
+        flushLeaveGroup();
+        result.push(n);
+      }
+    });
+
+    flushLeaveGroup();
+
+    return result;
+  }, [effectiveNotesList, leaveUpdateTick]);
+
   const effectiveIsToday = useMemo(() => {
     if (currentDateStr) return currentDateStr === todayDateStr;
     if (isToday === false) return false;
@@ -377,6 +448,25 @@ function TaskCard({
       return format(d, 'MMM dd, yyyy');
     } catch (e) {
       return 'Today';
+    }
+  };
+
+  const formatLeaveDateRange = (startDateStr, endDateStr) => {
+    try {
+      const startD = typeof startDateStr === 'string' ? parseISO(startDateStr) : new Date(startDateStr);
+      const endD = typeof endDateStr === 'string' ? parseISO(endDateStr) : new Date(endDateStr);
+      if (isNaN(startD.getTime()) || isNaN(endD.getTime())) return formatNoteDate(startDateStr);
+
+      const startYear = startD.getFullYear();
+      const endYear = endD.getFullYear();
+
+      if (startYear === endYear) {
+        return `${format(startD, 'MMM dd')} - ${format(endD, 'MMM dd, yyyy')}`;
+      } else {
+        return `${format(startD, 'MMM dd, yyyy')} - ${format(endD, 'MMM dd, yyyy')}`;
+      }
+    } catch (e) {
+      return formatNoteDate(startDateStr);
     }
   };
 
@@ -633,13 +723,13 @@ function TaskCard({
   const effectiveCardStatus = isDone ? 'done' : (isMissed ? 'missed' : task.status);
 
   const renderNoteToggleBtn = (extraClass = '') => {
-    if (!((isMultiDayOrCarried || effectiveNotesList.length > 0) && (effectiveNotesList.length > 0 || ((effectiveIsToday || isCurrentDateOnLeave) && !isDone && !isMissed)))) {
+    if (!((isMultiDayOrCarried || displayedNotesList.length > 0) && (displayedNotesList.length > 0 || ((effectiveIsToday || isCurrentDateOnLeave) && !isDone && !isMissed)))) {
       return null;
     }
     return (
       <button
         type="button"
-        className={`task-note-toggle-btn ${showNotesInput ? 'active' : ''} ${effectiveNotesList.length > 0 ? 'has-notes' : ''} ${extraClass}`}
+        className={`task-note-toggle-btn ${showNotesInput ? 'active' : ''} ${displayedNotesList.length > 0 ? 'has-notes' : ''} ${extraClass}`}
         onClick={() => setShowNotesInput(prev => !prev)}
         title={showNotesInput ? "Hide Daily Notes" : (isCurrentDateOnLeave ? "Leave Applied ✓ · View Daily Notes" : (isCurrentDateNoteRated ? "Today's note rated ✓ · View Daily Notes" : "View / Add Daily Notes"))}
       >
@@ -647,7 +737,7 @@ function TaskCard({
         {(isCurrentDateNoteRated || isCurrentDateOnLeave) && (
           <Check size={11} strokeWidth={3.5} color="#10b981" style={{ flexShrink: 0, filter: 'drop-shadow(0 0 3px rgba(16, 185, 129, 0.45))' }} />
         )}
-        {effectiveNotesList.length > 0 && <span>{effectiveNotesList.length}</span>}
+        {displayedNotesList.length > 0 && <span>{displayedNotesList.length}</span>}
       </button>
     );
   };
@@ -858,9 +948,9 @@ function TaskCard({
             border: '1px solid var(--border-glass)',
             boxShadow: 'var(--shadow-sm)'
           }}>
-            {effectiveNotesList.length > 0 && (
+            {displayedNotesList.length > 0 && (
               <div className="daily-notes-list" style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: ((effectiveIsToday || currentViewDateStr === todayDateStr) && !isDone && !isMissed) ? '10px' : '0' }}>
-                {effectiveNotesList.map((n, idx) => {
+                {displayedNotesList.map((n, idx) => {
                   const nDate = getLocalDateStr(n.date);
                   const isLeaveDay = Boolean(n.isLeaveApplied || (nDate && isDateOnLeave(nDate)));
                   const ratingVal = n.rating != null && !isNaN(Number(n.rating)) ? Number(n.rating) : 0;
@@ -882,7 +972,7 @@ function TaskCard({
                         fontSize: '0.74rem',
                         flexShrink: 0
                       }}>
-                        {formatNoteDate(n.date)}:
+                        {n.isLeaveGroup ? formatLeaveDateRange(n.date, n.endDate) : formatNoteDate(n.date)}:
                       </span>
 
                       {isLeaveDay ? (
@@ -897,7 +987,7 @@ function TaskCard({
                           wordBreak: 'break-word'
                         }}>
                           {(() => {
-                            const reason = getLeaveReasonForDate(nDate) || n.leaveReason || '';
+                            const reason = n.leaveReason || (nDate ? getLeaveReasonForDate(nDate) : '') || '';
                             return reason ? `Leave Applied: ${reason}` : 'Leave Applied';
                           })()}
                         </span>
@@ -955,7 +1045,7 @@ function TaskCard({
                   fontSize: '0.72rem',
                   color: '#8b5cf6',
                   fontWeight: 600,
-                  marginTop: effectiveNotesList.length > 0 ? '4px' : '0',
+                  marginTop: displayedNotesList.length > 0 ? '4px' : '0',
                   padding: '5px 8px',
                   background: 'rgba(139, 92, 246, 0.08)',
                   border: '1px solid rgba(139, 92, 246, 0.2)',
@@ -976,7 +1066,7 @@ function TaskCard({
                   fontSize: '0.72rem',
                   color: '#10b981',
                   fontWeight: 600,
-                  marginTop: effectiveNotesList.length > 0 ? '4px' : '0',
+                  marginTop: displayedNotesList.length > 0 ? '4px' : '0',
                   padding: '0 2px'
                 }}>
                   <Check size={12} strokeWidth={2.5} style={{ color: '#10b981' }} />
